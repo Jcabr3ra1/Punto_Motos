@@ -11,7 +11,7 @@
 *.sqlite3
 *.sqlite3-*
 *.db
-backups/
+/backups/
 media/
 
 # Dependencias y archivos generados
@@ -23,6 +23,11 @@ __pycache__/
 dist/
 build/
 *.log
+
+# Rust y Tauri: compilación y ejecutable del sidecar generado con PyInstaller
+target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/gen/
 
 # Archivos temporales de Office y del sistema
 ~$*

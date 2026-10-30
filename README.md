@@ -25,6 +25,15 @@ Confirmado con el dueño: un solo computador con Windows y datos en su disco dur
 - **Juan:** parte visual (React), aplicación de escritorio (Tauri), diseño del recibo de 80 mm y prueba en la impresora, carga del inventario inicial, instalador, guía de uso y pruebas con el dueño.
 - **Alex:** backend (Django, Django REST Framework y SQLite): modelos, API, reglas del negocio, liquidación diaria, cierre de mes, informes en Excel y PDF, envío ESC/POS a la impresora, respaldos y empaquetado Python como sidecar de Tauri.
 
+## Carpetas de trabajo
+
+| Carpeta | Responsable | Contenido |
+| --- | --- | --- |
+| [frontend/](frontend/README.md) | Juan | Interfaz en React y TypeScript |
+| [desktop/](desktop/README.md) | Juan, con Alex en el sidecar | Aplicación Tauri 2 e instalador para Windows |
+| [backend/](backend/README.md) | Alex | API Django, SQLite, impresión ESC/POS, informes y respaldos |
+| [docs/](docs/) | Ambos | Informe del proyecto y contrato de la API |
+
 ## Estado
 
 El repositorio contiene la documentación inicial para socializar y acordar el proyecto. La aplicación todavía no está implementada.
