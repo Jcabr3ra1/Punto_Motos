@@ -2,7 +2,7 @@
 
 Propuesta funcional y técnica para organizar el desarrollo entre dos personas
 
-Fecha: 29 de octubre de 2026
+Fecha: 29 de octubre de 2026. Actualizado el 30 de octubre de 2026: la aplicación de escritorio pasa de Electron a Tauri.
 
 ## 1 Propósito y propuesta general
 
@@ -10,7 +10,7 @@ Proponemos desarrollar una aplicación de escritorio para Windows que permita ad
 
 El programa se abrirá desde un ícono e iniciará sus componentes automáticamente. La operación local funcionará sin internet. La conectividad será necesaria para enviar respaldos a una ubicación remota o utilizar futuras integraciones externas.
 
-La arquitectura propuesta es Electron con React y TypeScript para la aplicación de escritorio, Django con Django REST Framework para la lógica del negocio y SQLite para los datos locales. El desarrollo puede hacerse en Linux; el empaquetado final y las pruebas de aceptación se harán en Windows.
+La arquitectura propuesta es Tauri 2 con React y TypeScript para la aplicación de escritorio, Django con Django REST Framework para la lógica del negocio y SQLite para los datos locales. El desarrollo puede hacerse en Linux; el empaquetado final y las pruebas de aceptación se harán en Windows.
 
 El dueño confirmó que el sistema funcionará en un solo computador con Windows. Si en el futuro se requieren varios puestos escribiendo simultáneamente, se revisará la arquitectura y se evaluará PostgreSQL centralizado. Los nombres comerciales y datos del negocio que aparecerán en el recibo siguen pendientes de confirmar.
 
@@ -163,7 +163,7 @@ El recibo contendrá identificación y contacto del negocio, número, fecha, cli
 
 También se imprimirá la liquidación diaria de cada mecánico. Los informes de cierre de mes se generarán en Excel y PDF.
 
-Confirmado con el dueño: se usará una impresora térmica de recibos. Se diseñará un formato de rollo angosto, de una columna, con texto grande para totales y sin colores. Confirmado: el papel será de 80 mm. El modelo de la impresora aún no se ha escogido; servirá cualquier térmica de 80 mm con controlador para Windows. La primera versión imprimirá mediante el controlador de Windows desde Electron, con impresión directa a la impresora configurada. Si el modelo lo permite, se evaluará el envío de comandos ESC/POS para el corte de papel y la apertura del cajón de dinero. El tamaño y el corte se validarán físicamente con la impresora real.
+Confirmado con el dueño: se usará una impresora térmica de recibos. Se diseñará un formato de rollo angosto, de una columna, con texto grande para totales y sin colores. Confirmado: el papel será de 80 mm. El modelo de la impresora aún no se ha escogido; servirá cualquier térmica de 80 mm con controlador para Windows. Tauri no ofrece impresión silenciosa integrada: la impresión desde la ventana abre el diálogo de Windows. Por eso la primera versión imprimirá desde el backend: Django generará el recibo y la liquidación en comandos ESC/POS y los enviará en crudo a la impresora configurada mediante la cola de impresión de Windows, sin abrir diálogos. Así se incluyen también el corte de papel y la apertura del cajón de dinero. Si el modelo elegido no admite ESC/POS, se usará como alternativa un plugin de impresión de Tauri o la impresión del PDF mediante el controlador de Windows. El tamaño y el corte se validarán físicamente con la impresora real.
 
 Los documentos serán recibos internos de compra, sin facturación electrónica, y también podrán exportarse a PDF.
 
@@ -172,18 +172,32 @@ Los documentos serán recibos internos de compra, sin facturación electrónica,
 La ruta de operación propuesta es la siguiente.
 
 ```text
-Windows y aplicación Electron
+Windows y aplicación Tauri (WebView2)
              |
-React -> API local Django -> SQLite
-                              |
-                 Respaldos a otros destinos
+React -> API local Django (sidecar) -> SQLite
+                  |                      |
+      Impresora térmica ESC/POS   Respaldos a otros destinos
 ```
 
-Electron gestionará la ventana, el ciclo de vida del backend, la selección de carpetas, la impresión y el acceso controlado al sistema operativo. React manejará las pantallas y consumirá la API; no accederá directamente a la base de datos ni ejecutará SQL.
+Tauri gestionará la ventana, el ciclo de vida del backend, la selección de carpetas, la instancia única, el inicio con Windows y el acceso controlado al sistema operativo. Su proceso principal está escrito en Rust y la interfaz se muestra con WebView2, el motor web de Microsoft Edge que ya viene en Windows 11; el instalador incluirá el instalador de WebView2 para equipos que no lo tengan. El backend Django, empaquetado con PyInstaller, se distribuirá como sidecar de Tauri: un ejecutable externo que Tauri inicia al abrir la aplicación, cuya disponibilidad comprueba antes de mostrar las pantallas y que cierra al salir. React manejará las pantallas y consumirá la API; no accederá directamente a la base de datos ni ejecutará SQL.
+
+Se eligió Tauri en lugar de Electron por estas razones:
+
+| Criterio | Tauri | Electron |
+| --- | --- | --- |
+| Motor web | WebView2 del sistema | Chromium incluido en cada instalación |
+| Tamaño del instalador | Pocos megabytes más el backend Python | Del orden de 80 a 150 MB más el backend Python |
+| Consumo de memoria | Menor | Mayor |
+| Seguridad | Permisos explícitos por capacidad y acceso al sistema denegado por defecto | Requiere configurar aislamiento de contexto y preload con cuidado |
+| Backend externo | Sidecar oficial declarado en la configuración | Proceso hijo gestionado desde Node.js |
+| Impresión silenciosa | No integrada; se resuelve en Django con ESC/POS | Integrada en el motor |
+| Lenguaje del proceso principal | Rust | JavaScript o TypeScript |
+
+El costo de esta decisión es que el equipo deberá aprender lo básico de Rust para el proceso principal y que la impresión pasa al backend. La prueba de escritorio de la etapa 1 deberá confirmar el arranque del sidecar y la impresión de un recibo real antes de construir los demás módulos.
 
 Django aplicará permisos, validaciones, transacciones y reglas del negocio. Se ejecutará con un servidor local apropiado para la distribución, como Waitress, propuesto por su compatibilidad con Windows. El servidor de desarrollo de Django no se usará para la entrega.
 
-El backend escuchará solamente en la interfaz local del computador. El empaquetado deberá resolver autenticación local, credencial efímera por inicio o mecanismo equivalente, restricciones de origen y protección de solicitudes. React tendrá aislamiento de contexto y no recibirá acceso general a Node ni a las credenciales administrativas del sistema. Las contraseñas usarán el mecanismo de hash de Django.
+El backend escuchará solamente en la interfaz local del computador. El empaquetado deberá resolver autenticación local, credencial efímera por inicio o mecanismo equivalente, restricciones de origen y protección de solicitudes. La ventana de React solo tendrá los permisos de Tauri que se declaren explícitamente en sus capacidades, con una política de seguridad de contenido restrictiva; no recibirá acceso general al sistema de archivos, a la ejecución de comandos ni a las credenciales administrativas del sistema. Las contraseñas usarán el mecanismo de hash de Django.
 
 | Alternativa considerada | Ventaja | Costo o limitación | Uso propuesto |
 | --- | --- | --- | --- |
@@ -288,7 +302,7 @@ La API tendrá el prefijo /api/v1 y un contrato OpenAPI versionado. Juan y Alex 
 | Documentos | GET /sales/{id}/document | Datos inmutables para impresión |
 | Respaldos | GET /backups, POST /backups, POST /restore/validate | Estado y operaciones restringidas |
 
-Las rutas son una propuesta de contrato, no endpoints implementados. La selección de carpetas y los diálogos de Windows serán responsabilidad de Electron; el acceso al sistema de archivos se expondrá de forma limitada. La restauración efectiva se coordinará con el proceso principal para cerrar conexiones y reiniciar el backend con seguridad.
+Las rutas son una propuesta de contrato, no endpoints implementados. La selección de carpetas y los diálogos de Windows serán responsabilidad de Tauri; el acceso al sistema de archivos se expondrá de forma limitada. La restauración efectiva se coordinará con el proceso principal para cerrar conexiones y reiniciar el backend con seguridad.
 
 Los listados tendrán paginación, búsqueda y ordenación. Los errores devolverán código estable, mensaje comprensible y errores por campo cuando apliquen. Se distinguirán errores de validación, permisos y conflictos de operación. Un reintento de confirmación conservará el mismo identificador y devolverá el resultado ya registrado.
 
@@ -304,12 +318,12 @@ Roles confirmados: Juan está a cargo de la parte visual y de las tareas que se 
 | Interfaz | React: navegación, venta rápida, registro de servicios, formularios, tablas, mensajes de error y navegación con teclado | Contrato API con campos, errores y ejemplos de respuesta |
 | Datos | Consumir la API y mostrar los resultados confirmados por Django | Modelos, migraciones, restricciones, índices y diccionario de datos |
 | Negocio | Mostrar los flujos de venta, servicio, devolución y cierres sin permitir dobles clics | Transacciones, inventario, caja, liquidación diaria, devoluciones y cierre de mes |
-| Escritorio | Electron: ventana, inicio, carpetas e impresión directa | Arranque y cierre seguro de Django desde Electron |
-| Recibos e informes | Diseño del recibo de 80 mm, de la liquidación diaria y prueba física en la impresora | Datos de los documentos y generación de los informes en Excel y PDF |
+| Escritorio | Tauri: ventana, inicio, carpetas, instancia única y permisos de la ventana | Sidecar de Django: arranque, comprobación de disponibilidad y cierre seguro desde Tauri |
+| Recibos e informes | Diseño del recibo de 80 mm, de la liquidación diaria y prueba física en la impresora | Datos de los documentos, envío ESC/POS a la impresora y generación de los informes en Excel y PDF |
 | Inventario inicial | Plantilla de conteo y pantalla de carga del inventario global | Importación validada y movimiento de inventario inicial |
 | Respaldos | Pantalla de configuración, avisos de último respaldo y restauración guiada | Copia consistente, cifrado, envío a destinos, validación, restauración y borrado automático del detalle del mes |
 | Pruebas | Flujos completos en Windows y pruebas de aceptación con el dueño | Pruebas de reglas, dinero, integridad y API |
-| Entrega | Instalador con Electron Forge y guía de uso para el dueño y los vendedores | Empaquetado Python con PyInstaller, migraciones controladas y diagnóstico |
+| Entrega | Instalador generado por Tauri y guía de uso para el dueño y los vendedores | Empaquetado Python con PyInstaller, migraciones controladas y diagnóstico |
 
 Se propone un único repositorio con carpetas frontend, backend, desktop y docs. La especificación de la API y los ejemplos vivirán en docs. Cada cambio se hará en una rama corta y la revisará el otro integrante antes de integrarla: Alex revisa los cambios de Juan y Juan los de Alex. No se subirán datos reales de clientes, contraseñas ni respaldos al repositorio.
 
@@ -319,11 +333,11 @@ En cada sesión de coordinación se revisarán tres puntos: qué flujo completo 
 
 ## 12 Desarrollo en Linux y entrega en Windows
 
-El desarrollo diario se realizará en Linux con entornos separados de Python y Node. Se fijarán versiones compatibles al iniciar el proyecto y se conservarán archivos de dependencias reproducibles. Ambos integrantes trabajarán con la misma estructura y datos ficticios.
+El desarrollo diario se realizará en Linux con entornos separados de Python, Node y Rust; Tauri funciona en Linux con WebKitGTK, así que las pantallas se podrán probar allí, aunque el aspecto final se validará con WebView2 en Windows. Se fijarán versiones compatibles al iniciar el proyecto y se conservarán archivos de dependencias reproducibles. Ambos integrantes trabajarán con la misma estructura y datos ficticios.
 
-Una primera prueba temprana empaquetará una pantalla sencilla y un backend que lea y escriba un dato local. Su objetivo será verificar desde el comienzo el arranque de Electron, el proceso Python, las carpetas de Windows y la persistencia después de reiniciar. Así se evaluará la parte más sensible antes de construir todos los módulos.
+Una primera prueba temprana empaquetará una pantalla sencilla y un backend que lea y escriba un dato local. Su objetivo será verificar desde el comienzo el arranque de Tauri, el sidecar de Python, las carpetas de Windows, la impresión de un recibo de prueba y la persistencia después de reiniciar. Así se evaluará la parte más sensible antes de construir todos los módulos.
 
-El paquete Python podrá generarse con PyInstaller en Windows. Después, Electron Forge u otra herramienta acordada generará el instalador. Podemos utilizar un computador Windows, una máquina virtual o un ejecutor de integración continua Windows. El acceso a ese entorno sigue pendiente de resolver.
+El paquete Python podrá generarse con PyInstaller en Windows y se copiará como sidecar con el nombre que Tauri exige para la plataforma, por ejemplo backend-x86_64-pc-windows-msvc.exe. Después, el empaquetador de Tauri generará el instalador para Windows en formato NSIS o MSI, con el instalador de WebView2 incluido. Podemos utilizar un computador Windows, una máquina virtual o un ejecutor de integración continua Windows. El acceso a ese entorno sigue pendiente de resolver.
 
 El instalador incluirá las dependencias necesarias para el usuario final. La actualización hará respaldo previo, ejecutará migraciones controladas y comprobará que el backend arranque. Si una migración falla, se bloqueará el uso y se ofrecerá una recuperación guiada; no se abrirá una base incompleta. Se decidirán formato de instalador, arquitectura de Windows y mecanismo de actualización en la fase de empaquetado.
 
@@ -334,7 +348,7 @@ Las etapas indican dependencias y resultados, no fechas comprometidas. La duraci
 | Etapa | Resultado esperado | Criterio para avanzar |
 | --- | --- | --- |
 | 0 Definición | Reglas pendientes, alcance y contrato inicial | Ambos pueden explicar el mismo flujo de compra y venta |
-| 1 Prueba de escritorio | Electron, Django y SQLite instalables | Un dato persiste después de cerrar y reiniciar en Windows |
+| 1 Prueba de escritorio | Tauri, Django como sidecar y SQLite instalables | Un dato persiste después de cerrar y reiniciar en Windows y se imprime un recibo de prueba |
 | 2 Catálogo y compras | Productos, proveedores, recepción e inventario inicial | Una recepción aumenta exactamente las existencias correctas |
 | 3 Ventas y caja | Venta, cobro, abono, gastos y cierre | Inventario, saldos y caja concilian sin duplicados |
 | 4 Servicios y mecánicos | Servicio como venta y liquidación diaria | El repuesto se descuenta una vez y el mecánico recibe su porcentaje exacto |
@@ -370,7 +384,7 @@ La prueba de carga se definirá con el volumen diario y el tamaño esperado del 
 
 ## 15 Costos y decisiones pendientes
 
-La modalidad local evita pagar un servidor para mantener la aplicación operativa. React, Django, Electron y SQLite no requieren comprar una licencia de uso para este planteamiento, sujeto a conservar los avisos y condiciones de sus dependencias. Seguirán existiendo costos de desarrollo, soporte, equipo, energía, impresora, consumibles y el destino de respaldo elegido.
+La modalidad local evita pagar un servidor para mantener la aplicación operativa. React, Django, Tauri y SQLite no requieren comprar una licencia de uso para este planteamiento, sujeto a conservar los avisos y condiciones de sus dependencias. Seguirán existiendo costos de desarrollo, soporte, equipo, energía, impresora, consumibles y el destino de respaldo elegido.
 
 No se compromete un servicio de nube ni una tarifa anual en esta propuesta. El almacenamiento remoto de copias se cotizará cuando el dueño elija proveedor, capacidad y retención. La firma del instalador, si se contrata, será otro concepto. El acceso remoto y la facturación electrónica, si se solicitan, se presupuestarán por separado.
 
@@ -399,7 +413,7 @@ Decisiones que siguen pendientes:
 
 | Decisión | Motivo | Propuesta inicial |
 | --- | --- | --- |
-| Modelo de impresora | Prueba física de corte y cajón | Cualquier térmica de 80 mm con controlador para Windows |
+| Modelo de impresora | Prueba física de corte y cajón | Cualquier térmica de 80 mm compatible con ESC/POS y con controlador para Windows |
 | Destino externo de respaldo | Determina recuperación y costos | Google Drive u OneDrive automático y dos memorias USB alternadas |
 | Entorno Windows de pruebas | Necesario para instalar y validar | Equipo o máquina virtual disponible desde el inicio |
 | Datos del negocio para el recibo | Encabezado del recibo | Nombre, dirección, teléfono y NIT o cédula si el dueño lo desea |
@@ -411,15 +425,17 @@ La reunión puede seguir este orden: revisar el objetivo y el flujo completo; co
 
 Las fuentes respaldan las decisiones de arquitectura y deben revisarse al fijar las versiones del proyecto. No sustituyen las pruebas de integración ni la confirmación de los requisitos del negocio.
 
-1. Electron. Introducción a aplicaciones de escritorio. https://www.electronjs.org/docs/latest/
+1. Tauri 2. Introducción a aplicaciones de escritorio. https://v2.tauri.app/start/
 2. Django. Bases de datos compatibles y límites de SQLite. https://docs.djangoproject.com/en/5.2/ref/databases/
 3. SQLite. Usos adecuados y comparación con bases cliente servidor. https://sqlite.org/whentouse.html
 4. SQLite. Transacciones. https://sqlite.org/transactional.html
 5. SQLite. API de respaldo en línea. https://www.sqlite.org/backup.html
 6. Django REST Framework. Autenticación y permisos. https://www.django-rest-framework.org/api-guide/authentication/
-7. Electron. Recomendaciones de seguridad. https://www.electronjs.org/docs/latest/tutorial/security
+7. Tauri 2. Seguridad, permisos y capacidades. https://v2.tauri.app/security/
 8. PyInstaller. Empaquetado por sistema operativo. https://pyinstaller.org/en/stable/
-9. Electron Forge. Ciclo de construcción y empaquetado. https://www.electronforge.io/core-concepts/build-lifecycle
-10. Waitress. Servidor WSGI para Python. https://docs.pylonsproject.org/projects/waitress/en/stable/
+9. Tauri 2. Binarios externos (sidecar). https://v2.tauri.app/develop/sidecar/
+10. Tauri 2. Instalador para Windows y WebView2. https://v2.tauri.app/distribute/windows-installer/
+11. Waitress. Servidor WSGI para Python. https://docs.pylonsproject.org/projects/waitress/en/stable/
+12. python-escpos. Impresión ESC/POS desde Python. https://python-escpos.readthedocs.io/
 
-Consulta de documentación y preparación del informe: 29 de octubre de 2026.
+Consulta de documentación y preparación del informe: 29 de octubre de 2026; actualización a Tauri: 30 de octubre de 2026.

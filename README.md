@@ -11,7 +11,8 @@ El informe contiene el alcance, las reglas del negocio, la arquitectura, el mode
 
 ## Arquitectura propuesta
 
-- Aplicación de escritorio para Windows con Electron.
+- Aplicación de escritorio para Windows con Tauri 2 (WebView2), con Django como sidecar.
+- Impresión directa de recibos ESC/POS desde Django a la impresora térmica.
 - Interfaz con React y TypeScript.
 - Backend con Django y Django REST Framework.
 - Base de datos local con SQLite para la modalidad inicial propuesta.
@@ -21,8 +22,8 @@ Confirmado con el dueño: un solo computador con Windows y datos en su disco dur
 
 ## Equipo
 
-- **Juan:** parte visual (React), aplicación de escritorio (Electron), impresión del recibo de 80 mm, carga del inventario inicial, instalador, guía de uso y pruebas con el dueño.
-- **Alex:** backend (Django, Django REST Framework y SQLite): modelos, API, reglas del negocio, liquidación diaria, cierre de mes, informes en Excel y PDF, respaldos y empaquetado Python.
+- **Juan:** parte visual (React), aplicación de escritorio (Tauri), diseño del recibo de 80 mm y prueba en la impresora, carga del inventario inicial, instalador, guía de uso y pruebas con el dueño.
+- **Alex:** backend (Django, Django REST Framework y SQLite): modelos, API, reglas del negocio, liquidación diaria, cierre de mes, informes en Excel y PDF, envío ESC/POS a la impresora, respaldos y empaquetado Python como sidecar de Tauri.
 
 ## Estado
 
