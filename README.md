@@ -34,6 +34,8 @@ Confirmado con el dueño: un solo computador con Windows y datos en su disco dur
 | [backend/](backend/README.md) | Alex | API Django, SQLite, impresión ESC/POS, informes y respaldos |
 | [docs/](docs/) | Ambos | Informe del proyecto y contrato de la API |
 
+Todo cambio en el backend se documenta para el frontend en [docs/backend/API.md](docs/backend/API.md) (contrato) y [docs/backend/CAMBIOS.md](docs/backend/CAMBIOS.md) (bitácora). Las reglas del proyecto están en [CLAUDE.md](CLAUDE.md).
+
 ## Estado
 
 El repositorio contiene la documentación inicial para socializar y acordar el proyecto. La aplicación todavía no está implementada.
