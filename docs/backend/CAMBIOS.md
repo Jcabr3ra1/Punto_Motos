@@ -11,6 +11,26 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-10-30 · Usuarios, sesión y permisos (0.2.0)
+
+**Cambio incompatible:** `GET`, `PUT` y `PATCH /settings/business` ahora exigen sesión (`Authorization: Token ...`) y solo el dueño puede modificar. Sin sesión responden 401 `not_authenticated`; un vendedor que intente modificar recibe 403 `permission_denied`.
+
+**Qué cambió**
+
+- Usuarios con dos roles: dueño (`owner`) y vendedor (`seller`). No se borran: se desactivan.
+- Configuración inicial: `GET /setup/status` y `POST /setup/owner`, que crea el primer dueño una sola vez.
+- Sesión: `POST /auth/login`, `POST /auth/logout` y `GET /auth/me`. Un token por usuario; cada inicio reemplaza el anterior y todas las sesiones se borran al abrir el programa. Máximo 10 intentos de inicio por minuto.
+- Administración de usuarios (solo el dueño): `GET` y `POST /users`, `GET` y `PATCH /users/{id}`, `POST /users/{id}/set-password`. Desactivar un usuario o cambiarle la contraseña cierra su sesión. Debe quedar siempre al menos un dueño activo.
+- Errores nuevos: 401 `not_authenticated` y `authentication_failed`, 403 `permission_denied` y 429 `throttled`.
+
+**Qué debe hacer el frontend**
+
+- Agregar la cabecera `Authorization: Token <token>` al cliente HTTP y guardar el token solo en memoria. Ver el [ejemplo de cliente](API.md#ejemplo-de-cliente).
+- Al iniciar el programa seguir el [flujo de inicio](API.md#flujo-de-inicio-del-programa): `GET /setup/status` y, según la respuesta, el asistente para crear el dueño o la pantalla de inicio de sesión.
+- Ante 401 `not_authenticated` o `authentication_failed`, borrar el token y volver a la pantalla de inicio de sesión.
+- Mostrar u ocultar acciones según `user.role`. La pantalla **Configuración → Datos del negocio** es de solo lectura para el vendedor.
+- Nueva pantalla **Configuración → Usuarios** (solo el dueño): lista, crear, editar rol y estado, y asignar contraseña. Sin botón de eliminar.
+
 ## 2026-10-30 · Base del backend (0.1.0)
 
 **Qué cambió**

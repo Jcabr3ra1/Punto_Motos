@@ -14,7 +14,7 @@ from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -62,7 +62,18 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "rest_framework",
+    "rest_framework.authtoken",
     "apps.core",
+    "apps.accounts",
+]
+
+AUTH_USER_MODEL = "accounts.User"
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 MIDDLEWARE = [
@@ -95,11 +106,13 @@ USE_I18N = True
 USE_TZ = True
 
 REST_FRAMEWORK = {
-    # La credencial efímera la valida LocalApiGuardMiddleware; los usuarios
-    # del negocio y sus permisos se agregarán con el módulo de sesión.
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
-    "UNAUTHENTICATED_USER": None,
+    # Dos capas: LocalApiGuardMiddleware valida que la llamada venga del
+    # programa (credencial efímera) y TokenAuthentication identifica al usuario
+    # que inició sesión. Toda vista exige sesión salvo que diga lo contrario.
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.TokenAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Frena a quien pruebe contraseñas una tras otra.
+    "DEFAULT_THROTTLE_RATES": {"login": "10/minute"},
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",

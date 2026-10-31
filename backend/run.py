@@ -38,6 +38,12 @@ def main(argv=None):
     # TODO: hacer un respaldo antes de migrar cuando exista el módulo de respaldos.
     call_command("migrate", interactive=False, verbosity=0)
 
+    # Las sesiones no sobreviven al cierre del programa: al abrirlo hay que
+    # iniciar sesión otra vez.
+    from rest_framework.authtoken.models import Token
+
+    Token.objects.all().delete()
+
     from waitress import serve
 
     from config.wsgi import application

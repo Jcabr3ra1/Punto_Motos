@@ -47,7 +47,9 @@ class LocalApiGuardMiddleware:
         response["Vary"] = "Origin"
         if preflight:
             response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE"
-            response["Access-Control-Allow-Headers"] = f"Content-Type, {settings.PUNTO_MOTO_TOKEN_HEADER}"
+            response["Access-Control-Allow-Headers"] = (
+                f"Content-Type, Authorization, {settings.PUNTO_MOTO_TOKEN_HEADER}"
+            )
             response["Access-Control-Max-Age"] = "600"
         return response
 

@@ -39,6 +39,8 @@ API local en Django que concentra las reglas del negocio, los datos y la impresi
 backend/
   config/          # settings, urls y wsgi
   apps/
+    core/          # salud, datos del negocio, protección de la API y formato de errores
+    accounts/      # usuarios, roles, sesión y permisos (IsOwner, IsOwnerOrReadOnly)
     catalog/       # productos, categorías, marcas y compatibilidad
     inventory/     # saldos y movimientos
     purchases/     # proveedores, compras y pagos
@@ -74,8 +76,11 @@ python -m venv .venv
 Para desarrollo, con los datos en `backend/.data/` y sin credencial:
 
 ```bash
+.venv/Scripts/python manage.py createsuperuser   # crea el dueño
 PUNTO_MOTO_DEBUG=1 .venv/Scripts/python manage.py runserver 127.0.0.1:8765
 ```
+
+Toda la API exige sesión salvo `health`, `setup/*` y `auth/login`. Las vistas nuevas quedan cerradas por defecto: para abrir una hay que declarar `permission_classes` a propósito.
 
 Como lo ejecutará Tauri (sidecar con Waitress): aplica migraciones y sirve la API. No arranca sin credencial y no crea una base vacía si la carpeta de datos no existe.
 
@@ -98,4 +103,4 @@ El contrato completo para el frontend, con ejemplos, errores y tipos TypeScript,
 
 ## Estado
 
-Base de la etapa 1 implementada: proyecto Django, SQLite en modo WAL, protección de la API local, datos del negocio y sidecar con Waitress. Comprobado que un dato persiste al detener y reiniciar el sidecar. Pendiente: usuarios y permisos, módulos del negocio, respaldos, impresión ESC/POS y empaquetado con PyInstaller.
+Versión 0.2.0. Implementado: proyecto Django, SQLite en modo WAL, protección de la API local, datos del negocio, sidecar con Waitress, y usuarios con roles dueño y vendedor, configuración inicial, sesión por token y administración de usuarios. Comprobado con el sidecar real que los datos persisten y que las sesiones se cierran al reiniciar. Pendiente: módulos del negocio, respaldos, impresión ESC/POS y empaquetado con PyInstaller.

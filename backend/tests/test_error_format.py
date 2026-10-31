@@ -19,7 +19,7 @@ class ErrorFormatTests(TestCase):
         })
 
     def test_unsupported_method_returns_json_error(self):
-        response = self.client.delete("/api/v1/settings/business")
+        response = self.client.delete("/api/v1/health")
 
         self.assertEqual(response.status_code, 405)
         self.assertEqual(response.json()["code"], "method_not_allowed")
