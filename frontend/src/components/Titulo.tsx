@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 
-export type NivelDeTitulo = 1 | 2
+export type NivelDeTitulo = 1 | 2 | 3
 
-/** Título de pantalla: `h1` en las pantallas principales y `h2` dentro de otra (por ejemplo, Configuración). */
+/** Título de pantalla: `h1` en las principales y `h2` o `h3` cuando están dentro de otra. */
 export function Titulo({ nivel = 1, children }: { nivel?: NivelDeTitulo; children: ReactNode }) {
-  return nivel === 1 ? <h1>{children}</h1> : <h2>{children}</h2>
+  const Etiqueta = `h${nivel}` as 'h1' | 'h2' | 'h3'
+  return <Etiqueta>{children}</Etiqueta>
 }

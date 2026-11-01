@@ -11,6 +11,8 @@
   --color-error: #b3261e;
   --color-error-fondo: #fdecea;
   --color-info-fondo: #eaf1fb;
+  --color-exito: #1e6b34;
+  --color-exito-fondo: #e6f4ea;
   --color-foco: #1a5fb4;
 
   --fuente: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -89,7 +91,9 @@ body {
   font-weight: 600;
 }
 
-.campo input {
+.campo input:not([type='checkbox']),
+.campo textarea,
+.campo select {
   display: block;
   width: 100%;
   min-height: 2.75rem;
@@ -101,7 +105,7 @@ body {
   border-radius: var(--radio);
 }
 
-.campo input[aria-invalid='true'] {
+.campo [aria-invalid='true'] {
   border-color: var(--color-error);
 }
 
@@ -146,6 +150,11 @@ body {
   background: var(--color-info-fondo);
 }
 
+.aviso--exito {
+  color: var(--color-exito);
+  background: var(--color-exito-fondo);
+}
+
 /* Botones */
 
 .boton {
@@ -169,6 +178,11 @@ body {
 .boton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.boton--auto {
+  display: inline-block;
+  width: auto;
 }
 
 .boton--secundario {
@@ -340,4 +354,115 @@ body {
     flex-wrap: wrap;
     gap: 0.25rem;
   }
+}
+
+/* Formularios dentro de una pantalla, tablas y acciones */
+
+.formulario {
+  max-width: 36rem;
+}
+
+.campo textarea {
+  resize: vertical;
+}
+
+.campo--casilla {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.campo--casilla input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+}
+
+.campo--casilla label {
+  margin-bottom: 0;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.barra-de-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.barra-de-acciones p {
+  margin: 0;
+}
+
+.tabla-contenedor {
+  overflow-x: auto;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla thead th {
+  font-size: 0.875rem;
+  color: var(--color-texto-suave);
+}
+
+.tabla tbody tr:last-child th,
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla__fila--inactiva {
+  color: var(--color-texto-suave);
+}
+
+.tabla__acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabla__acciones .boton-enlace + .boton-enlace {
+  margin-left: 1rem;
+}
+
+.boton-enlace {
+  padding: 0.25rem 0;
+  font: inherit;
+  color: var(--color-acento);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.estructura__contenido h3 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.125rem;
 }

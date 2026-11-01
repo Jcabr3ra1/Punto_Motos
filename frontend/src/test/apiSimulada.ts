@@ -16,6 +16,17 @@ export const dueno: User = {
   last_login: null,
 }
 
+export const vendedor: User = {
+  ...dueno,
+  id: 2,
+  username: 'ana',
+  first_name: 'Ana',
+  last_name: 'Ruiz',
+  display_name: 'Ana Ruiz',
+  role: 'seller',
+  role_label: 'Vendedor',
+}
+
 export type Respuesta = { estado?: number; cuerpo?: unknown }
 export type Manejador = (cuerpo: unknown) => Respuesta | Promise<Respuesta>
 

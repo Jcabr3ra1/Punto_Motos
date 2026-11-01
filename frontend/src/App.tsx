@@ -1,4 +1,7 @@
+import { QueryClientProvider } from '@tanstack/react-query'
+import { useState } from 'react'
 import { HashRouter } from 'react-router'
+import { crearClienteDeConsultas } from './api/consultas'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
 import { Rutas } from './Rutas'
@@ -29,9 +32,12 @@ function Pantalla() {
 }
 
 export default function App() {
+  const [clienteDeConsultas] = useState(crearClienteDeConsultas)
   return (
-    <AuthProvider>
-      <Pantalla />
-    </AuthProvider>
+    <QueryClientProvider client={clienteDeConsultas}>
+      <AuthProvider>
+        <Pantalla />
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }

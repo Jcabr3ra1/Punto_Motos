@@ -1,52 +1,22 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
-import type { User } from './api/types'
-import { ContextoAuth, type ContextoAuth as TipoContextoAuth } from './auth/contexto'
-import { Rutas } from './Rutas'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { dueno, vendedor, simularApi } from './test/apiSimulada'
+import { mostrarRutas as mostrar } from './test/mostrar'
 
-const dueno: User = {
-  id: 1,
-  username: 'dueno',
-  first_name: 'Carlos',
-  last_name: 'Pérez',
-  display_name: 'Carlos Pérez',
-  role: 'owner',
-  role_label: 'Dueño',
-  is_active: true,
-  last_login: null,
-}
-const vendedor: User = {
-  ...dueno,
-  id: 2,
-  username: 'ana',
-  first_name: 'Ana',
-  last_name: 'Ruiz',
-  display_name: 'Ana Ruiz',
-  role: 'seller',
-  role_label: 'Vendedor',
-}
+beforeEach(() => {
+  // Las pantallas de Configuración piden sus datos al abrirse.
+  simularApi({
+    'GET /settings/business': () => ({
+      cuerpo: { name: 'Punto Moto', tax_id: '', address: '', phone: '', receipt_footer: '', updated_at: '2026-11-01T08:00:00-05:00' },
+    }),
+    'GET /users': () => ({ cuerpo: [dueno, vendedor] }),
+  })
+})
 
-function mostrar(usuario: User, ruta = '/') {
-  const cerrarSesion = vi.fn(async () => {})
-  const contexto: TipoContextoAuth = {
-    estado: { fase: 'con-sesion', usuario },
-    sesionVencida: false,
-    reintentar: () => {},
-    iniciarSesion: async () => {},
-    crearPrimerDueno: async () => {},
-    cerrarSesion,
-  }
-  render(
-    <ContextoAuth.Provider value={contexto}>
-      <MemoryRouter initialEntries={[ruta]}>
-        <Rutas />
-      </MemoryRouter>
-    </ContextoAuth.Provider>,
-  )
-  return { cerrarSesion }
-}
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const menuPrincipal = () => screen.getByRole('navigation', { name: 'Principal' })
 const menuConfiguracion = () => screen.getByRole('navigation', { name: 'Configuración' })

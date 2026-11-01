@@ -58,3 +58,30 @@ export interface Health {
   version: string
   server_time: string
 }
+
+export interface BusinessSettings {
+  name: string
+  tax_id: string
+  address: string
+  phone: string
+  receipt_footer: string
+  updated_at: string
+}
+
+export type BusinessSettingsInput = Omit<BusinessSettings, 'updated_at'>
+
+export interface UserCreateInput {
+  username: string
+  first_name?: string
+  last_name?: string
+  role: Role
+  password: string
+}
+
+/** `username` y la contraseña no se cambian por aquí (ver POST /users/{id}/set-password). */
+export interface UserUpdateInput {
+  first_name?: string
+  last_name?: string
+  role?: Role
+  is_active?: boolean
+}

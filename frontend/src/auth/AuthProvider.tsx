@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import * as authApi from '../api/auth'
 import { isApiError, onSessionExpired, setSessionToken } from '../api/client'
@@ -10,6 +11,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoAcceso>({ fase: 'conectando' })
   const [sesionVencida, setSesionVencida] = useState(false)
   const [intento, setIntento] = useState(0)
+  // Los datos en caché son de quien tenía la sesión: se vacían al abrirla y al cerrarla.
+  const clienteDeConsultas = useQueryClient()
 
   useEffect(() => {
     const controlador = new AbortController()
@@ -36,19 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     onSessionExpired(() => {
+      clienteDeConsultas.clear()
       setSesionVencida(true)
       setEstado({ fase: 'sin-sesion' })
     })
     return () => onSessionExpired(null)
-  }, [])
+  }, [clienteDeConsultas])
 
   const abrirSesion = useCallback((sesion: Session) => {
+    clienteDeConsultas.clear()
     setSessionToken(sesion.token)
     setSesionVencida(false)
     // Cada inicio de sesión parte de Inicio: no se hereda la última pantalla de otro usuario.
     window.history.replaceState(null, '', window.location.pathname + window.location.search)
     setEstado({ fase: 'con-sesion', usuario: sesion.user })
-  }, [])
+  }, [clienteDeConsultas])
 
   const valor = useMemo(
     () => ({
@@ -65,12 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           // Aunque el backend no responda, la sesión local se cierra igual.
         }
+        clienteDeConsultas.clear()
         setSessionToken(null)
         setSesionVencida(false)
         setEstado({ fase: 'sin-sesion' })
       },
     }),
-    [estado, sesionVencida, abrirSesion],
+    [estado, sesionVencida, abrirSesion, clienteDeConsultas],
   )
 
   return <ContextoAuth.Provider value={valor}>{children}</ContextoAuth.Provider>

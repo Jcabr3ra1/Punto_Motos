@@ -73,6 +73,10 @@ El backend debe estar corriendo en `127.0.0.1:8765` con `PUNTO_MOTO_DEBUG=1` (ve
 ## Estado
 
 - **Esqueleto:** Vite, React, TypeScript, pruebas y cliente de la API (`src/api/client.ts`) con manejo de `ApiError`, credencial del programa, token de sesión en memoria y aviso cuando la sesión vence.
-- **Acceso:** flujo de arranque (`/health` → `/setup/status`), asistente del primer dueño, inicio y cierre de sesión, y aviso cuando la sesión vence (`src/auth/`, `src/pages/acceso/`). - **Estructura:** menú lateral según el rol y rutas por hash (`#/productos`) con React Router. `src/navegacion/destinos.ts` es la única lista de pantallas y permisos: de ahí salen el menú, las pestañas de Configuración y las rutas protegidas. Un vendedor que escriba la dirección de una pantalla del dueño ve "No tienes permiso". Cada inicio de sesión parte de Inicio.
-- **Pantallas en construcción:** Productos y las subpantallas de Configuración (Datos del negocio, Tipos, marcas y motos, Usuarios) ya tienen su lugar y su permiso, pero muestran "en construcción".
-- **Siguiente paso:** Datos del negocio y Usuarios.
+- **Acceso:** flujo de arranque (`/health` → `/setup/status`), asistente del primer dueño, inicio y cierre de sesión, y aviso cuando la sesión vence (`src/auth/`, `src/pages/acceso/`).
+- **Estructura:** menú lateral según el rol y rutas por hash (`#/productos`) con React Router. `src/navegacion/destinos.ts` es la única lista de pantallas y permisos: de ahí salen el menú, las pestañas de Configuración y las rutas protegidas. Un vendedor que escriba la dirección de una pantalla del dueño ve "No tienes permiso". Cada inicio de sesión parte de Inicio.
+- **Datos del negocio:** el dueño edita y guarda (`PUT /settings/business`); el vendedor los ve en solo lectura.
+- **Usuarios** (solo el dueño): lista, alta, edición de nombre, rol y estado, y cambio de contraseña. Quien edita su propia cuenta no puede cambiarse el rol ni desactivarse.
+- **Consultas:** TanStack Query para pedir y guardar datos (`src/api/consultas.ts`). La caché se vacía al iniciar y cerrar sesión para que nadie vea datos de otro usuario.
+- **Pantallas en construcción:** Productos y Tipos, marcas y motos ya tienen su lugar y su permiso, pero muestran "en construcción".
+- **Siguiente paso:** Tipos, marcas y motos, y Productos con su formulario.
