@@ -24,6 +24,31 @@ Interfaz de la aplicación en React y TypeScript. Se muestra dentro de la ventan
 - Configuración de respaldos, avisos del último respaldo externo y restauración guiada.
 - Estados de carga, error y confirmación, distinguiendo borradores de operaciones confirmadas.
 
+## Identidad visual
+
+Logo y colores del negocio (`public/logo.png`, `public/favicon.png`). Los tokens están al inicio de `src/index.css`.
+
+| Color | Valor | Uso |
+| --- | --- | --- |
+| Negro | `#000000` | Menú lateral y pantallas de acceso. Es el fondo del logo, así que se funde con él |
+| Lima | `#cde409` | Botones principales (con **texto negro**) y elemento activo del menú. Sobre blanco solo tiene 1,3:1 de contraste: **nunca como color de texto ni de borde sobre fondo claro** |
+| Oliva | `#4a5700` | Texto, enlaces y líneas de acento sobre fondo claro (7,9:1 sobre blanco) |
+| Plata | `#b1afae` | Texto secundario sobre negro |
+
+El contenido de trabajo se mantiene sobre fondo claro por legibilidad en el mostrador. Los avisos de error, éxito y advertencia conservan sus colores propios.
+
+## Diseño de aplicación de escritorio
+
+La interfaz se ejecuta dentro de una ventana de Tauri en Windows, así que está pensada como aplicación y no como página web:
+
+- **Ventana fija:** el alto es el de la ventana (`100vh`) y la página nunca se desplaza; solo se desplaza el área de contenido. El menú lateral, la barra superior y la barra de estado quedan siempre en su lugar.
+- **Barra superior:** nombre del negocio (de «Datos del negocio») y la persona con la sesión abierta, con «Cerrar sesión».
+- **Barra de estado:** si hay conexión con el programa (`/health`, cada 30 s) y la versión del backend.
+- **Densidad de Windows:** Segoe UI a 14 px, controles de unos 32 px, esquinas de 4 px, sin sombras, tablas compactas y botones del formulario fijos al pie.
+- **Comportamiento nativo:** el marco (menú, barras, botones) no se selecciona ni se arrastra, el cursor de los botones es la flecha y no hay rebote de «página» al final del scroll.
+- **Tamaño mínimo:** en lugar de apilarse como una web, la aplicación tiene un ancho mínimo (`52rem`, unos 730 px). En `desktop/` conviene configurar la ventana de Tauri con `minWidth` ≈ 900 y `minHeight` ≈ 560.
+- **Arrastrar la ventana:** la barra superior ya lleva `data-tauri-drag-region`; sirve si más adelante se quita la barra de título nativa (con botones de ventana propios).
+
 ## Reglas de la interfaz
 
 - Mostrar siempre los precios y totales confirmados por Django; el cálculo previo en pantalla es solo orientativo.

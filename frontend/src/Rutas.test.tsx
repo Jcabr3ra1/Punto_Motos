@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { dueno, vendedor, simularApi } from './test/apiSimulada'
+import { dueno, vendedor, simularApi, errorDeApi } from './test/apiSimulada'
 import { pagina, producto } from './test/datos'
 import { mostrarRutas as mostrar } from './test/mostrar'
 
@@ -59,6 +59,62 @@ describe('menú principal', () => {
     const { cerrarSesion } = mostrar(dueno)
 
     await userEvent.setup().click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+
+    expect(cerrarSesion).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('barra de estado', () => {
+  it('muestra que hay conexión y la versión del backend', async () => {
+    simularApi({ 'GET /health': () => ({ cuerpo: { status: 'ok', version: '0.4.0', server_time: 'x' } }) })
+    mostrar(dueno)
+
+    const barra = screen.getByRole('contentinfo')
+    expect(await within(barra).findByText('Conectado')).toBeInTheDocument()
+    expect(within(barra).getByText('Versión 0.4.0')).toBeInTheDocument()
+  })
+
+  it('avisa cuando no hay conexión con el programa', async () => {
+    simularApi({ 'GET /health': () => errorDeApi(500, 'server_error', 'Fallo del programa.') })
+    mostrar(dueno)
+
+    expect(await within(screen.getByRole('contentinfo')).findByText('Sin conexión con el programa')).toBeInTheDocument()
+  })
+})
+
+describe('barra superior', () => {
+  const negocio = (name: string) => ({ cuerpo: { name, tax_id: '', address: '', phone: '', receipt_footer: '', updated_at: 'x' } })
+
+  it('muestra el nombre del negocio y quién tiene la sesión', async () => {
+    simularApi({ 'GET /settings/business': () => negocio('Moto Taller Pérez') })
+    mostrar(vendedor)
+
+    const barra = screen.getByRole('banner')
+    expect(await within(barra).findByText('Moto Taller Pérez')).toBeInTheDocument()
+    expect(within(barra).getByText('Ana Ruiz')).toBeInTheDocument()
+    expect(within(barra).getByText('Vendedor')).toBeInTheDocument()
+    expect(within(barra).getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+  })
+
+  it('mientras el negocio no tenga nombre muestra el del programa', async () => {
+    const api = simularApi({ 'GET /settings/business': () => negocio('') })
+    mostrar(dueno)
+
+    await waitFor(() => expect(api.cuantas('GET /settings/business')).toBe(1))
+    expect(within(screen.getByRole('banner')).getByText('Punto Moto')).toBeInTheDocument()
+  })
+
+  it('si no se pueden cargar los datos del negocio, muestra el nombre del programa', async () => {
+    simularApi({})
+    mostrar(vendedor)
+
+    expect(within(screen.getByRole('banner')).getByText('Punto Moto')).toBeInTheDocument()
+  })
+
+  it('cierra la sesión desde la barra', async () => {
+    const { cerrarSesion } = mostrar(dueno)
+
+    await userEvent.setup().click(within(screen.getByRole('banner')).getByRole('button', { name: 'Cerrar sesión' }))
 
     expect(cerrarSesion).toHaveBeenCalledTimes(1)
   })
