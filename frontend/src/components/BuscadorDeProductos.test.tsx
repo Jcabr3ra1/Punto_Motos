@@ -2,10 +2,10 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { crearClienteDeConsultas } from '../../api/consultas'
-import { errorDeApi, simularApi } from '../../test/apiSimulada'
-import { frenos, producto } from '../../test/datos'
-import { BuscadorDeVenta } from './BuscadorDeVenta'
+import { crearClienteDeConsultas } from '../api/consultas'
+import { errorDeApi, simularApi } from '../test/apiSimulada'
+import { frenos, producto } from '../test/datos'
+import { BuscadorDeProductos } from './BuscadorDeProductos'
 
 const sinStock = producto({ id: 3, code: 'LL909018', name: 'Llanta 90/90 rin 18', category: frenos, stock: 0, is_low_stock: true })
 const pastillas = producto({ id: 1, stock: 5 })
@@ -24,7 +24,7 @@ async function abrir(rutas: Parameters<typeof simularApi>[0] = {}) {
   const alElegir = vi.fn()
   render(
     <QueryClientProvider client={crearClienteDeConsultas()}>
-      <BuscadorDeVenta onElegir={alElegir} />
+      <BuscadorDeProductos onElegir={alElegir} />
     </QueryClientProvider>,
   )
   return { api, alElegir, u: userEvent.setup(), buscador: await screen.findByRole('combobox', { name: 'Buscar producto' }) }

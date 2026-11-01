@@ -1,6 +1,6 @@
+import { BuscadorDeProductos } from '../../components/BuscadorDeProductos'
 import { Titulo } from '../../components/Titulo'
 import { useConteoInicial } from '../inventario/useConteoInicial'
-import { BuscadorDeVenta } from './BuscadorDeVenta'
 
 // Pantalla de venta. El backend todavía no tiene el módulo de ventas, así que por ahora solo
 // consulta precios y existencias con el buscador. Cuando exista el contrato de ventas, el buscador
@@ -17,7 +17,7 @@ export function Venta() {
         </p>
       )}
       <p className="texto-suave">Por ahora puedes consultar precios y existencias. Registrar ventas estará disponible más adelante.</p>
-      <BuscadorDeVenta />
+      <BuscadorDeProductos />
     </section>
   )
 }

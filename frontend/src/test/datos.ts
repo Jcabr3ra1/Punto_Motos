@@ -1,4 +1,4 @@
-import type { Brand, Category, MotoModel, Paginated, Product } from '../api/types'
+import type { Brand, Category, InventoryMovement, MotoModel, Paginated, Product } from '../api/types'
 
 export const frenos: Category = { id: 1, name: 'Frenos', abbreviation: 'FRE', is_active: true }
 export const electrico: Category = { id: 2, name: 'Eléctrico', abbreviation: 'ELE', is_active: true }
@@ -41,4 +41,34 @@ export function paraVendedor(p: Product): Product {
   delete copia.cost_price
   delete copia.sells_below_cost
   return copia
+}
+
+export function movimiento(cambios: Partial<InventoryMovement> = {}): InventoryMovement {
+  return {
+    id: 1,
+    product: { id: 1, code: 'FRE-PUL-PAS', name: 'Pastillas de freno Pulsar 180' },
+    kind: 'adjustment',
+    kind_label: 'Ajuste',
+    quantity: 5,
+    unit_cost: 18000,
+    balance_after: 8,
+    reason: 'Conteo de bodega',
+    created_by: 'dueno',
+    created_at: '2026-11-01T09:30:00-05:00',
+    ...cambios,
+  }
+}
+
+/** Sin costo unitario: así llega el movimiento a la sesión de un vendedor. */
+export function movimientoParaVendedor(m: InventoryMovement): InventoryMovement {
+  const copia = { ...m }
+  delete copia.unit_cost
+  return copia
+}
+
+export function paginaDeMovimientos(
+  resultados: InventoryMovement[],
+  extra: Partial<Paginated<InventoryMovement>> = {},
+): Paginated<InventoryMovement> {
+  return { count: resultados.length, next: null, previous: null, results: resultados, ...extra }
 }

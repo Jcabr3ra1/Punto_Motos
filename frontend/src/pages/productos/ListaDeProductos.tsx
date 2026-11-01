@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router'
 import { listarMotos, listarTipos } from '../../api/catalogo'
 import { claves } from '../../api/consultas'
 import { listarProductos, type OrdenDeProductos } from '../../api/productos'
@@ -7,6 +8,7 @@ import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { Paginacion } from '../../components/Paginacion'
 import { useDebounce } from '../../hooks/useDebounce'
 import type { EstadoDeFiltros } from './filtros'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -54,7 +56,6 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar 
   })
 
   const hayFiltros = Boolean(busqueda || filtros.tipo || filtros.moto || filtros.insumos)
-  const totalDePaginas = Math.max(1, Math.ceil((productos.data?.count ?? 0) / TAMANO_DE_PAGINA))
 
   return (
     <>
@@ -126,29 +127,15 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar 
           ) : (
             <>
               <TablaDeProductos productos={productos.data.results} esDueno={esDueno} onEditar={onEditar} />
-              {totalDePaginas > 1 && (
-                <nav aria-label="Páginas de productos" className="paginacion">
-                  <button
-                    type="button"
-                    className="boton boton--secundario boton--auto"
-                    disabled={!productos.data.previous}
-                    onClick={() => onCambiarFiltros({ ...filtros, pagina: filtros.pagina - 1 })}
-                  >
-                    Anterior
-                  </button>
-                  <span>
-                    Página {filtros.pagina} de {totalDePaginas}
-                  </span>
-                  <button
-                    type="button"
-                    className="boton boton--secundario boton--auto"
-                    disabled={!productos.data.next}
-                    onClick={() => onCambiarFiltros({ ...filtros, pagina: filtros.pagina + 1 })}
-                  >
-                    Siguiente
-                  </button>
-                </nav>
-              )}
+              <Paginacion
+                etiqueta="Páginas de productos"
+                pagina={filtros.pagina}
+                total={productos.data.count}
+                tamano={TAMANO_DE_PAGINA}
+                hayAnterior={Boolean(productos.data.previous)}
+                haySiguiente={Boolean(productos.data.next)}
+                onCambiar={(pagina) => onCambiarFiltros({ ...filtros, pagina })}
+              />
             </>
           )}
         </>
@@ -179,11 +166,9 @@ function TablaDeProductos({
             {esDueno && <th scope="col">Costo</th>}
             <th scope="col">Precio</th>
             <th scope="col">Existencia</th>
-            {esDueno && (
-              <th scope="col">
-                <span className="solo-lectores">Acciones</span>
-              </th>
-            )}
+            <th scope="col">
+              <span className="solo-lectores">Acciones</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -211,8 +196,16 @@ function TablaDeProductos({
                 {producto.stock}
                 {producto.is_low_stock && <span className="etiqueta etiqueta--alerta">Reponer</span>}
               </td>
-              {esDueno && (
-                <td className="tabla__acciones">
+              <td className="tabla__acciones">
+                {/* Todos pueden ver el kárdex de un producto; solo el dueño lo edita. */}
+                <Link
+                  className="boton-enlace"
+                  to={`/inventario/movimientos?product=${producto.id}`}
+                  aria-label={`Movimientos de ${producto.name}`}
+                >
+                  Movimientos
+                </Link>
+                {esDueno && (
                   <button
                     type="button"
                     className="boton-enlace"
@@ -221,8 +214,8 @@ function TablaDeProductos({
                   >
                     Editar
                   </button>
-                </td>
-              )}
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

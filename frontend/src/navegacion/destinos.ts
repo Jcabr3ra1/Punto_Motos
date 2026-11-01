@@ -19,6 +19,7 @@ export const DESTINOS = {
   inicio: { ruta: '/', etiqueta: 'Inicio', roles: TODOS },
   venta: { ruta: '/venta', etiqueta: 'Venta', roles: TODOS },
   productos: { ruta: '/productos', etiqueta: 'Productos', roles: TODOS },
+  movimientos: { ruta: '/inventario/movimientos', etiqueta: 'Movimientos', roles: TODOS },
   inventarioInicial: {
     ruta: '/inventario-inicial',
     etiqueta: 'Inventario inicial',
@@ -35,6 +36,7 @@ export const MENU_PRINCIPAL: readonly Destino[] = [
   DESTINOS.inicio,
   DESTINOS.venta,
   DESTINOS.productos,
+  DESTINOS.movimientos,
   DESTINOS.inventarioInicial,
   DESTINOS.configuracion,
 ]

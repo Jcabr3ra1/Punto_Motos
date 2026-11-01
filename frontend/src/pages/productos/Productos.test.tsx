@@ -72,6 +72,20 @@ describe('lista de productos', () => {
     expect(screen.getByText('FRE-PUL-PAS')).toBeInTheDocument()
   })
 
+  it('cada producto enlaza a su kárdex, tanto para el dueño como para el vendedor', async () => {
+    await abrir(dueno)
+    expect(screen.getByRole('link', { name: 'Movimientos de Pastillas de freno Pulsar 180' })).toHaveAttribute(
+      'href',
+      '/inventario/movimientos?product=1',
+    )
+  })
+
+  it('el vendedor también puede abrir el kárdex de un producto', async () => {
+    await abrir(vendedor, { 'GET /products*': () => ({ cuerpo: pagina([paraVendedor(pastillas)]) }) })
+
+    expect(screen.getByRole('link', { name: 'Movimientos de Pastillas de freno Pulsar 180' })).toBeInTheDocument()
+  })
+
   it('marca los productos que hay que reponer y los que se venden bajo el costo', async () => {
     await abrir(dueno)
 

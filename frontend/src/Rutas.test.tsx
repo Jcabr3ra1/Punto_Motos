@@ -31,11 +31,11 @@ const menuPrincipal = () => screen.getByRole('navigation', { name: 'Principal' }
 const menuConfiguracion = () => screen.getByRole('navigation', { name: 'Configuración' })
 
 describe('menú principal', () => {
-  it('muestra Inicio, Venta, Productos y Configuración, y marca la pantalla actual', () => {
+  it('muestra Inicio, Venta, Productos, Movimientos y Configuración, y marca la pantalla actual', () => {
     mostrar(dueno)
 
     const enlaces = within(menuPrincipal()).getAllByRole('link')
-    expect(enlaces.map((e) => e.textContent)).toEqual(['Inicio', 'Venta', 'Productos', 'Configuración'])
+    expect(enlaces.map((e) => e.textContent)).toEqual(['Inicio', 'Venta', 'Productos', 'Movimientos', 'Configuración'])
     expect(within(menuPrincipal()).getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page')
   })
 

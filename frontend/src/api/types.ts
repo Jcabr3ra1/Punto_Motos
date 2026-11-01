@@ -173,3 +173,31 @@ export interface InitialCountStatus {
 
 /** Producto nuevo con su cantidad contada: se crea junto con su movimiento de inventario inicial. */
 export type InitialCountItemInput = ProductInput & { quantity: number }
+
+export type MovementKind = 'initial_count' | 'purchase' | 'sale' | 'return' | 'adjustment'
+
+export interface InventoryMovement {
+  id: number
+  product: { id: number; code: string; name: string }
+  kind: MovementKind
+  /** «Inventario inicial», «Compra», «Venta», «Devolución» o «Ajuste». */
+  kind_label: string
+  /** Con signo: 5 entra, -2 sale. */
+  quantity: number
+  /** Solo el dueño: costo por unidad en ese momento. */
+  unit_cost?: number
+  /** Existencia que quedó después del movimiento. */
+  balance_after: number
+  /** Vacío salvo en ajustes. */
+  reason: string
+  /** Username. */
+  created_by: string
+  created_at: string
+}
+
+export interface AdjustmentInput {
+  product: number
+  /** Positivo suma, negativo resta; nunca 0. */
+  quantity: number
+  reason: string
+}
