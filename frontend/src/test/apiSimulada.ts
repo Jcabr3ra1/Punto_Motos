@@ -28,9 +28,13 @@ export const vendedor: User = {
 }
 
 export type Respuesta = { estado?: number; cuerpo?: unknown }
-export type Manejador = (cuerpo: unknown) => Respuesta | Promise<Respuesta>
+/** Recibe el cuerpo enviado y la ruta completa, con su consulta (`/products?q=bujia`). */
+export type Manejador = (cuerpo: unknown, ruta: string) => Respuesta | Promise<Respuesta>
 
-/** Simula la API: cada clave es `MÉTODO /ruta`; las llamadas sin manejador responden 404. */
+/**
+ * Simula la API: cada clave es `MÉTODO /ruta`; las llamadas sin manejador responden 404.
+ * Una clave que termina en `*` acepta cualquier consulta: `GET /products*`.
+ */
 export function simularApi(rutas: Record<string, Manejador>) {
   const llamadas: { clave: string; cuerpo: unknown }[] = []
 
@@ -40,11 +44,11 @@ export function simularApi(rutas: Record<string, Manejador>) {
     const cuerpo = init?.body ? JSON.parse(String(init.body)) : undefined
     llamadas.push({ clave, cuerpo })
 
-    const manejador = rutas[clave]
+    const manejador = rutas[clave] ?? rutas[`${clave.split('?')[0]}*`]
     if (!manejador) {
       return new Response(JSON.stringify({ code: 'not_found', message: 'No existe.', fields: {} }), { status: 404 })
     }
-    const { estado = 200, cuerpo: respuesta } = await manejador(cuerpo)
+    const { estado = 200, cuerpo: respuesta } = await manejador(cuerpo, ruta)
     if (estado === 204) return new Response(null, { status: 204 })
     return new Response(JSON.stringify(respuesta), {
       status: estado,

@@ -85,3 +85,76 @@ export interface UserUpdateInput {
   role?: Role
   is_active?: boolean
 }
+
+export interface Category {
+  id: number
+  name: string
+  /** Sigla del tipo, primera parte del código: `FRE`. */
+  abbreviation: string
+  is_active: boolean
+}
+
+export interface Brand {
+  id: number
+  name: string
+  is_active: boolean
+}
+
+export interface MotoModel {
+  id: number
+  name: string
+  /** Sigla de la moto, segunda parte del código: `PUL`. */
+  abbreviation: string
+  is_active: boolean
+}
+
+export interface Product {
+  id: number
+  /** Código interno: `FRE-PUL-PAS`. */
+  code: string
+  name: string
+  category: Category
+  brand: Brand | null
+  /** `null` = repuesto universal. */
+  moto: MotoModel | null
+  compatible_motos: MotoModel[]
+  is_universal: boolean
+  /** Solo el dueño. */
+  cost_price?: number
+  sale_price: number
+  /** Solo el dueño: mostrar advertencia. */
+  sells_below_cost?: boolean
+  /** Unidades disponibles. */
+  stock: number
+  min_stock: number
+  /** `stock <= min_stock`: hay que reponer. */
+  is_low_stock: boolean
+  location: string
+  /** Insumo de taller, incluido en la mano de obra. */
+  is_workshop_supply: boolean
+  is_active: boolean
+  updated_at: string
+}
+
+/** Las existencias no se envían aquí: solo cambian con el inventario. */
+export interface ProductInput {
+  /** Vacío u omitido: se genera automáticamente. */
+  code?: string
+  name: string
+  category: number
+  brand?: number | null
+  moto?: number | null
+  compatible_motos?: number[]
+  cost_price: number
+  sale_price: number
+  min_stock?: number
+  location?: string
+  is_workshop_supply?: boolean
+  is_active?: boolean
+}
+
+export interface CatalogItemInput {
+  name: string
+  abbreviation?: string
+  is_active?: boolean
+}

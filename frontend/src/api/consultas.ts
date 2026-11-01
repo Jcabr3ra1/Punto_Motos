@@ -4,6 +4,13 @@ import { QueryClient } from '@tanstack/react-query'
 export const claves = {
   negocio: ['negocio'] as const,
   usuarios: ['usuarios'] as const,
+  /** Listas que alimentan los desplegables: solo lo activo. */
+  catalogoActivo: (tipo: string) => ['catalogo', tipo, 'activo'] as const,
+  /** Pantalla de administración: incluye lo desactivado. */
+  catalogoCompleto: (tipo: string) => ['catalogo', tipo, 'completo'] as const,
+  /** Todo el catálogo (activo y completo): se invalida junto tras un cambio. */
+  catalogo: ['catalogo'] as const,
+  productos: ['productos'] as const,
 }
 
 export function crearClienteDeConsultas(): QueryClient {

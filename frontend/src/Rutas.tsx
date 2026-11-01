@@ -7,6 +7,7 @@ import { Inicio } from './pages/Inicio'
 import { NoEncontrada } from './pages/NoEncontrada'
 import { Configuracion } from './pages/configuracion/Configuracion'
 import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
+import { Catalogo } from './pages/configuracion/catalogo/Catalogo'
 import { Usuarios } from './pages/configuracion/usuarios/Usuarios'
 
 // Rutas de la aplicación con sesión abierta. El enrutador (por hash) lo pone App.tsx.
@@ -23,7 +24,7 @@ export function Rutas() {
             path="catalogo"
             element={
               <Permiso destino={DESTINOS.catalogo} nivel={2}>
-                <EnConstruccion titulo="Tipos, marcas y motos" nivel={2} />
+                <Catalogo />
               </Permiso>
             }
           />
