@@ -29,6 +29,23 @@ export interface Session {
   user: User
 }
 
+export interface SetupStatus {
+  needs_owner: boolean
+}
+
+export interface LoginInput {
+  username: string
+  password: string
+}
+
+/** Primer dueño: mismas reglas de campos que POST /users, sin `role`. */
+export interface OwnerInput {
+  username: string
+  first_name?: string
+  last_name?: string
+  password: string
+}
+
 export interface Paginated<T> {
   count: number
   next: string | null

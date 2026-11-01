@@ -72,4 +72,6 @@ El backend debe estar corriendo en `127.0.0.1:8765` con `PUNTO_MOTO_DEBUG=1` (ve
 
 ## Estado
 
-Esqueleto listo: Vite, React, TypeScript, pruebas y cliente de la API (`src/api/client.ts`) con manejo de `ApiError`, credencial del programa, token de sesión en memoria y aviso cuando la sesión vence. La pantalla actual solo comprueba la conexión con `/health`. Siguiente paso: asistente del primer dueño e inicio de sesión.
+- **Esqueleto:** Vite, React, TypeScript, pruebas y cliente de la API (`src/api/client.ts`) con manejo de `ApiError`, credencial del programa, token de sesión en memoria y aviso cuando la sesión vence.
+- **Acceso:** flujo de arranque (`/health` → `/setup/status`), asistente del primer dueño, inicio y cierre de sesión, y aviso cuando la sesión vence (`src/auth/`, `src/pages/acceso/`). Tras iniciar sesión se muestra una pantalla provisional.
+- **Siguiente paso:** menú y estructura de pantallas según el rol (React Router).
