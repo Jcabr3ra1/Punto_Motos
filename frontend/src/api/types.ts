@@ -158,3 +158,15 @@ export interface CatalogItemInput {
   abbreviation?: string
   is_active?: boolean
 }
+
+export interface InitialCountStatus {
+  /** `true` mientras el dueño no haya terminado el conteo: no se debe vender. */
+  is_open: boolean
+  finished_at: string | null
+  /** Username de quien lo terminó. */
+  finished_by: string | null
+  /** Productos con cantidad cargada. */
+  products_counted: number
+  /** Suma de las unidades cargadas. */
+  units_counted: number
+}

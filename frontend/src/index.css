@@ -587,3 +587,99 @@ body {
   font-size: 0.875rem;
   color: var(--color-texto-suave);
 }
+
+/* Buscador de la pantalla de venta */
+
+.buscador {
+  position: relative;
+  max-width: 48rem;
+  margin-bottom: 1rem;
+}
+
+.buscador__etiqueta {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.buscador__entrada {
+  display: block;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 1.125rem;
+  color: inherit;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-texto-suave);
+  border-radius: var(--radio);
+}
+
+.buscador__lista {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+
+.buscador__lista--consulta .buscador__opcion {
+  cursor: default;
+}
+
+.buscador__lista[hidden] {
+  display: none;
+}
+
+.buscador__opcion {
+  display: grid;
+  grid-template-columns: 9rem 1fr auto 8rem;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--color-borde);
+  cursor: pointer;
+}
+
+.buscador__opcion:last-child {
+  border-bottom: 0;
+}
+
+.buscador__opcion[aria-selected='true'] {
+  background: var(--color-acento-fondo);
+  box-shadow: inset 4px 0 0 var(--color-acento);
+}
+
+.buscador__opcion[aria-disabled='true'] {
+  color: var(--color-texto-suave);
+  cursor: not-allowed;
+}
+
+.buscador__nombre {
+  min-width: 0;
+}
+
+.buscador__precio {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.buscador__existencia {
+  font-size: 0.875rem;
+  text-align: right;
+  color: var(--color-texto-suave);
+}
+
+.buscador__estado {
+  min-height: 1.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 45rem) {
+  .buscador__opcion {
+    grid-template-columns: 1fr auto;
+  }
+}

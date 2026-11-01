@@ -15,6 +15,7 @@ const SOLO_DUENO: readonly Role[] = ['owner']
 
 export const DESTINOS = {
   inicio: { ruta: '/', etiqueta: 'Inicio', roles: TODOS },
+  venta: { ruta: '/venta', etiqueta: 'Venta', roles: TODOS },
   productos: { ruta: '/productos', etiqueta: 'Productos', roles: TODOS },
   configuracion: { ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
   negocio: { ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
@@ -24,6 +25,7 @@ export const DESTINOS = {
 
 export const MENU_PRINCIPAL: readonly Destino[] = [
   DESTINOS.inicio,
+  DESTINOS.venta,
   DESTINOS.productos,
   DESTINOS.configuracion,
 ]

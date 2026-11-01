@@ -43,3 +43,7 @@ export const sugerirCodigo = (
     query: { category: datos.category, name: datos.name, moto: datos.moto ?? undefined, product: datos.product },
     signal,
   })
+
+/** Buscador de la pantalla de venta: hasta 8 productos activos. Con menos de 2 caracteres responde `[]`. */
+export const buscarProductos = (texto: string, signal?: AbortSignal) =>
+  api<Product[]>('/catalog/search', { query: { q: texto }, signal })

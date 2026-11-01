@@ -11,6 +11,8 @@ export const claves = {
   /** Todo el catálogo (activo y completo): se invalida junto tras un cambio. */
   catalogo: ['catalogo'] as const,
   productos: ['productos'] as const,
+  conteoInicial: ['inventario', 'conteo-inicial'] as const,
+  buscador: (texto: string) => ['buscador', texto] as const,
 }
 
 export function crearClienteDeConsultas(): QueryClient {

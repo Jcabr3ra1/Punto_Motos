@@ -9,6 +9,7 @@ import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
 import { Catalogo } from './pages/configuracion/catalogo/Catalogo'
 import { Usuarios } from './pages/configuracion/usuarios/Usuarios'
 import { Productos } from './pages/productos/Productos'
+import { Venta } from './pages/venta/Venta'
 
 // Rutas de la aplicación con sesión abierta. El enrutador (por hash) lo pone App.tsx.
 export function Rutas() {
@@ -16,6 +17,7 @@ export function Rutas() {
     <Routes>
       <Route element={<Estructura />}>
         <Route index element={<Inicio />} />
+        <Route path="venta" element={<Venta />} />
         <Route path="productos" element={<Productos />} />
         <Route path="configuracion" element={<Configuracion />}>
           <Route index element={<Navigate to="negocio" replace />} />
