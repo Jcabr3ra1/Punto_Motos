@@ -78,5 +78,7 @@ El backend debe estar corriendo en `127.0.0.1:8765` con `PUNTO_MOTO_DEBUG=1` (ve
 - **Datos del negocio:** el dueño edita y guarda (`PUT /settings/business`); el vendedor los ve en solo lectura.
 - **Usuarios** (solo el dueño): lista, alta, edición de nombre, rol y estado, y cambio de contraseña. Quien edita su propia cuenta no puede cambiarse el rol ni desactivarse.
 - **Consultas:** TanStack Query para pedir y guardar datos (`src/api/consultas.ts`). La caché se vacía al iniciar y cerrar sesión para que nadie vea datos de otro usuario.
-- **Pantallas en construcción:** Productos y Tipos, marcas y motos ya tienen su lugar y su permiso, pero muestran "en construcción".
-- **Siguiente paso:** Tipos, marcas y motos, y Productos con su formulario.
+- **Tipos, marcas y motos** (solo el dueño): una sola pantalla con tres secciones que comparten lista, alta y edición. Se desactivan en vez de borrarse y siempre se muestran los desactivados.
+- **Productos:** lista paginada con búsqueda con pausa corta, filtros por tipo y moto, insumos de taller y orden. Muestra la existencia con la marca «Reponer» (`is_low_stock`) y «Bajo el costo» (`sells_below_cost`). El vendedor no ve la columna de costo. El dueño crea y edita: el código se deja vacío para que se genere solo, con una sugerencia mientras escribe, y se avisa cuando el precio de venta es menor que el costo.
+- **Pendiente del backend 0.4.0:** inventario inicial, movimientos y ajuste de existencias, y mostrar deshabilitados en el buscador de venta los productos con `stock: 0`. Ver `docs/backend/CAMBIOS.md`.
+- **Siguiente paso:** buscador de venta (`/catalog/search`) y pantallas de inventario.

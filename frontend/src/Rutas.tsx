@@ -2,13 +2,13 @@ import { Navigate, Route, Routes } from 'react-router'
 import { Estructura } from './estructura/Estructura'
 import { Permiso } from './estructura/Permiso'
 import { DESTINOS } from './navegacion/destinos'
-import { EnConstruccion } from './pages/EnConstruccion'
 import { Inicio } from './pages/Inicio'
 import { NoEncontrada } from './pages/NoEncontrada'
 import { Configuracion } from './pages/configuracion/Configuracion'
 import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
 import { Catalogo } from './pages/configuracion/catalogo/Catalogo'
 import { Usuarios } from './pages/configuracion/usuarios/Usuarios'
+import { Productos } from './pages/productos/Productos'
 
 // Rutas de la aplicación con sesión abierta. El enrutador (por hash) lo pone App.tsx.
 export function Rutas() {
@@ -16,7 +16,7 @@ export function Rutas() {
     <Routes>
       <Route element={<Estructura />}>
         <Route index element={<Inicio />} />
-        <Route path="productos" element={<EnConstruccion titulo="Productos" />} />
+        <Route path="productos" element={<Productos />} />
         <Route path="configuracion" element={<Configuracion />}>
           <Route index element={<Navigate to="negocio" replace />} />
           <Route path="negocio" element={<DatosDelNegocio />} />

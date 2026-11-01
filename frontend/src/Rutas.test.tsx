@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dueno, vendedor, simularApi } from './test/apiSimulada'
+import { pagina, producto } from './test/datos'
 import { mostrarRutas as mostrar } from './test/mostrar'
 
 beforeEach(() => {
@@ -11,6 +12,10 @@ beforeEach(() => {
       cuerpo: { name: 'Punto Moto', tax_id: '', address: '', phone: '', receipt_footer: '', updated_at: '2026-11-01T08:00:00-05:00' },
     }),
     'GET /users': () => ({ cuerpo: [dueno, vendedor] }),
+    'GET /products*': () => ({ cuerpo: pagina([producto()]) }),
+    'GET /catalog/categories*': () => ({ cuerpo: [] }),
+    'GET /catalog/brands*': () => ({ cuerpo: [] }),
+    'GET /catalog/motos*': () => ({ cuerpo: [] }),
   })
 })
 
