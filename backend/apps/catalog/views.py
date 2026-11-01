@@ -77,7 +77,10 @@ class MotoModelViewSet(CatalogViewSet):
 class ProductViewSet(CatalogViewSet):
     """Listado paginado con filtros: ?q=, ?category=, ?moto=, ?workshop_supply=true, ?ordering=."""
 
-    queryset = Product.objects.select_related("category", "brand", "moto").prefetch_related("compatible_motos")
+    # balance trae la existencia en la misma consulta.
+    queryset = Product.objects.select_related("category", "brand", "moto", "balance").prefetch_related(
+        "compatible_motos"
+    )
     pagination_class = StandardPagination
     ORDERING = {"name", "-name", "code", "-code", "updated_at", "-updated_at", "sale_price", "-sale_price"}
 
@@ -119,7 +122,7 @@ class ProductSearchView(APIView):
         if len(text) < SEARCH_MIN_LENGTH:
             return Response([])
 
-        active = Product.objects.filter(is_active=True).select_related("category", "brand", "moto")
+        active = Product.objects.filter(is_active=True).select_related("category", "brand", "moto", "balance")
         active = active.prefetch_related("compatible_motos")
         code = normalize_code(text)
 

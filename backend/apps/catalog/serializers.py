@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from rest_framework import serializers
 
@@ -104,6 +105,8 @@ class ProductSerializer(serializers.ModelSerializer):
     compatible_motos = MotoModelSerializer(many=True, read_only=True)
     is_universal = serializers.BooleanField(read_only=True)
     sells_below_cost = serializers.BooleanField(read_only=True)
+    stock = serializers.SerializerMethodField()
+    is_low_stock = serializers.SerializerMethodField()
 
     OWNER_ONLY_FIELDS = ("cost_price", "sells_below_cost")
 
@@ -111,10 +114,20 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "code", "name", "category", "brand", "moto", "compatible_motos", "is_universal",
-            "cost_price", "sale_price", "sells_below_cost", "min_stock", "location",
+            "cost_price", "sale_price", "sells_below_cost", "stock", "min_stock", "is_low_stock", "location",
             "is_workshop_supply", "is_active", "updated_at",
         ]
         read_only_fields = fields
+
+    def get_stock(self, instance):
+        # Un producto sin registro de existencia todavía no tiene unidades.
+        try:
+            return instance.balance.quantity
+        except ObjectDoesNotExist:
+            return 0
+
+    def get_is_low_stock(self, instance):
+        return self.get_stock(instance) <= instance.min_stock
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
