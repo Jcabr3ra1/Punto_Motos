@@ -201,6 +201,16 @@ describe('con la sesión abierta', () => {
     return u
   }
 
+  it('parte de Inicio aunque haya quedado la dirección del usuario anterior', async () => {
+    simularApi(rutas)
+    window.location.hash = '#/configuracion/usuarios'
+
+    await entrar()
+
+    expect(window.location.hash).toBe('')
+    expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page')
+  })
+
   it('cierra la sesión: avisa al backend, borra el token y vuelve al inicio de sesión', async () => {
     const api = simularApi({ ...rutas, 'POST /auth/logout': () => ({ estado: 204 }) })
     const u = await entrar()

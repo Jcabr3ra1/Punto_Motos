@@ -1,6 +1,7 @@
+import { HashRouter } from 'react-router'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
-import { InicioProvisional } from './pages/InicioProvisional'
+import { Rutas } from './Rutas'
 import { AsistenteDelDueno } from './pages/acceso/AsistenteDelDueno'
 import { InicioDeSesion } from './pages/acceso/InicioDeSesion'
 import { Conectando, SinConexion } from './pages/acceso/PantallaDeConexion'
@@ -18,7 +19,12 @@ function Pantalla() {
     case 'sin-sesion':
       return <InicioDeSesion />
     case 'con-sesion':
-      return <InicioProvisional usuario={estado.usuario} />
+      // Rutas por hash: en la app de escritorio no hay servidor que responda a /productos.
+      return (
+        <HashRouter>
+          <Rutas />
+        </HashRouter>
+      )
   }
 }
 

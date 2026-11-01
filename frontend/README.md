@@ -73,5 +73,6 @@ El backend debe estar corriendo en `127.0.0.1:8765` con `PUNTO_MOTO_DEBUG=1` (ve
 ## Estado
 
 - **Esqueleto:** Vite, React, TypeScript, pruebas y cliente de la API (`src/api/client.ts`) con manejo de `ApiError`, credencial del programa, token de sesión en memoria y aviso cuando la sesión vence.
-- **Acceso:** flujo de arranque (`/health` → `/setup/status`), asistente del primer dueño, inicio y cierre de sesión, y aviso cuando la sesión vence (`src/auth/`, `src/pages/acceso/`). Tras iniciar sesión se muestra una pantalla provisional.
-- **Siguiente paso:** menú y estructura de pantallas según el rol (React Router).
+- **Acceso:** flujo de arranque (`/health` → `/setup/status`), asistente del primer dueño, inicio y cierre de sesión, y aviso cuando la sesión vence (`src/auth/`, `src/pages/acceso/`). - **Estructura:** menú lateral según el rol y rutas por hash (`#/productos`) con React Router. `src/navegacion/destinos.ts` es la única lista de pantallas y permisos: de ahí salen el menú, las pestañas de Configuración y las rutas protegidas. Un vendedor que escriba la dirección de una pantalla del dueño ve "No tienes permiso". Cada inicio de sesión parte de Inicio.
+- **Pantallas en construcción:** Productos y las subpantallas de Configuración (Datos del negocio, Tipos, marcas y motos, Usuarios) ya tienen su lugar y su permiso, pero muestran "en construcción".
+- **Siguiente paso:** Datos del negocio y Usuarios.

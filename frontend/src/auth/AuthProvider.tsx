@@ -45,6 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const abrirSesion = useCallback((sesion: Session) => {
     setSessionToken(sesion.token)
     setSesionVencida(false)
+    // Cada inicio de sesión parte de Inicio: no se hereda la última pantalla de otro usuario.
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
     setEstado({ fase: 'con-sesion', usuario: sesion.user })
   }, [])
 
