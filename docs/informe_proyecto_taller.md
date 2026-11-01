@@ -2,7 +2,7 @@
 
 Propuesta funcional y técnica para organizar el desarrollo entre dos personas
 
-Fecha: 29 de octubre de 2026. Actualizado el 30 de octubre de 2026: la aplicación de escritorio pasa de Electron a Tauri.
+Fecha: 29 de octubre de 2026. Actualizado el 30 de octubre de 2026: la aplicación de escritorio pasa de Electron a Tauri y se agregan los códigos de productos, la carga del inventario inicial y la pantalla de venta.
 
 ## 1 Propósito y propuesta general
 
@@ -36,6 +36,23 @@ Confirmado con el dueño: al iniciar el programa se hará un inventario global d
 
 Los aceites y demás productos se venden solamente en la presentación cerrada de fábrica, por unidades enteras. No habrá venta a granel ni fracciones.
 
+### 2 1 Códigos de productos y carga del inventario inicial
+
+Confirmado con el dueño: no se usará escáner de códigos de barras. Cada producto tendrá un código interno corto, en mayúsculas, sin espacios ni símbolos aparte del guion, fácil de escribir de memoria.
+
+| Tipo | Formato | Ejemplo |
+| --- | --- | --- |
+| Repuesto | Sigla del tipo, sigla de la moto y tres letras del nombre | FRE-PUL-PAS: frenos, Pulsar, pastillas |
+| Repuesto universal | Sigla de moto UNI | ELE-UNI-BUJ: eléctrico, universal, bujía |
+| Llanta | LL, medida sin barras y rin | LL909018: llanta 90/90 rin 18 |
+| Servicio | Número de tres o cuatro dígitos | 101: despinchada |
+
+Al buscar, el guion es opcional: FREPULPAS y fre-pul-pas encuentran el mismo producto. Si el código ya existe, se agrega un número al final, por ejemplo FRE-PUL-PAS2. Una referencia que sirve para varias motos lleva en el código su moto principal y registra las demás como compatibles.
+
+En el inventario inicial el dueño registrará cada producto con nombre, marca, tipo, moto, motos compatibles, precio de costo, precio de venta, cantidad contada y código. El sistema sugerirá el código mientras se llenan los datos; el dueño podrá aceptarlo, cambiarlo o dejarlo vacío para que se genere automáticamente. Los nombres empezarán por la palabra clave, por ejemplo «Pastillas de freno Pulsar 180», para facilitar la búsqueda. La marca, el tipo y la moto se podrán crear desde el mismo formulario.
+
+Cada producto y su cantidad contada se guardarán en una sola transacción, como movimiento de inventario inicial con su costo. Si el precio de venta es menor que el costo, se mostrará una advertencia sin impedir el guardado. Mientras dure el conteo no se registrarán ventas; el dueño lo terminará con una acción explícita.
+
 ## 3 Alcance de la primera versión
 
 La primera versión deberá cubrir un ciclo completo de operación: registrar una compra, recibir existencias, vender productos y servicios de taller, cobrar, imprimir el recibo, cerrar caja, liquidar a los mecánicos y cerrar el mes. También deberá respaldar y recuperar la información antes de utilizarse con datos reales.
@@ -43,12 +60,12 @@ La primera versión deberá cubrir un ciclo completo de operación: registrar un
 | Módulo | Funciones incluidas |
 | --- | --- |
 | Inicio | Resumen del día, cobros, servicios realizados, saldos y alertas de inventario |
-| Catálogo e inventario | Productos, categorías, marcas, referencias, compatibilidad, ubicación, existencias mínimas y movimientos |
+| Catálogo e inventario | Productos con código interno, categorías, marcas, motos compatibles, ubicación, existencias mínimas, movimientos y menú de rápidos |
 | Compras y proveedores | Proveedores, compras, recepción, costos, pagos y saldos pendientes |
 | Ventas | Productos y servicios, descuentos autorizados, cobros, abonos, devoluciones y anulaciones |
-| Taller | Servicios registrados como venta: tipo de servicio, placa, mecánico, valor acordado y repuestos usados |
+| Taller | Servicios registrados como venta: tipo de servicio, mecánico, valor acordado, placa opcional y repuestos usados |
 | Empleados | Datos, porcentaje de mano de obra, liquidación y pago diario |
-| Clientes | Nombre y contacto opcionales; la placa se registra en cada servicio |
+| Clientes | Nombre obligatorio en cada venta y contacto opcional |
 | Caja y gastos | Apertura, entradas, salidas, gastos, retiros y cierre |
 | Documentos | Recibo de 80 mm, liquidación diaria, PDF y reimpresión del mes actual y el anterior |
 | Reportes y cierres | Cierre diario, cierre de mes, ventas, costos, ganancia estimada, pagos a mecánicos e inventario, exportables a Excel y PDF |
@@ -63,7 +80,7 @@ Las mejoras posteriores podrán incluir lector de códigos, importación masiva 
 
 El dueño tendrá acceso administrativo. Un vendedor podrá registrar ventas y cobros según sus permisos. El mecánico será un registro de empleado y podrá tener usuario propio si necesita operar el programa; ser empleado no obliga a tener acceso al sistema.
 
-El administrador controlará quién consulta costos y reportes, modifica precios, concede descuentos, ajusta existencias, anula documentos o restaura información. Las acciones relevantes conservarán usuario, fecha y motivo. Los usuarios quedarán inactivos en lugar de eliminarse cuando tengan operaciones asociadas.
+El administrador controlará quién consulta costos y reportes, modifica precios, concede descuentos, ajusta existencias, anula documentos o restaura información. Confirmado con el dueño: solo él, con usuario administrador, puede cambiar el precio de un producto o servicio, tanto en el catálogo como dentro de una venta. Las acciones relevantes conservarán usuario, fecha y motivo. Los usuarios quedarán inactivos en lugar de eliminarse cuando tengan operaciones asociadas.
 
 Al instalar, un asistente solicitará los datos básicos del negocio, el usuario administrador y las carpetas de trabajo. Después, el dueño abrirá el ícono, iniciará sesión y verá el resumen del día. Se podrá activar el inicio al iniciar sesión en Windows. El programa impedirá abrir dos instancias que compitan por los mismos datos.
 
@@ -81,18 +98,31 @@ Para el inicio proponemos recepción completa de cada compra. Si el negocio nece
 
 Se buscan productos, se indican cantidades, se agregan servicios si corresponde y se calcula el total. Confirmar la venta registra el documento y las salidas de inventario en una misma transacción. El cobro podrá ser total, parcial o quedar pendiente si el usuario tiene permiso para vender a crédito.
 
-Se registrará el medio de pago y se permitirá distribuir un cobro entre varios medios. Un doble clic o reintento no generará otra venta. Se bloquearán existencias negativas por defecto. Los precios y totales se validarán en Django, aunque también se muestren previamente en React.
+Se registrará el medio de pago y se permitirá distribuir un cobro entre varios medios. Un doble clic o reintento no generará otra venta. Se bloquearán existencias negativas por defecto. Los precios y totales se validarán en Django, aunque también se muestren previamente en React. Si un usuario que no es el dueño envía un precio distinto al del catálogo, Django rechazará la venta.
+
+Confirmado con el dueño: el nombre del cliente es obligatorio en toda venta y el contacto es opcional. Al escribir el nombre se sugerirán clientes anteriores para no duplicarlos. Las líneas de producto no llevan mecánico, porque la venta de productos es del negocio. El precio lo pone el catálogo y solo el dueño puede cambiarlo; cada cambio queda registrado con usuario, precio original y precio nuevo.
+
+Los productos y servicios se agregan desde un solo buscador. A partir de dos caracteres se muestran hasta ocho opciones con código, nombre, precio y existencias, en este orden:
+
+| Lo que se escribe | Resultado |
+| --- | --- |
+| Solo números, como 101 | El servicio con ese código |
+| Código completo, como frepulpas | El producto exacto, primero en la lista |
+| Inicio de un código, como fre-pu | Los productos cuyo código empieza así |
+| Palabras, como pastillas pulsar | Los productos cuyo nombre contiene todas las palabras, incluidos los compatibles con esa moto |
+
+Las referencias sin existencias aparecen deshabilitadas. Se podrá trabajar solo con el teclado: flechas para elegir, Enter para agregar, cantidad seguida de asterisco y código para varias unidades, y una tecla para cobrar. La pantalla tendrá un menú de rápidos con botones para los productos y servicios más vendidos, configurado por el dueño.
 
 ### 5 3 Servicio de taller
 
 El servicio se negocia con el cliente, se realiza y al final se registra como una venta con el valor acordado. No habrá orden de trabajo previa, presupuesto, diagnóstico ni estados intermedios. Solo se guarda el valor final que el cliente va a pagar.
 
-Cada servicio será una línea de la venta con cuatro datos obligatorios:
+Cada servicio será una línea de la venta con estos datos:
 
 - Tipo de servicio, elegido de una lista configurable (por ejemplo cambio de aceite, frenos, mantenimiento general, sistema eléctrico o transmisión), con una opción "otro" y una descripción corta.
-- Placa de la moto.
-- Mecánico que realizó el servicio.
-- Valor de mano de obra acordado.
+- Placa de la moto, opcional.
+- Mecánico que realizó el servicio, obligatorio porque con él se lleva el registro diario de servicios y se calcula la liquidación.
+- Valor de mano de obra acordado; se propone el precio del tipo de servicio y solo el dueño puede cambiarlo.
 
 Los repuestos que se usaron se agregan a la misma venta como líneas de producto. Descuentan inventario al confirmar la venta y su valor es 100 % del local. Una venta puede tener varios servicios, cada uno con su mecánico. Al confirmarla se cobra y se imprime el recibo de 80 mm.
 
@@ -111,7 +141,7 @@ Confirmado con el dueño: cuando el dueño de la moto pide la devolución de su 
 - **Mal servicio del mecánico:** el dueño del negocio concluye que hubo una mala instalación o una mala realización del servicio. Se le devuelve al cliente la mano de obra y los repuestos, y el monto total devuelto se le descuenta al mecánico en su siguiente pago.
 - **Otra causa:** por ejemplo un repuesto defectuoso de fábrica o una decisión comercial del negocio. El local asume la devolución y no se le descuenta nada al mecánico.
 
-Solo el administrador puede registrar una devolución con causa de mal servicio. El descuento queda anotado en la liquidación del día con el servicio, la placa, el monto y el motivo escrito. Si el descuento es mayor que lo que le corresponde al mecánico ese día, el saldo pendiente pasa a la liquidación siguiente. La devolución se puede hacer mientras el detalle del servicio siga disponible, es decir, hasta el cierre del mes siguiente.
+Solo el administrador puede registrar una devolución con causa de mal servicio. El descuento queda anotado en la liquidación del día con el servicio, el cliente, la placa si se registró, el monto y el motivo escrito. Si el descuento es mayor que lo que le corresponde al mecánico ese día, el saldo pendiente pasa a la liquidación siguiente. La devolución se puede hacer mientras el detalle del servicio siga disponible, es decir, hasta el cierre del mes siguiente.
 
 En una devolución por mal servicio, cada repuesto devuelto se marca según su estado:
 
@@ -159,7 +189,7 @@ Antes de eliminar, el sistema hará un respaldo y verificará que el resumen y l
 
 La venta ofrecerá guardar, guardar e imprimir y exportar a PDF. El historial permitirá consultar y reimprimir con el mismo número durante el mes actual y el mes anterior. La impresión se ejecutará después de confirmar los datos; si falla, la venta permanecerá registrada y aparecerá como pendiente de impresión.
 
-El recibo contendrá identificación y contacto del negocio, número, fecha, cliente cuando corresponda, tipo de servicio, placa y mecánico en los servicios de taller, productos, cantidades, valores, mano de obra, descuentos, total, pagos y saldo. No incluirá impuestos. Las condiciones y textos adicionales se acordarán con el dueño.
+El recibo contendrá identificación y contacto del negocio, número, fecha, nombre del cliente, tipo de servicio, mecánico y placa si se registró en los servicios de taller, productos, cantidades, valores, mano de obra, descuentos, total, pagos y saldo. No incluirá impuestos. Las condiciones y textos adicionales se acordarán con el dueño.
 
 También se imprimirá la liquidación diaria de cada mecánico. Los informes de cierre de mes se generarán en Excel y PDF.
 
@@ -256,10 +286,10 @@ Alex, responsable del backend, administrará el esquema mediante modelos y migra
 | Grupo | Entidades principales | Relación o propósito |
 | --- | --- | --- |
 | Configuración | BusinessSettings, User, Role, AuditEvent | Negocio, permisos y trazabilidad |
-| Catálogo | Category, Brand, Product, ProductCompatibility | Identificación de referencias y aplicaciones |
+| Catálogo | Category, Brand, MotoModel, Product, ProductCompatibility, QuickButton | Códigos, referencias, motos compatibles y menú de rápidos |
 | Inventario | InventoryBalance, InventoryMovement | Saldo y entradas o salidas justificadas |
 | Compras | Supplier, Purchase, PurchaseItem, SupplierPayment | Compras, recepción y pagos |
-| Clientes | Customer | Contacto opcional del cliente |
+| Clientes | Customer | Nombre obligatorio y contacto opcional del cliente |
 | Ventas | Sale, SaleItem, CustomerPayment, PaymentAllocation | Documento, conceptos y aplicación de cobros |
 | Taller | ServiceType | Tipos de servicio; cada servicio se registra como línea de venta |
 | Empleados | Employee, DailyMechanicSettlement | Porcentaje y liquidación diaria pagada |
@@ -277,7 +307,7 @@ SaleItem conservará descripción, precio, descuento, impuesto si aplica y costo
 
 Los importes confirmados se almacenarán en unidades monetarias menores enteras y se calcularán con Decimal en el backend, con reglas explícitas de redondeo. No se usarán números de punto flotante binario para sumar dinero. Las cantidades serán unidades enteras, porque los productos se venden solo en su presentación de fábrica. Product tendrá un indicador de insumo de taller para los productos que se consumen internamente y se cubren con la mano de obra.
 
-SaleItem de tipo servicio guardará como campos obligatorios el tipo de servicio (ServiceType), la placa y el mecánico (Employee). DailyMechanicSettlement guardará por mecánico y día el total de mano de obra, el porcentaje aplicado y el valor pagado. MonthlyClosing guardará el resumen del mes. Employee tendrá su porcentaje vigente de mano de obra.
+SaleItem de tipo servicio guardará como campos obligatorios el tipo de servicio (ServiceType) y el mecánico (Employee); la placa es opcional. Sale tendrá como obligatorio el cliente (Customer). Las líneas de producto no llevan mecánico, porque la venta de productos es del negocio. Product tendrá un código único y una versión normalizada sin guiones para buscar; ServiceType tendrá su código numérico. DailyMechanicSettlement guardará por mecánico y día el total de mano de obra, el porcentaje aplicado y el valor pagado. MonthlyClosing guardará el resumen del mes. Employee tendrá su porcentaje vigente de mano de obra.
 
 Se usarán identificadores internos independientes del número visible de documento. Habrá restricciones para referencias únicas, números de documentos y claves de reintento. Los campos obligatorios, índices y relaciones se documentarán en un diccionario de datos del backend. Fechas técnicas se almacenarán consistentemente y se presentarán según la zona horaria configurada del negocio, inicialmente America/Bogota como propuesta.
 
@@ -288,12 +318,12 @@ La API tendrá el prefijo /api/v1 y un contrato OpenAPI versionado. Juan y Alex 
 | Área | Endpoints orientativos | Responsable del backend |
 | --- | --- | --- |
 | Sesión | POST /auth/login, POST /auth/logout, GET /auth/me | Autenticación y permisos |
-| Catálogo | GET y POST /products, PATCH /products/{id} | Filtros, referencias y validación |
-| Inventario | GET /inventory/movements, POST /inventory/adjustments | Trazabilidad y ajustes |
+| Catálogo | GET y POST /products, PATCH /products/{id}, GET /catalog/search, GET /catalog/code-suggestion | Filtros, referencias y validación |
+| Inventario | GET /inventory/movements, POST /inventory/adjustments, POST /inventory/initial-count | Trazabilidad y ajustes |
 | Compras | POST /purchases, POST /purchases/{id}/receive | Recepción transaccional |
 | Ventas | POST /sales, POST /sales/{id}/confirm | Totales, existencias e idempotencia |
 | Cobros | POST /payments, GET /receivables | Aplicación a documentos y saldos |
-| Servicios | GET /service-types; los servicios se envían dentro de POST /sales | Tipo de servicio, placa y mecánico |
+| Servicios | GET /service-types; los servicios se envían dentro de POST /sales | Tipo de servicio, mecánico obligatorio y placa opcional |
 | Liquidación | GET y POST /mechanic-settlements/daily | Cálculo y pago diario por mecánico |
 | Cierres | POST /closings/month, GET /closings/{id}/export?format=xlsx o pdf | Resumen mensual y exportación |
 | Caja | POST /cash-sessions/open, POST /cash-sessions/{id}/close | Movimientos y conciliación |
@@ -388,13 +418,13 @@ La modalidad local evita pagar un servidor para mantener la aplicación operativ
 
 No se compromete un servicio de nube ni una tarifa anual en esta propuesta. El almacenamiento remoto de copias se cotizará cuando el dueño elija proveedor, capacidad y retención. La firma del instalador, si se contrata, será otro concepto. El acceso remoto y la facturación electrónica, si se solicitan, se presupuestarán por separado.
 
-Decisiones confirmadas con el dueño el 29 de octubre de 2026:
+Decisiones confirmadas con el dueño el 29 y el 30 de octubre de 2026:
 
 | Decisión | Resultado |
 | --- | --- |
 | Uno o varios computadores | Un solo computador |
 | Sistema operativo | Windows |
-| Datos del servicio | Tipo de servicio, placa y mecánico que lo realizó |
+| Datos del servicio | Tipo de servicio y mecánico que lo realizó, obligatorios; placa opcional |
 | Registro del servicio | Se negocia, se realiza y se registra como venta con el valor final; se imprime el recibo |
 | Remuneración de mecánicos | Porcentaje de la mano de obra, por ejemplo 60 % mecánico y 40 % local; repuestos 100 % local; se paga al final de cada día |
 | Liquidación diaria | Se guarda solo cuánto le correspondió a cada mecánico ese día |
@@ -408,6 +438,11 @@ Decisiones confirmadas con el dueño el 29 de octubre de 2026:
 | Cierre de mes | Se guarda el resumen: costos, ganancia y totales pagados a mecánicos; el detalle se conserva un mes más y se elimina automáticamente al cerrar el mes siguiente |
 | Devoluciones de servicios | Si el dueño concluye que hubo mala instalación o mal servicio, se le descuenta al mecánico en su siguiente pago la mano de obra devuelta y los repuestos que no pueden volver al inventario; los que vuelven en buen estado no se le descuentan; si la causa es otra, la asume el local |
 | Informes | Excel y PDF |
+| Cliente en la venta | Nombre obligatorio en toda venta; contacto opcional |
+| Mecánico | Obligatorio en los servicios; no aplica en la venta de productos, que es del negocio |
+| Placa | Opcional |
+| Cambio de precios | Solo el dueño |
+| Códigos de productos | Sin escáner; código interno corto que el dueño escribe, acepta de una sugerencia o deja que se genere automáticamente |
 
 Decisiones que siguen pendientes:
 
