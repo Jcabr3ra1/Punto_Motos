@@ -4,10 +4,16 @@
   --color-texto: #1d1f23;
   --color-texto-suave: #5a5f68;
   --color-borde: #d4d2cc;
-  --color-acento: #b4400f;
-  --color-acento-oscuro: #8f3209;
-  --color-acento-fondo: #fbeee6;
-  --color-sobre-acento: #ffffff;
+  /* Identidad: el lima del logo solo va como relleno con texto negro o sobre negro (sobre blanco
+     tiene 1,3:1 de contraste). El texto, los enlaces y las líneas sobre fondo claro usan el oliva. */
+  --color-marca: #cde409;
+  --color-marca-hover: #b6cb00;
+  --color-sobre-marca: #0b0b0c;
+  --color-negro: #000000;
+  --color-plata: #b1afae;
+  --color-acento: #4a5700;
+  --color-acento-oscuro: #343d00;
+  --color-acento-fondo: #f1f6c8;
   --color-error: #b3261e;
   --color-error-fondo: #fdecea;
   --color-info-fondo: #eaf1fb;
@@ -17,12 +23,13 @@
   --color-exito-fondo: #e6f4ea;
   --color-foco: #1a5fb4;
 
-  --fuente: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --radio: 8px;
+  /* App de escritorio para Windows: tipografía del sistema, densidad de aplicación y esquinas discretas. */
+  --fuente: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --radio: 4px;
 
   color-scheme: light;
   font-family: var(--fuente);
-  font-size: 16px;
+  font-size: 14px;
   color: var(--color-texto);
   background: var(--color-fondo);
 }
@@ -36,20 +43,79 @@
 body {
   margin: 0;
   min-height: 100vh;
+  /* Sin el rebote de «página» al llegar al final del scroll. */
+  overscroll-behavior: none;
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-foco);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-foco);
+  outline-offset: 1px;
+}
+
+::selection {
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+}
+
+/* Como en una aplicación de escritorio: el marco (menú, barras, botones) no se selecciona ni se arrastra. */
+button,
+img,
+.estructura__lateral,
+.navbar,
+.barra-de-estado,
+.pestanas,
+.selector-de-seccion {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+button,
+select,
+summary {
+  cursor: default;
+}
+
+/* Barras de desplazamiento finas, discretas. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #9d9d9a transparent;
 }
 
 /* Pantallas de acceso: arranque, asistente e inicio de sesión */
 
+/* Las pantallas de acceso mantienen su escala original: son un punto focal, no pantallas de trabajo. */
 .acceso {
+  font-size: 16px;
   display: grid;
   place-items: center;
   min-height: 100vh;
   padding: 1.5rem;
+  background: var(--color-negro);
+}
+
+.acceso__contenedor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 26rem;
+}
+
+.acceso__logo {
+  display: block;
+  width: 9rem;
+  height: auto;
+}
+
+.acceso__nombre {
+  margin: -0.5rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-plata);
 }
 
 .acceso__tarjeta {
@@ -61,14 +127,6 @@ body {
   border-radius: var(--radio);
 }
 
-.acceso__marca {
-  margin: 0 0 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-acento);
-}
 
 .acceso h1 {
   margin: 0 0 0.5rem;
@@ -84,7 +142,7 @@ body {
 /* Formularios */
 
 .campo {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .campo label {
@@ -98,8 +156,8 @@ body {
 .campo select {
   display: block;
   width: 100%;
-  min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.625rem;
   font: inherit;
   color: inherit;
   background: var(--color-superficie);
@@ -134,8 +192,8 @@ body {
 /* Avisos */
 
 .aviso {
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-radius: var(--radio);
 }
 
@@ -167,19 +225,19 @@ body {
 .boton {
   display: block;
   width: 100%;
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.875rem;
   font: inherit;
   font-weight: 600;
-  color: var(--color-sobre-acento);
-  background: var(--color-acento);
-  border: 1px solid var(--color-acento);
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+  border: 1px solid var(--color-sobre-marca);
   border-radius: var(--radio);
-  cursor: pointer;
+  cursor: default;
 }
 
 .boton:hover:not(:disabled) {
-  background: var(--color-acento-oscuro);
+  background: var(--color-marca-hover);
 }
 
 .boton:disabled {
@@ -193,6 +251,7 @@ body {
 }
 
 .boton--peligro {
+  color: #ffffff;
   background: var(--color-error);
   border-color: var(--color-error);
 }
@@ -202,42 +261,100 @@ body {
 }
 
 .boton--secundario {
-  color: var(--color-acento);
+  color: var(--color-sobre-marca);
   background: transparent;
 }
 
 .boton--secundario:hover:not(:disabled) {
-  color: var(--color-sobre-acento);
+  color: var(--color-marca);
+  background: var(--color-negro);
+}
+
+/* Barra de estado inferior */
+
+.barra-de-estado {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 1.75rem;
+  padding: 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-plata);
+  background: var(--color-negro);
+  border-top: 1px solid #2b2c2e;
+}
+
+.barra-de-estado p {
+  margin: 0;
+}
+
+.barra-de-estado__conexion::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.5rem;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.barra-de-estado__conexion--si {
+  color: #7ee787;
+}
+
+.barra-de-estado__conexion--no {
+  color: #ff8a80;
 }
 
 /* Marco de la aplicación con sesión abierta */
 
 .estructura {
   display: grid;
-  grid-template-columns: 15rem 1fr;
-  min-height: 100vh;
+  grid-template-columns: 13rem 1fr;
+  /* Ventana fija: no hay scroll de página, solo se desplaza el contenido. */
+  height: 100vh;
+  /* Ancho mínimo de ventana (se configura igual en Tauri): en vez de apilarse como una página web, la aplicación no se encoge más. */
+  min-width: 52rem;
+  overflow: hidden;
 }
 
 .estructura__lateral {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem 1rem;
-  background: var(--color-superficie);
-  border-right: 1px solid var(--color-borde);
+  gap: 1rem;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+  color: #e8e8e6;
+  /* Negro puro: es el fondo del logo, así que se funde con él. */
+  background: var(--color-negro);
 }
 
-.estructura__marca {
-  margin: 0;
-  padding: 0 0.75rem;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-acento);
+.estructura__lateral :focus-visible,
+.navbar :focus-visible {
+  outline-color: var(--color-marca);
+}
+
+.estructura__derecha {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.estructura__logo {
+  display: block;
+  width: 6rem;
+  height: auto;
+  margin: 0 auto;
 }
 
 .estructura__contenido {
-  padding: 2rem;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
+  padding: 1.25rem 1.5rem;
+  overflow: auto;
 }
 
 .estructura__contenido:focus {
@@ -245,14 +362,14 @@ body {
 }
 
 .estructura__contenido h1 {
-  margin: 0 0 1rem;
-  font-size: 1.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 1.35rem;
   line-height: 1.25;
 }
 
 .estructura__contenido h2 {
   margin: 0 0 0.5rem;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   line-height: 1.25;
 }
 
@@ -260,23 +377,74 @@ body {
   color: var(--color-acento);
 }
 
-.estructura__usuario {
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-borde);
+.navbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  color: #e8e8e6;
+  background: var(--color-negro);
+  border-bottom: 1px solid #2b2c2e;
 }
 
-.estructura__nombre {
+.navbar__negocio {
   margin: 0;
-  padding: 0 0.75rem;
+  min-width: 0;
+  font-size: 1rem;
   font-weight: 600;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.estructura__rol {
-  margin: 0 0 0.75rem;
-  padding: 0 0.75rem;
-  font-size: 0.875rem;
-  color: var(--color-texto-suave);
+.navbar__usuario {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.navbar__iniciales {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+  border-radius: 50%;
+}
+
+.navbar__datos {
+  line-height: 1.2;
+}
+
+.navbar .boton--secundario {
+  min-height: 1.75rem;
+  padding: 0.125rem 0.75rem;
+  color: #e8e8e6;
+  border-color: #5a5c5f;
+}
+
+.navbar .boton--secundario:hover:not(:disabled) {
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+  border-color: var(--color-marca);
+}
+
+.navbar__nombre {
+  margin: 0;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.navbar__rol {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-plata);
 }
 
 .texto-suave {
@@ -292,20 +460,23 @@ body {
 
 .menu__enlace {
   display: block;
-  padding: 0.625rem 0.75rem;
-  color: var(--color-texto);
+  padding: 0.4rem 0.75rem;
+  color: #e8e8e6;
   text-decoration: none;
   border-radius: var(--radio);
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .menu__enlace:hover {
-  background: var(--color-fondo);
+  background: #1b1c1e;
 }
 
 .menu__enlace[aria-current='page'] {
   font-weight: 700;
-  color: var(--color-acento);
-  background: var(--color-acento-fondo);
+  color: var(--color-marca);
+  background: #151618;
+  box-shadow: inset 3px 0 0 var(--color-marca);
 }
 
 .pestanas {
@@ -321,7 +492,7 @@ body {
 
 .pestanas__enlace {
   display: block;
-  padding: 0.625rem 1rem;
+  padding: 0.4rem 0.875rem;
   color: var(--color-texto-suave);
   text-decoration: none;
   border-bottom: 3px solid transparent;
@@ -353,23 +524,6 @@ body {
 .saltar-al-contenido:focus {
   top: 0.5rem;
   z-index: 10;
-}
-
-@media (max-width: 45rem) {
-  .estructura {
-    grid-template-columns: 1fr;
-  }
-
-  .estructura__lateral {
-    border-right: 0;
-    border-bottom: 1px solid var(--color-borde);
-  }
-
-  .menu {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
 }
 
 /* Formularios dentro de una pantalla, tablas y acciones */
@@ -405,6 +559,16 @@ body {
   gap: 0.75rem;
 }
 
+/* En los formularios los botones quedan fijos al pie de la ventana, como en un cuadro de diálogo. */
+.formulario .acciones {
+  position: sticky;
+  bottom: 0;
+  margin-top: 1rem;
+  padding: 0.75rem 0;
+  background: var(--color-fondo);
+  border-top: 1px solid var(--color-borde);
+}
+
 .barra-de-acciones {
   display: flex;
   flex-wrap: wrap;
@@ -433,13 +597,17 @@ body {
 
 .tabla th,
 .tabla td {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--color-borde);
 }
 
 .tabla thead th {
   font-size: 0.875rem;
   color: var(--color-texto-suave);
+}
+
+.tabla tbody tr:hover {
+  background: var(--color-fondo);
 }
 
 .tabla tbody tr:last-child th,
@@ -480,8 +648,8 @@ body {
 }
 
 .estructura__contenido h3 {
-  margin: 1.5rem 0 0.75rem;
-  font-size: 1.125rem;
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
 }
 
 /* Productos y catálogo */
@@ -547,7 +715,7 @@ body {
 }
 
 .selector-de-seccion__opcion {
-  padding: 0.5rem 1.25rem;
+  padding: 0.35rem 1rem;
   font: inherit;
   color: var(--color-texto);
   background: var(--color-superficie);
@@ -562,8 +730,8 @@ body {
 
 .selector-de-seccion__opcion[aria-pressed='true'] {
   font-weight: 700;
-  color: var(--color-sobre-acento);
-  background: var(--color-acento);
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
 }
 
 .conjunto {
@@ -614,10 +782,10 @@ body {
 .buscador__entrada {
   display: block;
   width: 100%;
-  min-height: 3.25rem;
-  padding: 0.5rem 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.375rem 0.75rem;
   font: inherit;
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   color: inherit;
   background: var(--color-superficie);
   border: 1px solid var(--color-texto-suave);
@@ -687,12 +855,6 @@ body {
   font-size: 0.875rem;
 }
 
-@media (max-width: 45rem) {
-  .buscador__opcion {
-    grid-template-columns: 1fr auto;
-  }
-}
-
 /* Inventario inicial */
 
 .avance {
@@ -717,7 +879,7 @@ body {
 
 .avance dd {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
 }
 
@@ -800,4 +962,68 @@ body {
 .opcion input {
   width: 1.125rem;
   height: 1.125rem;
+}
+
+/* Escala original de las pantallas de acceso, en píxeles porque `rem` sigue la escala compacta del resto. */
+.acceso {
+  --radio: 8px;
+  font-size: 16px;
+}
+
+.acceso__contenedor {
+  gap: 20px;
+  max-width: 416px;
+}
+
+.acceso__logo {
+  width: 144px;
+}
+
+.acceso__nombre {
+  margin-top: -8px;
+  font-size: 14px;
+}
+
+.acceso__tarjeta {
+  max-width: 416px;
+  padding: 32px;
+}
+
+.acceso h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.acceso__descripcion {
+  margin-bottom: 20px;
+}
+
+.acceso .campo {
+  margin-bottom: 16px;
+}
+
+.acceso .campo label {
+  margin-bottom: 4px;
+}
+
+.acceso .campo__ayuda,
+.acceso .campo__errores {
+  font-size: 14px;
+}
+
+.acceso .campo input:not([type='checkbox']),
+.acceso .campo select {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.acceso .boton {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-weight: 700;
+}
+
+.acceso .aviso {
+  margin-bottom: 16px;
+  padding: 12px 16px;
 }

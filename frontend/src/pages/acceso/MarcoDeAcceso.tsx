@@ -12,11 +12,16 @@ export function MarcoDeAcceso({
 }) {
   return (
     <main className="acceso">
-      <div className="acceso__tarjeta">
-        <p className="acceso__marca">Punto Moto</p>
-        <h1>{titulo}</h1>
-        {descripcion && <p className="acceso__descripcion">{descripcion}</p>}
-        {children}
+      <div className="acceso__contenedor">
+        <img className="acceso__logo" src="/logo.png" alt="Punto Moto" width={480} height={470} />
+        <p className="acceso__nombre" aria-hidden="true">
+          Punto Moto
+        </p>
+        <div className="acceso__tarjeta">
+          <h1>{titulo}</h1>
+          {descripcion && <p className="acceso__descripcion">{descripcion}</p>}
+          {children}
+        </div>
       </div>
     </main>
   )
