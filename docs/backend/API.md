@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.2.0**.
+Versión del backend: **0.3.0**.
 
 ## Conexión
 
@@ -14,6 +14,8 @@ Versión del backend: **0.2.0**.
 | Sesión del usuario | Cabecera `Authorization: Token <token>` después de iniciar sesión |
 | Formato | JSON (`Content-Type: application/json`) |
 | Fechas | ISO 8601 con zona horaria de Colombia, por ejemplo `2026-10-30T18:56:04.523678-05:00` |
+| Dinero | **Pesos colombianos enteros**, sin decimales: `25000` es $25.000. Se envía y se muestra tal cual, sin multiplicar ni dividir |
+| Listados largos | Paginados: `?page=2&page_size=100` (50 por defecto, máximo 200) |
 
 Hay **dos llaves** distintas:
 
@@ -105,7 +107,7 @@ interface ApiError {
 
 | HTTP | `code` | Cuándo ocurre | Qué hacer en la interfaz |
 | --- | --- | --- | --- |
-| 400 | `validation_error` | Datos inválidos | Mostrar cada mensaje de `fields` junto a su campo; `non_field_errors` va arriba del formulario |
+| 400 | `validation_error` | Datos inválidos, o un filtro de la URL que no es válido (por ejemplo `?category=abc`) | Mostrar cada mensaje de `fields` junto a su campo; `non_field_errors` va arriba del formulario |
 | 401 | `not_authenticated` | No se envió el token de sesión | Ir a la pantalla de inicio de sesión |
 | 401 | `authentication_failed` | Token de sesión inválido o vencido (cierre de sesión, programa reiniciado, usuario desactivado o contraseña cambiada) | Borrar el token y volver a la pantalla de inicio de sesión |
 | 401 | `invalid_app_token` | Falta la credencial del programa o no coincide | Error de la aplicación, no del usuario: pedir reiniciar el programa |
@@ -137,6 +139,13 @@ interface Session {
   token: string;
   user: User;
 }
+
+interface Paginated<T> {
+  count: number;             // total de registros con los filtros aplicados
+  next: string | null;       // URL de la página siguiente
+  previous: string | null;
+  results: T[];
+}
 ```
 
 ## Endpoints
@@ -158,6 +167,15 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `POST /users/{id}/set-password` | Dueño | Asigna una contraseña nueva |
 | `GET /settings/business` | Sesión | Datos del negocio |
 | `PUT` o `PATCH /settings/business` | Dueño | Guarda los datos del negocio |
+| `GET /catalog/categories`, `/catalog/brands`, `/catalog/motos` | Sesión | Tipos, marcas y motos activos |
+| `POST /catalog/categories`, `/catalog/brands`, `/catalog/motos` | Dueño | Crea un tipo, marca o moto |
+| `GET` y `PATCH /catalog/{categories,brands,motos}/{id}` | Sesión / Dueño | Consulta o edita uno |
+| `GET /products` | Sesión | Catálogo paginado con filtros |
+| `POST /products` | Dueño | Crea un producto |
+| `GET /products/{id}` | Sesión | Un producto |
+| `PATCH /products/{id}` | Dueño | Edita un producto, incluido su precio |
+| `GET /catalog/search` | Sesión | Buscador de la pantalla de venta |
+| `GET /catalog/code-suggestion` | Dueño | Sugiere un código mientras se llena el formulario |
 
 ### Estado del backend
 
@@ -166,7 +184,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.2.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.3.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -307,3 +325,154 @@ interface BusinessSettings {
 
 type BusinessSettingsInput = Omit<BusinessSettings, "updated_at">;
 ```
+
+### Catálogo: tipos, marcas y motos
+
+Listas que alimentan los desplegables del formulario de producto. **Todos consultan; solo el dueño crea y edita.** No se borran (`DELETE` responde 405): se desactivan con `is_active: false`. Los listados no están paginados y muestran solo lo activo; la pantalla de administración pide `?include_inactive=true`.
+
+| Ruta | Campos |
+| --- | --- |
+| `/catalog/categories` | `name`, `abbreviation` (sigla del tipo, primera parte del código: `FRE`) |
+| `/catalog/brands` | `name` |
+| `/catalog/motos` | `name`, `abbreviation` (sigla de la moto, segunda parte del código: `PUL`) |
+
+`POST /catalog/motos`
+
+```json
+{ "name": "Boxer CT 100", "abbreviation": "box" }
+```
+
+```json
+{ "id": 3, "name": "Boxer CT 100", "abbreviation": "BOX", "is_active": true }
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `name` | Obligatorio; máximo 80; único sin distinguir mayúsculas; se limpian los espacios |
+| `abbreviation` | De 2 a 4 letras; se acepta en minúsculas y se guarda en mayúsculas. En tipos es única; en motos puede repetirse entre versiones (Pulsar 180 y Pulsar 200 usan `PUL`) y `UNI` está reservada para los universales |
+| `is_active` | Opcional; `false` lo oculta de los desplegables |
+
+Errores: `fields.name` con "Ya existe un tipo con ese nombre." (o marca, o moto), `fields.abbreviation` con "Ya existe un tipo con esa sigla." o el formato inválido.
+
+```ts
+interface Category { id: number; name: string; abbreviation: string; is_active: boolean; }
+interface Brand    { id: number; name: string; is_active: boolean; }
+interface MotoModel { id: number; name: string; abbreviation: string; is_active: boolean; }
+```
+
+### Productos
+
+Cada producto tiene un **código interno** corto (no hay escáner): letras, números y guiones, en mayúsculas. `FRE-PUL-PAS` y `FREPULPAS` son el mismo código, así que no pueden existir los dos.
+
+**Todos consultan; solo el dueño crea y edita**, incluido el precio. **El vendedor no recibe `cost_price` ni `sells_below_cost`**: los campos no vienen en la respuesta.
+
+Las existencias todavía no se incluyen: llegarán con el módulo de inventario.
+
+```ts
+interface Product {
+  id: number;
+  code: string;                    // "FRE-PUL-PAS"
+  name: string;
+  category: Category;
+  brand: Brand | null;
+  moto: MotoModel | null;          // null = repuesto universal
+  compatible_motos: MotoModel[];
+  is_universal: boolean;
+  cost_price?: number;             // solo el dueño
+  sale_price: number;
+  sells_below_cost?: boolean;      // solo el dueño: mostrar advertencia
+  min_stock: number;
+  location: string;
+  is_workshop_supply: boolean;     // insumo de taller, incluido en la mano de obra
+  is_active: boolean;
+  updated_at: string;
+}
+
+interface ProductInput {
+  code?: string;                   // vacío u omitido: se genera automáticamente
+  name: string;
+  category: number;                // ids
+  brand?: number | null;
+  moto?: number | null;
+  compatible_motos?: number[];
+  cost_price: number;
+  sale_price: number;
+  min_stock?: number;
+  location?: string;
+  is_workshop_supply?: boolean;
+  is_active?: boolean;
+}
+```
+
+`GET /products` responde `Paginated<Product>`, ordenado por nombre.
+
+| Filtro | Ejemplo | Resultado |
+| --- | --- | --- |
+| `q` | `?q=pastillas pulsar` | Todas las palabras en el nombre, la marca o las motos, sin tildes |
+| `category` | `?category=3` | Solo ese tipo |
+| `moto` | `?moto=2` | Esa moto como principal **o compatible** |
+| `workshop_supply` | `?workshop_supply=true` | Solo insumos de taller |
+| `include_inactive` | `?include_inactive=true` | Incluye los desactivados |
+| `ordering` | `?ordering=-code` | `name`, `code`, `sale_price` o `updated_at`; con `-` al revés |
+
+`POST /products` responde el `Product` creado (201). `PATCH /products/{id}` responde el `Product` actualizado.
+
+```json
+{
+  "name": "Pastillas de freno Pulsar 180",
+  "category": 1,
+  "brand": 2,
+  "moto": 1,
+  "compatible_motos": [4],
+  "cost_price": 18000,
+  "sale_price": 25000,
+  "location": "Estante B2"
+}
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `code` | Opcional. Vacío: se genera con la sugerencia. Escrito: se pasa a mayúsculas; solo letras, números y guiones; único sin importar los guiones. Al editar sin enviarlo, se conserva |
+| `name` | Obligatorio; máximo 150. Debe empezar por la palabra clave: «Pastillas de freno Pulsar 180» |
+| `category` | Obligatorio; un tipo activo |
+| `brand`, `moto` | Opcionales; activos. Sin `moto`, el repuesto es universal |
+| `compatible_motos` | Opcional; si incluye la moto principal, se descarta de la lista |
+| `cost_price` | Obligatorio; entero mayor o igual a cero |
+| `sale_price` | Obligatorio; entero mayor que cero. **Puede ser menor que el costo**: se guarda y `sells_below_cost` vale `true` para mostrar la advertencia |
+| `min_stock` | Opcional; entero, 0 por defecto |
+| `location`, `is_workshop_supply`, `is_active` | Opcionales |
+
+Errores frecuentes en `fields`:
+
+- `code`: "Ya existe un producto con ese código.", "Usa solo letras, números y guiones…" o "No se pudo generar el código: escríbelo o revisa el nombre." (por ejemplo, una llanta sin medida en el nombre).
+- `sale_price`: "El precio de venta debe ser mayor que cero."
+- `category`, `brand`, `moto`: el id no existe o está desactivado.
+
+### Sugerencia de código
+
+`GET /catalog/code-suggestion?category=1&name=Pastillas de freno&moto=1` (solo el dueño). Al editar, agregar `&product=<id>` para que el producto no choque con su propio código.
+
+```json
+{ "code": "FRE-PUL-PAS" }
+```
+
+| Datos | Sugerencia |
+| --- | --- |
+| Tipo `FRE`, moto `PUL`, «Pastillas de freno» | `FRE-PUL-PAS` |
+| Tipo `ELE`, sin moto, «Bujía NGK» | `ELE-UNI-BUJ` |
+| Tipo `LL`, «Llanta 90/90 rin 18» | `LL909018` |
+| `FRE-PUL-PAS` ya existe | `FRE-PUL-PAS2` |
+
+Si faltan datos para armarlo responde `{ "code": "" }`. Se recomienda pedirla con una pausa corta mientras el dueño escribe, no con cada tecla.
+
+### Buscador de la pantalla de venta
+
+`GET /catalog/search?q=frepulpas` responde un arreglo de hasta **8** `Product` activos. Con menos de 2 caracteres responde `[]`.
+
+Orden de los resultados:
+
+1. El código exacto, con o sin guiones: `frepulpas` → `FRE-PUL-PAS`.
+2. Los códigos que empiezan por lo escrito: `fre-pu` → `FRE-PUL-PAS`, `FRE-PUL-PAS2`…
+3. Los productos cuyo nombre, marca, moto o motos compatibles contienen **todas** las palabras, **sin importar tildes ni mayúsculas**: `bujia ngk` encuentra «Bujía C7HSA» de marca NGK; `zapatas pulsar` encuentra unas zapatas de Discover compatibles con Pulsar.
+
+Aún no incluye los servicios por número (`101`) ni las existencias; se agregarán con los módulos de taller e inventario.

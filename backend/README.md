@@ -41,7 +41,7 @@ backend/
   apps/
     core/          # salud, datos del negocio, protección de la API y formato de errores
     accounts/      # usuarios, roles, sesión y permisos (IsOwner, IsOwnerOrReadOnly)
-    catalog/       # productos, categorías, marcas y compatibilidad
+    catalog/       # tipos, marcas, motos, productos, códigos internos y buscador
     inventory/     # saldos y movimientos
     purchases/     # proveedores, compras y pagos
     sales/         # ventas, servicios, cobros y devoluciones
@@ -103,4 +103,10 @@ El contrato completo para el frontend, con ejemplos, errores y tipos TypeScript,
 
 ## Estado
 
-Versión 0.2.0. Implementado: proyecto Django, SQLite en modo WAL, protección de la API local, datos del negocio, sidecar con Waitress, y usuarios con roles dueño y vendedor, configuración inicial, sesión por token y administración de usuarios. Comprobado con el sidecar real que los datos persisten y que las sesiones se cierran al reiniciar. Pendiente: módulos del negocio, respaldos, impresión ESC/POS y empaquetado con PyInstaller.
+Versión 0.3.0. Implementado: proyecto Django, SQLite en modo WAL, protección de la API local, datos del negocio, sidecar con Waitress; usuarios con roles dueño y vendedor, configuración inicial, sesión por token y administración de usuarios; y catálogo de tipos, marcas, motos y productos con código interno, sugerencia de códigos y buscador sin tildes. Comprobado con el sidecar real que los datos persisten y que las sesiones se cierran al reiniciar. Pendiente: inventario, compras, ventas y demás módulos del negocio, respaldos, impresión ESC/POS y empaquetado con PyInstaller.
+
+Convenciones del código:
+
+- Dinero en pesos enteros (`PositiveBigIntegerField`), nunca decimales ni punto flotante.
+- Nada se borra si ya pudo usarse en un documento: se desactiva con `is_active`.
+- Los campos de búsqueda (`search_text`, `search_name`) se calculan en `save()`; `queryset.update()` y `bulk_update()` no los actualizan.
