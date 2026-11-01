@@ -1,0 +1,46 @@
+:root {
+  --color-fondo: #f6f5f2;
+  --color-texto: #1d1f23;
+  --color-texto-suave: #5a5f68;
+  --color-error: #b3261e;
+
+  --fuente: system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  color-scheme: light;
+  font-family: var(--fuente);
+  color: var(--color-texto);
+  background: var(--color-fondo);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.portada {
+  display: grid;
+  place-content: center;
+  min-height: 100vh;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.portada h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.portada p {
+  margin: 0;
+  color: var(--color-texto-suave);
+}
+
+.portada p[role='alert'] {
+  color: var(--color-error);
+}

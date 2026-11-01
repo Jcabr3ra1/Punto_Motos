@@ -50,6 +50,26 @@ frontend/
 - Pruebas de interacción de los flujos de venta, servicio, devolución y cierres.
 - Guía de uso para el dueño y los vendedores.
 
+## Cómo ejecutarlo
+
+Requiere Node 24 o superior.
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local   # opcional: los valores por defecto sirven en desarrollo
+npm run dev                  # http://localhost:5173
+```
+
+El backend debe estar corriendo en `127.0.0.1:8765` con `PUNTO_MOTO_DEBUG=1` (ver [backend/README.md](../backend/README.md)). El puerto de Vite es fijo (`5173`) porque es el único origen que el backend acepta en desarrollo.
+
+| Comando | Para qué |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo |
+| `npm test` | Pruebas (Vitest + Testing Library) |
+| `npm run lint` | Revisión con oxlint |
+| `npm run build` | Revisión de tipos y compilación |
+
 ## Estado
 
-Carpeta preparada. El código todavía no está implementado.
+Esqueleto listo: Vite, React, TypeScript, pruebas y cliente de la API (`src/api/client.ts`) con manejo de `ApiError`, credencial del programa, token de sesión en memoria y aviso cuando la sesión vence. La pantalla actual solo comprueba la conexión con `/health`. Siguiente paso: asistente del primer dueño e inicio de sesión.
