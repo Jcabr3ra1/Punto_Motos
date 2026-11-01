@@ -1,0 +1,9 @@
+from django.urls import include, path
+
+urlpatterns = [
+    path("api/v1/", include("apps.core.urls")),
+]
+
+# Rutas inexistentes y fallos inesperados también responden con el formato de error de la API.
+handler404 = "apps.core.views.not_found"
+handler500 = "apps.core.views.server_error"

@@ -59,6 +59,43 @@ backend/
 - Pruebas de reglas, dinero, integridad y API.
 - Ejecutable del sidecar listo para el instalador de Tauri.
 
+## Cómo ejecutarlo
+
+Requiere Python 3.12 o superior (probado con 3.14).
+
+```bash
+cd backend
+python -m venv .venv
+.venv/Scripts/python -m pip install -r requirements.txt   # en Linux: .venv/bin/python
+.venv/Scripts/python manage.py migrate
+.venv/Scripts/python manage.py test
+```
+
+Para desarrollo, con los datos en `backend/.data/` y sin credencial:
+
+```bash
+PUNTO_MOTO_DEBUG=1 .venv/Scripts/python manage.py runserver 127.0.0.1:8765
+```
+
+Como lo ejecutará Tauri (sidecar con Waitress): aplica migraciones y sirve la API. No arranca sin credencial y no crea una base vacía si la carpeta de datos no existe.
+
+```bash
+PUNTO_MOTO_DATA_DIR=/ruta/datos PUNTO_MOTO_TOKEN=<credencial> .venv/Scripts/python run.py --port 8765
+```
+
+| Variable | Uso |
+| --- | --- |
+| `PUNTO_MOTO_DATA_DIR` | Carpeta de datos con `punto_moto.sqlite3` y `secret_key`; por defecto `backend/.data/` |
+| `PUNTO_MOTO_TOKEN` | Credencial efímera; obligatoria en `run.py` |
+| `PUNTO_MOTO_ALLOWED_ORIGINS` | Orígenes permitidos separados por comas; por defecto la ventana de Tauri y Vite (`http://localhost:5173`) |
+| `PUNTO_MOTO_DEBUG` | `1` para desarrollo |
+
+## Contrato de la API
+
+El contrato completo para el frontend, con ejemplos, errores y tipos TypeScript, está en [docs/backend/API.md](../docs/backend/API.md). Los cambios y lo que implican para el frontend se registran en [docs/backend/CAMBIOS.md](../docs/backend/CAMBIOS.md).
+
+**Regla del equipo:** todo cambio en el backend actualiza esos dos documentos en el mismo commit. Ver [CLAUDE.md](../CLAUDE.md).
+
 ## Estado
 
-Carpeta preparada. El código todavía no está implementado.
+Base de la etapa 1 implementada: proyecto Django, SQLite en modo WAL, protección de la API local, datos del negocio y sidecar con Waitress. Comprobado que un dato persiste al detener y reiniciar el sidecar. Pendiente: usuarios y permisos, módulos del negocio, respaldos, impresión ESC/POS y empaquetado con PyInstaller.

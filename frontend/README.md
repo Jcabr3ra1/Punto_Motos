@@ -4,6 +4,11 @@ Responsable: **Juan**.
 
 Interfaz de la aplicación en React y TypeScript. Se muestra dentro de la ventana de Tauri y consume la API local de Django; nunca accede directamente a la base de datos ni ejecuta SQL. Ver la [sección 7 del informe](../docs/informe_proyecto_taller.md#7-arquitectura-de-escritorio-y-alternativas).
 
+## Contexto del backend
+
+- [docs/backend/API.md](../docs/backend/API.md): endpoints, ejemplos, errores y tipos TypeScript.
+- [docs/backend/CAMBIOS.md](../docs/backend/CAMBIOS.md): qué cambió en el backend y qué debe hacer el frontend.
+
 ## Tecnologías
 
 - React con TypeScript.
