@@ -50,6 +50,38 @@ frontend/
 - Pruebas de interacción de los flujos de venta, servicio, devolución y cierres.
 - Guía de uso para el dueño y los vendedores.
 
+## Cómo ejecutarlo
+
+Requiere Node 24 o superior.
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local   # opcional: los valores por defecto sirven en desarrollo
+npm run dev                  # http://localhost:5173
+```
+
+El backend debe estar corriendo en `127.0.0.1:8765` con `PUNTO_MOTO_DEBUG=1` (ver [backend/README.md](../backend/README.md)). El puerto de Vite es fijo (`5173`) porque es el único origen que el backend acepta en desarrollo.
+
+| Comando | Para qué |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo |
+| `npm test` | Pruebas (Vitest + Testing Library) |
+| `npm run lint` | Revisión con oxlint |
+| `npm run build` | Revisión de tipos y compilación |
+
 ## Estado
 
-Carpeta preparada. El código todavía no está implementado.
+- **Esqueleto:** Vite, React, TypeScript, pruebas y cliente de la API (`src/api/client.ts`) con manejo de `ApiError`, credencial del programa, token de sesión en memoria y aviso cuando la sesión vence.
+- **Acceso:** flujo de arranque (`/health` → `/setup/status`), asistente del primer dueño, inicio y cierre de sesión, y aviso cuando la sesión vence (`src/auth/`, `src/pages/acceso/`).
+- **Estructura:** menú lateral según el rol y rutas por hash (`#/productos`) con React Router. `src/navegacion/destinos.ts` es la única lista de pantallas y permisos: de ahí salen el menú, las pestañas de Configuración y las rutas protegidas. Un vendedor que escriba la dirección de una pantalla del dueño ve "No tienes permiso". Cada inicio de sesión parte de Inicio.
+- **Datos del negocio:** el dueño edita y guarda (`PUT /settings/business`); el vendedor los ve en solo lectura.
+- **Usuarios** (solo el dueño): lista, alta, edición de nombre, rol y estado, y cambio de contraseña. Quien edita su propia cuenta no puede cambiarse el rol ni desactivarse.
+- **Consultas:** TanStack Query para pedir y guardar datos (`src/api/consultas.ts`). La caché se vacía al iniciar y cerrar sesión para que nadie vea datos de otro usuario.
+- **Tipos, marcas y motos** (solo el dueño): una sola pantalla con tres secciones que comparten lista, alta y edición. Se desactivan en vez de borrarse y siempre se muestran los desactivados.
+- **Productos:** lista paginada con búsqueda con pausa corta, filtros por tipo y moto, insumos de taller y orden. Muestra la existencia con la marca «Reponer» (`is_low_stock`) y «Bajo el costo» (`sells_below_cost`). El vendedor no ve la columna de costo. El dueño crea y edita: el código se deja vacío para que se genere solo, con una sugerencia mientras escribe, y se avisa cuando el precio de venta es menor que el costo.
+- **Venta** (`#/venta`): por ahora solo consulta precios y existencias con el buscador de `GET /catalog/search` (desde 2 letras, con pausa corta). Los productos con `stock: 0` salen marcados «Sin existencias» y avisa mientras el inventario inicial siga abierto. El componente ya maneja teclado (flechas, Enter, Esc) cuando recibe `onElegir`, pero la pantalla no lo usa: **no hay módulo de ventas en el backend**, y no se construye nada de ventas hasta que exista su contrato en `docs/backend/API.md`.
+- **Inventario inicial** (solo el dueño, `#/inventario-inicial`): carga productos nuevos con su «Cantidad contada» reutilizando el formulario de producto (`POST /inventory/initial-count/items`), muestra el avance (productos y unidades) y tiene «Terminar conteo» con confirmación dentro de la página, porque no se puede deshacer. La entrada del menú solo existe mientras el conteo esté abierto (`is_open`); un 409 `initial_count_finished` lleva al resumen del conteo terminado.
+- **Movimientos de inventario** (`#/inventario/movimientos`): kárdex paginado, del más reciente al más antiguo, con filtros por producto, tipo y fechas que viven en la dirección (`?product=7&kind=adjustment`). Cada producto de la lista enlaza a su kárdex. El vendedor consulta pero no ve el costo unitario. El dueño usa «Ajustar existencia»: elige «Entran» o «Salen» y una cantidad positiva (la pantalla envía el signo) con un motivo obligatorio; los errores del backend salen junto a cada campo.
+- **Buscador de productos** (`src/components/BuscadorDeProductos.tsx`): componente con teclado que usan la pantalla de venta y los filtros de inventario.
+- **Siguiente paso:** con el backend 0.4.0 ya no queda nada pendiente. Lo siguiente depende de lo que publique el backend en `docs/backend/CAMBIOS.md` (compras, ventas, caja, taller…).

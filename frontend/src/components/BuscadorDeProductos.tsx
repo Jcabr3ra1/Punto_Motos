@@ -1,0 +1,174 @@
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { claves } from '../api/consultas'
+import { desglosarError } from '../api/errors'
+import { buscarProductos } from '../api/productos'
+import type { Product } from '../api/types'
+import { useDebounce } from '../hooks/useDebounce'
+import { formatearPesos } from '../utilidades/dinero'
+
+const MINIMO_DE_CARACTERES = 2
+
+/** Índices de los resultados que se pueden elegir. */
+const elegibles = (resultados: Product[], sePuedeElegir: (producto: Product) => boolean) =>
+  resultados.flatMap((producto, indice) => (sePuedeElegir(producto) ? [indice] : []))
+
+interface Props {
+  /** Sin esta función solo consulta: muestra los resultados y no se puede elegir ninguno. */
+  onElegir?: (producto: Product) => void
+  etiqueta?: string
+  /** Por defecto los productos sin existencias se muestran pero no se pueden elegir (pantalla de venta). */
+  incluirAgotados?: boolean
+}
+
+// Buscador de productos (GET /catalog/search). Se maneja con el teclado:
+// flechas para moverse, Enter para elegir y Escape para borrar. Tras elegir, el foco se queda en el campo.
+export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', incluirAgotados = false }: Props) {
+  const seleccionable = onElegir !== undefined
+  const sePuedeElegir = (producto: Product) => incluirAgotados || producto.stock > 0
+  const id = useId()
+  const idLista = `${id}-lista`
+  const idOpcion = (indice: number) => `${id}-opcion-${indice}`
+  const entrada = useRef<HTMLInputElement>(null)
+
+  const [texto, setTexto] = useState('')
+  const [marcado, setMarcado] = useState(0)
+
+  const limpio = texto.trim()
+  const buscaYa = limpio.length >= MINIMO_DE_CARACTERES
+  const consultado = useDebounce(limpio, 250)
+  const consulta = useQuery({
+    queryKey: claves.buscador(consultado),
+    queryFn: ({ signal }) => buscarProductos(consultado, signal),
+    enabled: consultado.length >= MINIMO_DE_CARACTERES,
+    // Mientras llegan los resultados nuevos se siguen mostrando los anteriores.
+    placeholderData: keepPreviousData,
+  })
+
+  const resultados = buscaYa ? (consulta.data ?? []) : []
+  const posibles = seleccionable ? elegibles(resultados, sePuedeElegir) : []
+  // Por defecto queda marcado el primero que se puede elegir, para que Enter funcione sin tocar las flechas.
+  const activo = posibles.includes(marcado) ? marcado : (posibles[0] ?? -1)
+  const abierto = buscaYa && resultados.length > 0
+
+  function elegir(producto: Product) {
+    if (!onElegir || !sePuedeElegir(producto)) return
+    onElegir(producto)
+    setTexto('')
+    setMarcado(0)
+    entrada.current?.focus()
+  }
+
+  function moverMarca(paso: 1 | -1) {
+    if (posibles.length === 0) return
+    const posicion = posibles.indexOf(activo)
+    setMarcado(posibles[(posicion + paso + posibles.length) % posibles.length])
+  }
+
+  function alPulsarTecla(evento: KeyboardEvent<HTMLInputElement>) {
+    switch (evento.key) {
+      case 'ArrowDown':
+        if (!seleccionable) break
+        evento.preventDefault()
+        moverMarca(1)
+        break
+      case 'ArrowUp':
+        if (!seleccionable) break
+        evento.preventDefault()
+        moverMarca(-1)
+        break
+      case 'Enter':
+        if (!seleccionable) break
+        evento.preventDefault()
+        if (activo >= 0) elegir(resultados[activo])
+        break
+      case 'Escape':
+        if (texto) {
+          evento.preventDefault()
+          setTexto('')
+        }
+        break
+    }
+  }
+
+  const sinResultados = buscaYa && consulta.isSuccess && !consulta.isPlaceholderData && resultados.length === 0
+
+  return (
+    <div className="buscador">
+      <label htmlFor={`${id}-entrada`} className="buscador__etiqueta">
+        {etiqueta}
+      </label>
+      <input
+        ref={entrada}
+        id={`${id}-entrada`}
+        type="search"
+        role="combobox"
+        className="buscador__entrada"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={alPulsarTecla}
+        placeholder="Código, nombre o moto"
+        aria-expanded={abierto}
+        aria-controls={idLista}
+        aria-autocomplete="list"
+        aria-activedescendant={abierto && activo >= 0 ? idOpcion(activo) : undefined}
+        autoComplete="off"
+        autoFocus
+      />
+      <p className="campo__ayuda">
+        {seleccionable
+          ? 'Escribe al menos 2 letras. Usa las flechas y Enter para elegir; Esc borra.'
+          : 'Escribe al menos 2 letras. Esc borra.'}
+      </p>
+
+      <ul id={idLista} role="listbox" aria-label="Resultados de la búsqueda" className={seleccionable ? 'buscador__lista' : 'buscador__lista buscador__lista--consulta'}
+        hidden={!abierto}
+      >
+        {resultados.map((producto, indice) => {
+          const sinExistencias = producto.stock <= 0
+          const deshabilitada = !sePuedeElegir(producto)
+          return (
+            <li
+              key={producto.id}
+              id={idOpcion(indice)}
+              role="option"
+              aria-selected={seleccionable ? indice === activo : undefined}
+              aria-disabled={deshabilitada || undefined}
+              className="buscador__opcion"
+              // mousedown (y no click) evita que el campo pierda el foco al elegir con el ratón.
+              onMouseDown={(e) => {
+                e.preventDefault()
+                elegir(producto)
+              }}
+              onMouseEnter={() => !deshabilitada && setMarcado(indice)}
+            >
+              <span className="tabla__codigo">{producto.code}</span>
+              <span className="buscador__nombre">
+                {producto.name}
+                <span className="tabla__detalle">
+                  {[producto.brand?.name, producto.is_universal ? 'Universal' : producto.moto?.name]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </span>
+              <span className="buscador__precio">{formatearPesos(producto.sale_price)}</span>
+              <span className={sinExistencias ? 'etiqueta etiqueta--alerta' : 'buscador__existencia'}>
+                {sinExistencias ? 'Sin existencias' : `Hay ${producto.stock}`}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div role="status" className="texto-suave buscador__estado">
+        {sinResultados && 'No se encontró ningún producto.'}
+        {abierto && !sinResultados && `${resultados.length === 1 ? '1 resultado' : `${resultados.length} resultados`}`}
+      </div>
+      {consulta.isError && buscaYa && (
+        <p role="alert" className="aviso aviso--error">
+          {desglosarError(consulta.error).generales.join(' ')}
+        </p>
+      )}
+    </div>
+  )
+}
