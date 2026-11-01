@@ -2,8 +2,11 @@ from django.conf import settings
 from django.db import connection
 from django.http import JsonResponse
 from django.utils import timezone
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from apps.accounts.permissions import IsOwnerOrReadOnly
 
 from .models import BusinessSettings
 from .serializers import BusinessSettingsSerializer
@@ -24,6 +27,8 @@ def server_error(request):
 class HealthView(APIView):
     """Tauri consulta este endpoint para saber cuándo mostrar las pantallas."""
 
+    permission_classes = [AllowAny]
+
     def get(self, request):
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -35,6 +40,8 @@ class HealthView(APIView):
 
 
 class BusinessSettingsView(APIView):
+    permission_classes = [IsOwnerOrReadOnly]
+
     def get(self, request):
         return Response(BusinessSettingsSerializer(BusinessSettings.load()).data)
 

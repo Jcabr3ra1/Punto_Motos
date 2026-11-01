@@ -6,6 +6,7 @@ MESSAGES = {
     status.HTTP_400_BAD_REQUEST: "Revisa los datos marcados.",
     status.HTTP_404_NOT_FOUND: "No se encontró el registro solicitado.",
     status.HTTP_405_METHOD_NOT_ALLOWED: "Operación no permitida.",
+    status.HTTP_429_TOO_MANY_REQUESTS: "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
 }
 
 
