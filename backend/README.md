@@ -42,7 +42,7 @@ backend/
     core/          # salud, datos del negocio, protección de la API y formato de errores
     accounts/      # usuarios, roles, sesión y permisos (IsOwner, IsOwnerOrReadOnly)
     catalog/       # tipos, marcas, motos, productos, códigos internos y buscador
-    inventory/     # saldos y movimientos
+    inventory/     # existencias, movimientos, ajustes e inventario inicial
     purchases/     # proveedores, compras y pagos
     sales/         # ventas, servicios, cobros y devoluciones
     employees/     # mecánicos y liquidación diaria
@@ -103,7 +103,7 @@ El contrato completo para el frontend, con ejemplos, errores y tipos TypeScript,
 
 ## Estado
 
-Versión 0.3.0. Implementado: proyecto Django, SQLite en modo WAL, protección de la API local, datos del negocio, sidecar con Waitress; usuarios con roles dueño y vendedor, configuración inicial, sesión por token y administración de usuarios; y catálogo de tipos, marcas, motos y productos con código interno, sugerencia de códigos y buscador sin tildes. Comprobado con el sidecar real que los datos persisten y que las sesiones se cierran al reiniciar. Pendiente: inventario, compras, ventas y demás módulos del negocio, respaldos, impresión ESC/POS y empaquetado con PyInstaller.
+Versión 0.4.0. Implementado: proyecto Django, SQLite en modo WAL, protección de la API local, datos del negocio, sidecar con Waitress; usuarios con roles dueño y vendedor, configuración inicial, sesión por token y administración de usuarios; y catálogo de tipos, marcas, motos y productos con código interno, sugerencia de códigos y buscador sin tildes; e inventario con existencias que nunca quedan en negativo, movimientos con kárdex, ajustes con motivo y carga del inventario inicial. Comprobado con el sidecar real que los datos persisten y que las sesiones se cierran al reiniciar. Pendiente: compras, ventas y demás módulos del negocio, respaldos, impresión ESC/POS y empaquetado con PyInstaller.
 
 Convenciones del código:
 

@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.3.0**.
+Versión del backend: **0.4.0**.
 
 ## Conexión
 
@@ -80,7 +80,7 @@ GET /health ──► GET /setup/status
 
 | Rol | `role` | Puede |
 | --- | --- | --- |
-| Dueño | `owner` | Todo: administrar usuarios, cambiar datos del negocio y, en los próximos módulos, cambiar precios, ver costos, ajustar inventario, anular y restaurar |
+| Dueño | `owner` | Todo: administrar usuarios, cambiar datos del negocio y, en los próximos módulos, cambiar precios, ver costos, ajustar inventario, cargar y terminar el inventario inicial y, en los próximos módulos, anular y restaurar |
 | Vendedor | `seller` | Consultar y registrar ventas y cobros; no administra usuarios ni cambia datos del negocio |
 
 La interfaz debe **ocultar** las acciones que el rol no permite, usando `user.role` de `/auth/me` o del inicio de sesión. Aun así, el backend las rechaza con 403 `permission_denied`, por lo que ocultar el botón no es la única protección.
@@ -114,6 +114,7 @@ interface ApiError {
 | 403 | `permission_denied` | El rol del usuario no permite la acción | Mostrar `message`; la acción no debió estar visible |
 | 403 | `origin_not_allowed` | Llamada desde un origen no permitido | Solo debería verse en desarrollo; revisar el puerto de Vite |
 | 404 | `not_found` | Ruta o registro inexistente | Mostrar `message` |
+| 409 | `initial_count_finished` | Se intenta cargar un producto al inventario inicial o terminarlo cuando ya terminó | Mostrar `message`, volver a consultar `GET /inventory/initial-count` y ocultar la pantalla de conteo |
 | 405 | `method_not_allowed` | Método no soportado en la ruta | Error de programación |
 | 429 | `throttled` | Demasiados intentos de inicio de sesión (más de 10 por minuto) | Mostrar `message` y deshabilitar el botón un momento |
 | 500 | `server_error` | Fallo inesperado del backend | Mostrar `message`; la operación no se completó y se puede reintentar |
@@ -176,6 +177,11 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `PATCH /products/{id}` | Dueño | Edita un producto, incluido su precio |
 | `GET /catalog/search` | Sesión | Buscador de la pantalla de venta |
 | `GET /catalog/code-suggestion` | Dueño | Sugiere un código mientras se llena el formulario |
+| `GET /inventory/movements` | Sesión | Movimientos de inventario (kárdex) paginados |
+| `POST /inventory/adjustments` | Dueño | Ajuste físico de existencias con motivo |
+| `GET /inventory/initial-count` | Sesión | Estado y avance del inventario inicial |
+| `POST /inventory/initial-count/items` | Dueño | Crea un producto con su cantidad contada |
+| `POST /inventory/initial-count/finish` | Dueño | Termina el inventario inicial |
 
 ### Estado del backend
 
@@ -184,7 +190,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.3.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.4.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -366,7 +372,7 @@ Cada producto tiene un **código interno** corto (no hay escáner): letras, núm
 
 **Todos consultan; solo el dueño crea y edita**, incluido el precio. **El vendedor no recibe `cost_price` ni `sells_below_cost`**: los campos no vienen en la respuesta.
 
-Las existencias todavía no se incluyen: llegarán con el módulo de inventario.
+Todos reciben `stock` (existencia actual) e `is_low_stock`. Un producto que nunca tuvo movimientos tiene `stock: 0`. Las existencias **no se envían ni se editan** en `POST` o `PATCH /products`: solo cambian con el [inventario](#inventario).
 
 ```ts
 interface Product {
@@ -381,7 +387,9 @@ interface Product {
   cost_price?: number;             // solo el dueño
   sale_price: number;
   sells_below_cost?: boolean;      // solo el dueño: mostrar advertencia
+  stock: number;                   // unidades disponibles
   min_stock: number;
+  is_low_stock: boolean;           // stock <= min_stock: hay que reponer
   location: string;
   is_workshop_supply: boolean;     // insumo de taller, incluido en la mano de obra
   is_active: boolean;
@@ -475,4 +483,101 @@ Orden de los resultados:
 2. Los códigos que empiezan por lo escrito: `fre-pu` → `FRE-PUL-PAS`, `FRE-PUL-PAS2`…
 3. Los productos cuyo nombre, marca, moto o motos compatibles contienen **todas** las palabras, **sin importar tildes ni mayúsculas**: `bujia ngk` encuentra «Bujía C7HSA» de marca NGK; `zapatas pulsar` encuentra unas zapatas de Discover compatibles con Pulsar.
 
-Aún no incluye los servicios por número (`101`) ni las existencias; se agregarán con los módulos de taller e inventario.
+Cada resultado trae `stock`: la pantalla de venta debe mostrar **deshabilitados** los productos con `stock: 0`. Aún no incluye los servicios por número (`101`); se agregarán con el módulo de taller.
+
+### Inventario
+
+Las existencias de cada producto **solo cambian con movimientos**: inventario inicial, compras, ventas, devoluciones y ajustes. Cada movimiento guarda la cantidad con signo (positiva entra, negativa sale), la existencia que quedó, quién lo hizo, la fecha y el motivo. Los movimientos no se editan ni se borran: un error se corrige con otro movimiento. **Las existencias nunca quedan en negativo.**
+
+```ts
+type MovementKind = "initial_count" | "purchase" | "sale" | "return" | "adjustment";
+
+interface InventoryMovement {
+  id: number;
+  product: { id: number; code: string; name: string };
+  kind: MovementKind;
+  kind_label: string;              // "Inventario inicial", "Compra", "Venta", "Devolución", "Ajuste"
+  quantity: number;                // con signo: 5 entra, -2 sale
+  unit_cost?: number;              // solo el dueño: costo por unidad en ese momento
+  balance_after: number;           // existencia que quedó después del movimiento
+  reason: string;                  // vacío salvo en ajustes
+  created_by: string;              // username
+  created_at: string;
+}
+
+interface AdjustmentInput {
+  product: number;
+  quantity: number;                // positivo suma, negativo resta; nunca 0
+  reason: string;
+}
+
+interface InitialCountStatus {
+  is_open: boolean;
+  finished_at: string | null;
+  finished_by: string | null;      // username
+  products_counted: number;        // productos con cantidad cargada
+  units_counted: number;           // suma de las unidades cargadas
+}
+
+type InitialCountItemInput = ProductInput & { quantity: number };
+```
+
+**Movimientos.** `GET /inventory/movements` responde `Paginated<InventoryMovement>`, del más reciente al más antiguo. Lo consultan todos; **el vendedor no recibe `unit_cost`**.
+
+| Filtro | Ejemplo | Resultado |
+| --- | --- | --- |
+| `product` | `?product=7` | Kárdex de un producto |
+| `kind` | `?kind=adjustment` | Solo ese tipo |
+| `date_from`, `date_to` | `?date_from=2026-11-01&date_to=2026-11-30` | Entre esas fechas, ambas incluidas, en hora de Colombia |
+
+Un filtro inválido (`?kind=robo`, `?date_from=31/10/2026`, `?product=abc`) responde 400 con el campo en `fields`.
+
+**Ajustes (solo el dueño).** `POST /inventory/adjustments` responde el `InventoryMovement` creado (201).
+
+```json
+{ "product": 7, "quantity": -1, "reason": "Se dañó en bodega" }
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `product` | Obligatorio; id de un producto |
+| `quantity` | Obligatorio; entero distinto de 0 |
+| `reason` | Obligatorio; máximo 200; se limpian los espacios |
+
+Errores en `fields`: `quantity` con "La cantidad no puede ser cero." o "Solo hay 2 unidades: no se pueden restar 3."; `reason` si llega vacío.
+
+**Inventario inicial.** Al empezar a usar el programa, el dueño cuenta todo lo que hay en el negocio y lo carga producto por producto. **Mientras el conteo esté abierto no se debe vender**; el dueño lo termina una sola vez.
+
+`GET /inventory/initial-count` responde `InitialCountStatus`. Lo consultan todos: si `is_open` es `true`, la pantalla de venta debe avisar que el conteo no ha terminado.
+
+```json
+{ "is_open": true, "finished_at": null, "finished_by": null, "products_counted": 148, "units_counted": 1320 }
+```
+
+`POST /inventory/initial-count/items` (solo el dueño) crea el producto y su movimiento de inventario inicial **juntos**: si algo falla, no queda ninguno. Recibe los mismos campos que `POST /products` más `quantity` y responde el `Product` creado (201), ya con su `stock`.
+
+```json
+{
+  "name": "Bujía NGK C7HSA",
+  "category": 2,
+  "brand": 5,
+  "cost_price": 6000,
+  "sale_price": 9000,
+  "quantity": 12
+}
+```
+
+| Campo | Reglas |
+| --- | --- |
+| Campos de producto | Las mismas reglas de `POST /products`, incluido el código automático |
+| `quantity` | Obligatorio; entero mayor o igual a 0. Con 0 se crea el producto sin unidades |
+
+Solo crea productos nuevos. Un producto que ya existe recibe sus unidades con un ajuste.
+
+`POST /inventory/initial-count/finish` (solo el dueño) termina el conteo y responde `InitialCountStatus` (200). Desde ese momento las existencias solo cambian con compras, ventas, devoluciones o ajustes. Pedir una confirmación antes de llamarlo: no se puede deshacer.
+
+Después de terminado, cargar un producto o volver a terminar responde 409 `initial_count_finished`:
+
+```json
+{ "code": "initial_count_finished", "message": "El inventario inicial ya terminó: usa compras o ajustes.", "fields": {} }
+```

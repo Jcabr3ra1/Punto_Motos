@@ -11,6 +11,29 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-10-31 · Inventario (0.4.0)
+
+**Qué cambió**
+
+- Existencias por producto, que solo cambian con movimientos: inventario inicial, compra, venta, devolución y ajuste. Nunca quedan en negativo.
+- `Product` trae dos campos nuevos: `stock` (unidades disponibles) e `is_low_stock` (`stock <= min_stock`). Llegan en `/products`, `/products/{id}` y `/catalog/search`, para el dueño y el vendedor.
+- `GET /inventory/movements`: kárdex paginado con filtros por producto, tipo y fechas. El vendedor no recibe `unit_cost`.
+- `POST /inventory/adjustments` (solo el dueño): suma o resta unidades, siempre con motivo.
+- Inventario inicial: `GET /inventory/initial-count` (estado y avance), `POST /inventory/initial-count/items` (producto nuevo con su cantidad contada, en una sola operación) y `POST /inventory/initial-count/finish` (lo termina una sola vez).
+- Error nuevo: 409 `initial_count_finished`.
+
+**Qué debe hacer el frontend**
+
+- Agregar `stock` e `is_low_stock` al tipo `Product`. Mostrar la existencia en la lista de productos y marcar los que hay que reponer.
+- En el buscador de venta, mostrar **deshabilitados** los productos con `stock: 0`.
+- Pantalla **Inventario inicial** (solo el dueño): formulario de producto con el campo **Cantidad contada**, avance (`products_counted`, `units_counted`) y botón **Terminar conteo** con confirmación. Ocultarla cuando `is_open` sea `false`.
+- Mientras `is_open` sea `true`, avisar en la pantalla de venta que el conteo no ha terminado.
+- Pantalla **Movimientos de inventario** con filtros por producto, tipo y fechas, y acceso al kárdex desde cada producto (`?product=<id>`).
+- Formulario **Ajustar existencia** (solo el dueño) con cantidad positiva o negativa y motivo obligatorio.
+- Usar los tipos `InventoryMovement`, `AdjustmentInput`, `InitialCountStatus` e `InitialCountItemInput` de [API.md](API.md#inventario).
+
+Ninguna acción por cambios incompatibles: solo se agregan campos y rutas.
+
 ## 2026-10-31 · Catálogo de productos (0.3.0)
 
 **Qué cambió**
