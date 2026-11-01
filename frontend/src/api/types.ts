@@ -170,3 +170,6 @@ export interface InitialCountStatus {
   /** Suma de las unidades cargadas. */
   units_counted: number
 }
+
+/** Producto nuevo con su cantidad contada: se crea junto con su movimiento de inventario inicial. */
+export type InitialCountItemInput = ProductInput & { quantity: number }

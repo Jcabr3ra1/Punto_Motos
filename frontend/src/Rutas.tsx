@@ -8,6 +8,7 @@ import { Configuracion } from './pages/configuracion/Configuracion'
 import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
 import { Catalogo } from './pages/configuracion/catalogo/Catalogo'
 import { Usuarios } from './pages/configuracion/usuarios/Usuarios'
+import { InventarioInicial } from './pages/inventario/InventarioInicial'
 import { Productos } from './pages/productos/Productos'
 import { Venta } from './pages/venta/Venta'
 
@@ -19,6 +20,14 @@ export function Rutas() {
         <Route index element={<Inicio />} />
         <Route path="venta" element={<Venta />} />
         <Route path="productos" element={<Productos />} />
+        <Route
+          path="inventario-inicial"
+          element={
+            <Permiso destino={DESTINOS.inventarioInicial}>
+              <InventarioInicial />
+            </Permiso>
+          }
+        />
         <Route path="configuracion" element={<Configuracion />}>
           <Route index element={<Navigate to="negocio" replace />} />
           <Route path="negocio" element={<DatosDelNegocio />} />

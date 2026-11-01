@@ -192,6 +192,15 @@ body {
   width: auto;
 }
 
+.boton--peligro {
+  background: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.boton--peligro:hover:not(:disabled) {
+  background: #8f1d17;
+}
+
 .boton--secundario {
   color: var(--color-acento);
   background: transparent;
@@ -682,4 +691,50 @@ body {
   .buscador__opcion {
     grid-template-columns: 1fr auto;
   }
+}
+
+/* Inventario inicial */
+
+.avance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.avance > div {
+  min-width: 12rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.avance dt {
+  font-size: 0.875rem;
+  color: var(--color-texto-suave);
+}
+
+.avance dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.terminar {
+  max-width: 44rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-borde);
+}
+
+.confirmacion {
+  padding: 1rem 1.25rem;
+  background: var(--color-alerta-fondo);
+  border: 1px solid var(--color-alerta);
+  border-radius: var(--radio);
+}
+
+.confirmacion h2 {
+  margin-top: 0;
 }

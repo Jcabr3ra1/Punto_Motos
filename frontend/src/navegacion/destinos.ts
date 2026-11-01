@@ -8,6 +8,8 @@ export interface Destino {
   ruta: string
   etiqueta: string
   roles: readonly Role[]
+  /** Solo se muestra en el menú mientras el inventario inicial siga abierto. */
+  soloConConteoAbierto?: boolean
 }
 
 const TODOS: readonly Role[] = ['owner', 'seller']
@@ -17,6 +19,12 @@ export const DESTINOS = {
   inicio: { ruta: '/', etiqueta: 'Inicio', roles: TODOS },
   venta: { ruta: '/venta', etiqueta: 'Venta', roles: TODOS },
   productos: { ruta: '/productos', etiqueta: 'Productos', roles: TODOS },
+  inventarioInicial: {
+    ruta: '/inventario-inicial',
+    etiqueta: 'Inventario inicial',
+    roles: SOLO_DUENO,
+    soloConConteoAbierto: true,
+  },
   configuracion: { ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
   negocio: { ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
   catalogo: { ruta: '/configuracion/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
@@ -27,6 +35,7 @@ export const MENU_PRINCIPAL: readonly Destino[] = [
   DESTINOS.inicio,
   DESTINOS.venta,
   DESTINOS.productos,
+  DESTINOS.inventarioInicial,
   DESTINOS.configuracion,
 ]
 

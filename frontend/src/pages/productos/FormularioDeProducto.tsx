@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { listarMarcas, listarMotos, listarTipos } from '../../api/catalogo'
+import { isApiError } from '../../api/client'
 import { claves } from '../../api/consultas'
 import { desglosarError } from '../../api/errors'
+import { cargarProductoInicial } from '../../api/inventario'
 import { crearProducto, editarProducto, sugerirCodigo } from '../../api/productos'
-import type { Product, ProductInput } from '../../api/types'
+import type { InitialCountItemInput, Product, ProductInput } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
@@ -16,7 +18,13 @@ interface Props {
   /** Si se recibe, se edita ese producto; si no, se crea uno nuevo. */
   producto?: Product
   onTerminar: (aviso: string) => void
-  onCancelar: () => void
+  /** Sin esta función no hay botón de cancelar (por ejemplo, en la carga del inventario inicial). */
+  onCancelar?: () => void
+  /**
+   * Carga un producto nuevo del inventario inicial: agrega «Cantidad contada» y crea el producto
+   * junto con su movimiento (POST /inventory/initial-count/items).
+   */
+  conteoInicial?: boolean
 }
 
 // Alta y edición de productos (solo el dueño). Los tipos, marcas y motos alimentan los desplegables.
@@ -56,7 +64,7 @@ function conLoActual<T extends { id: number; name: string }>(lista: T[], actuale
   return [...lista, ...sinRepetir.map((a) => ({ ...a, name: `${a.name} (desactivado)` }))]
 }
 
-function Campos({ producto, onTerminar, onCancelar, ...catalogos }: Props & Listas) {
+function Campos({ producto, onTerminar, onCancelar, conteoInicial = false, ...catalogos }: Props & Listas) {
   const clienteDeConsultas = useQueryClient()
   const editando = producto !== undefined
   const tipos = conLoActual(catalogos.tipos, [producto?.category])
@@ -75,6 +83,7 @@ function Campos({ producto, onTerminar, onCancelar, ...catalogos }: Props & List
   const [ubicacion, setUbicacion] = useState(producto?.location ?? '')
   const [esInsumo, setEsInsumo] = useState(producto?.is_workshop_supply ?? false)
   const [activo, setActivo] = useState(producto?.is_active ?? true)
+  const [cantidad, setCantidad] = useState('')
 
   // Sugerencia de código: solo al crear, y con una pausa corta mientras el dueño escribe.
   const nombreConPausa = useDebounce(nombre.trim())
@@ -103,13 +112,29 @@ function Campos({ producto, onTerminar, onCancelar, ...catalogos }: Props & List
         is_workshop_supply: esInsumo,
         is_active: activo,
       } as ProductInput
+      if (conteoInicial) {
+        const conCantidad = { ...datos, ...(cantidad !== '' ? { quantity: Number(cantidad) } : {}) }
+        return cargarProductoInicial(conCantidad as InitialCountItemInput)
+      }
       return editando ? editarProducto(producto.id, datos) : crearProducto(datos)
     },
     onSuccess: async (guardado) => {
       await clienteDeConsultas.invalidateQueries({ queryKey: claves.productos })
+      if (conteoInicial) await clienteDeConsultas.invalidateQueries({ queryKey: claves.conteoInicial })
       // El aviso usa lo que confirmó el backend, no el cálculo de la pantalla.
-      const base = editando ? `Cambios de «${guardado.name}» guardados.` : `Producto «${guardado.name}» creado con el código ${guardado.code}.`
+      const unidades = `${guardado.stock} ${guardado.stock === 1 ? 'unidad' : 'unidades'}`
+      const base = conteoInicial
+        ? `Producto «${guardado.name}» cargado con ${unidades}. Código ${guardado.code}.`
+        : editando
+          ? `Cambios de «${guardado.name}» guardados.`
+          : `Producto «${guardado.name}» creado con el código ${guardado.code}.`
       onTerminar(guardado.sells_below_cost ? `${base} Atención: se vende por debajo del costo.` : base)
+    },
+    onError: (fallo) => {
+      // Si el conteo ya terminó, se vuelve a consultar su estado para que la pantalla lo refleje.
+      if (conteoInicial && isApiError(fallo) && fallo.code === 'initial_count_finished') {
+        void clienteDeConsultas.invalidateQueries({ queryKey: claves.conteoInicial })
+      }
     },
   })
 
@@ -252,6 +277,20 @@ function Campos({ producto, onTerminar, onCancelar, ...catalogos }: Props & List
           El precio de venta es menor que el costo: cada venta dejaría pérdida. Puedes guardarlo igual.
         </p>
       )}
+      {conteoInicial && (
+        <Campo
+          etiqueta="Cantidad contada"
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step={1}
+          value={cantidad}
+          onChange={(e) => setCantidad(e.target.value)}
+          errores={error?.campos.quantity}
+          ayuda="Las unidades que hay hoy en el negocio. Con 0 se crea el producto sin unidades."
+          required
+        />
+      )}
       <div className="campos-en-fila">
         <Campo
           etiqueta="Existencia mínima"
@@ -294,11 +333,13 @@ function Campos({ producto, onTerminar, onCancelar, ...catalogos }: Props & List
       )}
       <div className="acciones">
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>
-          {guardar.isPending ? 'Guardando…' : editando ? 'Guardar cambios' : 'Crear producto'}
+          {guardar.isPending ? 'Guardando…' : conteoInicial ? 'Cargar producto' : editando ? 'Guardar cambios' : 'Crear producto'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
-          Cancelar
-        </button>
+        {onCancelar && (
+          <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+            Cancelar
+          </button>
+        )}
       </div>
     </form>
   )

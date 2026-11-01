@@ -1,9 +1,12 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dueno, vendedor, simularApi } from './test/apiSimulada'
 import { pagina, producto } from './test/datos'
 import { mostrarRutas as mostrar } from './test/mostrar'
+
+const CONTEO_TERMINADO = { is_open: false, finished_at: '2026-11-01T08:00:00-05:00', finished_by: 'dueno', products_counted: 10, units_counted: 50 }
+const CONTEO_ABIERTO = { is_open: true, finished_at: null, finished_by: null, products_counted: 3, units_counted: 12 }
 
 beforeEach(() => {
   // Las pantallas de Configuración piden sus datos al abrirse.
@@ -13,6 +16,7 @@ beforeEach(() => {
     }),
     'GET /users': () => ({ cuerpo: [dueno, vendedor] }),
     'GET /products*': () => ({ cuerpo: pagina([producto()]) }),
+    'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_TERMINADO }),
     'GET /catalog/categories*': () => ({ cuerpo: [] }),
     'GET /catalog/brands*': () => ({ cuerpo: [] }),
     'GET /catalog/motos*': () => ({ cuerpo: [] }),
@@ -57,6 +61,37 @@ describe('menú principal', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     expect(cerrarSesion).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('inventario inicial en el menú', () => {
+  it('el dueño ve la entrada mientras el conteo esté abierto', async () => {
+    simularApi({ 'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_ABIERTO }) })
+    mostrar(dueno)
+
+    expect(await within(menuPrincipal()).findByRole('link', { name: 'Inventario inicial' })).toBeInTheDocument()
+  })
+
+  it('el dueño no la ve cuando el conteo ya terminó', async () => {
+    const api = simularApi({ 'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_TERMINADO }) })
+    mostrar(dueno)
+
+    await waitFor(() => expect(api.cuantas('GET /inventory/initial-count')).toBe(1))
+    expect(within(menuPrincipal()).queryByRole('link', { name: 'Inventario inicial' })).not.toBeInTheDocument()
+  })
+
+  it('el vendedor nunca la ve y ni siquiera consulta el estado desde el menú', async () => {
+    const api = simularApi({ 'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_ABIERTO }) })
+    mostrar(vendedor)
+
+    expect(within(menuPrincipal()).queryByRole('link', { name: 'Inventario inicial' })).not.toBeInTheDocument()
+    expect(api.cuantas('GET /inventory/initial-count')).toBe(0)
+  })
+
+  it('el vendedor que escribe la dirección ve que no tiene permiso', () => {
+    mostrar(vendedor, '/inventario-inicial')
+
+    expect(screen.getByRole('heading', { name: 'No tienes permiso para ver esta pantalla' })).toBeInTheDocument()
   })
 })
 

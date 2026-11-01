@@ -1,17 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
-import { claves } from '../../api/consultas'
-import { consultarConteoInicial } from '../../api/inventario'
 import { Titulo } from '../../components/Titulo'
+import { useConteoInicial } from '../inventario/useConteoInicial'
 import { BuscadorDeVenta } from './BuscadorDeVenta'
 
 // Pantalla de venta. El backend todavía no tiene el módulo de ventas, así que por ahora solo
 // consulta precios y existencias con el buscador. Cuando exista el contrato de ventas, el buscador
 // recibe `onElegir` para agregar productos a la venta.
 export function Venta() {
-  const conteo = useQuery({
-    queryKey: claves.conteoInicial,
-    queryFn: ({ signal }) => consultarConteoInicial(signal),
-  })
+  const conteo = useConteoInicial()
 
   return (
     <section>
