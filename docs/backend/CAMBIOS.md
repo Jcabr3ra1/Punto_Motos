@@ -11,6 +11,34 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-01 · Compras y proveedores (0.5.0)
+
+**Qué cambió**
+
+- Todo el módulo es **solo del dueño**; el vendedor recibe 403.
+- Proveedores: `/suppliers`, con `balance_due` (lo que se le debe en total) y filtros `?q=`, `?with_debt=true` e `?include_inactive=true`. No se borran: se desactivan.
+- Compras: `/purchases`.
+  - **Borrador:** se crea, se edita con `PATCH` y se puede borrar. No toca el inventario. Las líneas enviadas en `items` reemplazan todas las anteriores.
+  - **Recibir:** `POST /purchases/{id}/receive` registra la recepción completa, con un abono opcional entregado con la mercancía. Desde ahí la compra no se edita ni se borra.
+  - Lista paginada con filtros por proveedor, estado, estado de pago y fechas.
+- Pagos **por abonos, sin plazo**. Cada compra recibida tiene `payment_status`: `pending` (sin abonos), `partial` (con abonos) o `paid` (pagada), además de `balance_due`.
+- Abonos: `POST /supplier-payments`. Pueden ir a una compra (`purchase`) o al proveedor en general, y en ese caso pagan primero las compras más antiguas. Llevan fecha de pago (`paid_on`, por defecto hoy). No se editan ni se borran.
+- Al recibir una compra, el costo de cada producto pasa al **promedio ponderado**. **Si el costo sube, el precio de venta sube los mismos pesos, redondeado hacia arriba a miles**, y el cambio queda en un historial de precios. Si el costo baja, el precio no cambia.
+- Los movimientos de inventario de una compra llevan `reason`: "Compra 15 · Distribuidora Andina".
+- Error nuevo: 409 `purchase_received`.
+
+**Qué debe hacer el frontend**
+
+- Pantalla **Proveedores** (solo el dueño): lista con lo que se les debe, alta, edición y desactivación. Sin botón de eliminar.
+- Pantalla **Compras** (solo el dueño): lista con filtros y formulario del borrador, con el buscador de productos y el costo por unidad precargado con `cost_price`.
+- Botón **Recibir compra**, con confirmación y un campo opcional de abono (valor y medio de pago). Deshabilitarlo mientras responde. Si la respuesta trae `price_changes`, mostrar qué precios subieron.
+- Formulario **Abonar** desde el proveedor o desde una compra, con valor, medio de pago, fecha (hoy por defecto) y notas.
+- **Estado de cuenta del proveedor:** `balance_due`, compras con saldo (`?supplier={id}&payment_status=pending,partial`) y abonos (`/supplier-payments?supplier={id}`).
+- Volver a consultar los productos después de recibir una compra: pueden cambiar `cost_price` y `sale_price`.
+- Usar los tipos `Supplier`, `Purchase`, `PurchaseDetail`, `PurchaseInput`, `ReceivedPurchase`, `SupplierPayment` y `SupplierPaymentInput` de [API.md](API.md#compras-y-proveedores).
+
+Ninguna acción por cambios incompatibles: solo se agregan rutas y campos.
+
 ## 2026-10-31 · Inventario (0.4.0)
 
 **Qué cambió**
