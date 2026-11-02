@@ -43,3 +43,38 @@ describe('desglosarError', () => {
     ])
   })
 })
+
+describe('desglosarError con errores anidados', () => {
+  it('aplana los errores de un objeto anidado con puntos', () => {
+    const resultado = desglosarError({
+      code: 'validation_error',
+      message: 'Revisa los datos marcados.',
+      fields: { payment: { amount: ['Se deben $78.000: no se pueden abonar $999.999.'] } } as never,
+    })
+
+    expect(resultado).toEqual({
+      generales: [],
+      campos: { 'payment.amount': ['Se deben $78.000: no se pueden abonar $999.999.'] },
+    })
+  })
+
+  it('aplana los errores de una lista por posición', () => {
+    const resultado = desglosarError({
+      code: 'validation_error',
+      message: 'Revisa los datos marcados.',
+      fields: { items: [{}, { quantity: ['Debe ser mayor que 0.'] }] } as never,
+    })
+
+    expect(resultado.campos).toEqual({ 'items.1.quantity': ['Debe ser mayor que 0.'] })
+  })
+
+  it('una lista de textos sigue siendo el error del propio campo', () => {
+    const resultado = desglosarError({
+      code: 'validation_error',
+      message: 'Revisa los datos marcados.',
+      fields: { items: ['FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total.'] },
+    })
+
+    expect(resultado.campos).toEqual({ items: ['FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total.'] })
+  })
+})

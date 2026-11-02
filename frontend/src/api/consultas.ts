@@ -14,6 +14,9 @@ export const claves = {
   conteoInicial: ['inventario', 'conteo-inicial'] as const,
   movimientos: ['inventario', 'movimientos'] as const,
   producto: (id: number) => ['producto', id] as const,
+  proveedores: ['proveedores'] as const,
+  compras: ['compras'] as const,
+  abonos: ['abonos'] as const,
   buscador: (texto: string) => ['buscador', texto] as const,
 }
 

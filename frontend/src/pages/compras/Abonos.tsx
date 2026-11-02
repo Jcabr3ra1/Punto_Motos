@@ -1,0 +1,183 @@
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
+import { listarAbonos, listarProveedores, type FiltrosDeAbonos } from '../../api/compras'
+import { claves } from '../../api/consultas'
+import { Campo } from '../../components/Campo'
+import { CampoSelector } from '../../components/CampoSelector'
+import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { Paginacion } from '../../components/Paginacion'
+import { Titulo } from '../../components/Titulo'
+import { formatearPesos } from '../../utilidades/dinero'
+import { formatearDia } from '../../utilidades/fechas'
+import { formatearNumero } from '../../utilidades/numeros'
+import { FormularioDeAbono } from './FormularioDeAbono'
+
+function leerFiltros(params: URLSearchParams): FiltrosDeAbonos {
+  const proveedor = Number(params.get('supplier'))
+  const pagina = Number(params.get('page'))
+  return {
+    supplier: Number.isInteger(proveedor) && proveedor > 0 ? proveedor : undefined,
+    date_from: params.get('date_from') || undefined,
+    date_to: params.get('date_to') || undefined,
+    page: Number.isInteger(pagina) && pagina > 1 ? pagina : undefined,
+  }
+}
+
+// Abonos a proveedores (solo el dueño), del pago más reciente al más antiguo. No se editan ni se borran.
+export function Abonos() {
+  const [params, setParams] = useSearchParams()
+  const [registrando, setRegistrando] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const filtros = leerFiltros(params)
+
+  function cambiar(parcial: Record<string, string | undefined>) {
+    const siguiente = new URLSearchParams(params)
+    for (const [clave, valor] of Object.entries(parcial)) {
+      if (valor) siguiente.set(clave, valor)
+      else siguiente.delete(clave)
+    }
+    if (!('page' in parcial)) siguiente.delete('page')
+    setParams(siguiente, { replace: true })
+  }
+
+  const proveedores = useQuery({
+    queryKey: [...claves.proveedores, { include_inactive: true }],
+    queryFn: ({ signal }) => listarProveedores({ include_inactive: true }, signal),
+  })
+  const abonos = useQuery({
+    queryKey: [...claves.abonos, filtros],
+    queryFn: ({ signal }) => listarAbonos(filtros, signal),
+    placeholderData: keepPreviousData,
+  })
+
+  if (registrando) {
+    return (
+      <>
+        <Titulo nivel={2}>Registrar abono</Titulo>
+        <FormularioDeAbono
+          proveedorId={filtros.supplier}
+          onTerminar={(mensaje) => {
+            setAviso(mensaje)
+            setRegistrando(false)
+          }}
+          onCancelar={() => setRegistrando(false)}
+        />
+      </>
+    )
+  }
+
+  const hayFiltros = Boolean(filtros.supplier || filtros.date_from || filtros.date_to)
+
+  return (
+    <>
+      <div className="barra-de-acciones">
+        <Titulo nivel={2}>Abonos a proveedores</Titulo>
+        <button
+          type="button"
+          className="boton boton--auto"
+          onClick={() => {
+            setAviso(null)
+            setRegistrando(true)
+          }}
+        >
+          Registrar abono
+        </button>
+      </div>
+      {aviso && (
+        <p role="status" className="aviso aviso--exito">
+          {aviso}
+        </p>
+      )}
+      <div className="filtros" role="search" aria-label="Filtrar abonos">
+        <CampoSelector
+          etiqueta="Proveedor"
+          value={filtros.supplier ? String(filtros.supplier) : ''}
+          onChange={(e) => cambiar({ supplier: e.target.value || undefined })}
+          opciones={[
+            { valor: '', texto: 'Todos los proveedores' },
+            ...(proveedores.data ?? []).map((p) => ({ valor: String(p.id), texto: p.name })),
+          ]}
+        />
+        <Campo
+          etiqueta="Pagados desde"
+          type="date"
+          value={filtros.date_from ?? ''}
+          onChange={(e) => cambiar({ date_from: e.target.value || undefined })}
+        />
+        <Campo
+          etiqueta="Hasta"
+          type="date"
+          value={filtros.date_to ?? ''}
+          onChange={(e) => cambiar({ date_to: e.target.value || undefined })}
+        />
+      </div>
+
+      {abonos.isPending && <Cargando />}
+      {abonos.isError && <ErrorDeCarga error={abonos.error} onReintentar={() => void abonos.refetch()} />}
+      {abonos.isSuccess && (
+        <>
+          <p role="status" className="texto-suave">
+            {abonos.data.count === 1 ? '1 abono' : `${formatearNumero(abonos.data.count)} abonos`}
+          </p>
+          {abonos.data.count === 0 ? (
+            <p className="texto-suave">
+              {hayFiltros ? 'Ningún abono coincide con los filtros.' : 'Todavía no hay abonos.'}
+            </p>
+          ) : (
+            <>
+              <div className="tabla-contenedor">
+                <table className="tabla">
+                  <caption className="solo-lectores">Abonos a proveedores</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Fecha de pago</th>
+                      <th scope="col">Proveedor</th>
+                      <th scope="col" className="tabla__numero">
+                        Valor
+                      </th>
+                      <th scope="col">Medio</th>
+                      <th scope="col">Aplicado a</th>
+                      <th scope="col">Notas</th>
+                      <th scope="col">Registró</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {abonos.data.results.map((abono) => (
+                      <tr key={abono.id}>
+                        <td className="tabla__nowrap">{formatearDia(abono.paid_on)}</td>
+                        <td>{abono.supplier.name}</td>
+                        <td className="tabla__numero">{formatearPesos(abono.amount)}</td>
+                        <td>{abono.method_label}</td>
+                        <td>
+                          {abono.allocations.map((reparto) => (
+                            <span key={reparto.purchase} className="tabla__detalle">
+                              <Link to={`/compras/lista/${reparto.purchase}`}>
+                                {reparto.document_number || `Compra n.º ${reparto.purchase}`}
+                              </Link>
+                              : {formatearPesos(reparto.amount)}
+                            </span>
+                          ))}
+                        </td>
+                        <td>{abono.notes || '—'}</td>
+                        <td>{abono.created_by}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Paginacion
+                etiqueta="Páginas de abonos"
+                pagina={filtros.page ?? 1}
+                total={abonos.data.count}
+                hayAnterior={Boolean(abonos.data.previous)}
+                haySiguiente={Boolean(abonos.data.next)}
+                onCambiar={(pagina) => cambiar({ page: String(pagina) })}
+              />
+            </>
+          )}
+        </>
+      )}
+    </>
+  )
+}

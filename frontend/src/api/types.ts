@@ -6,8 +6,11 @@ export interface ApiError {
   code: string
   /** Texto en español para mostrar al usuario. */
   message: string
-  /** Errores por campo; vacío si no aplica. `non_field_errors` va arriba del formulario. */
-  fields: Record<string, string[]>
+  /**
+   * Errores por campo; vacío si no aplica. `non_field_errors` va arriba del formulario.
+   * Pueden venir anidados (`{ payment: { amount: [...] } }`): usar `desglosarError` para leerlos.
+   */
+  fields: Record<string, string[] | Record<string, unknown> | unknown[]>
 }
 
 export type Role = 'owner' | 'seller'
@@ -200,4 +203,123 @@ export interface AdjustmentInput {
   /** Positivo suma, negativo resta; nunca 0. */
   quantity: number
   reason: string
+}
+
+// --- Compras y proveedores (solo el dueño) ---
+
+export type PurchaseStatus = 'draft' | 'received'
+/** Sin abonos, con abonos, pagada. */
+export type PaymentStatus = 'pending' | 'partial' | 'paid'
+export type PaymentMethod = 'cash' | 'transfer'
+
+export interface Supplier {
+  id: number
+  name: string
+  /** NIT o cédula; puede ir vacío. */
+  tax_id: string
+  phone: string
+  notes: string
+  is_active: boolean
+  /** Lo que se le debe en total (compras recibidas). */
+  balance_due: number
+}
+
+export interface SupplierInput {
+  name: string
+  tax_id?: string
+  phone?: string
+  notes?: string
+  is_active?: boolean
+}
+
+export interface Purchase {
+  id: number
+  supplier: { id: number; name: string }
+  /** Factura o remisión del proveedor; puede ir vacío. */
+  document_number: string
+  status: PurchaseStatus
+  /** «Borrador» o «Recibida». */
+  status_label: string
+  /** En borrador: suma de las líneas. */
+  total: number
+  paid_amount: number
+  /** total - paid_amount; 0 en borrador. */
+  balance_due: number
+  /** `null` en borrador. */
+  payment_status: PaymentStatus | null
+  items_count: number
+  created_by: string
+  created_at: string
+  received_by: string | null
+  received_at: string | null
+}
+
+export interface PurchaseItem {
+  id: number
+  product: { id: number; code: string; name: string }
+  quantity: number
+  /** Costo por unidad que cobró el proveedor. */
+  unit_cost: number
+  subtotal: number
+}
+
+export interface PurchaseDetail extends Purchase {
+  notes: string
+  items: PurchaseItem[]
+  /** Abonos aplicados a esta compra. */
+  allocations: {
+    payment: number
+    paid_on: string
+    method: PaymentMethod
+    method_label: string
+    amount: number
+  }[]
+}
+
+export interface PurchaseInput {
+  supplier: number
+  document_number?: string
+  notes?: string
+  /** Reemplaza todas las líneas anteriores; sin `items`, se conservan. */
+  items?: { product: number; quantity: number; unit_cost: number }[]
+}
+
+export interface PaymentInput {
+  amount: number
+  method: PaymentMethod
+  /** `AAAA-MM-DD`; por defecto hoy. */
+  paid_on?: string
+  notes?: string
+}
+
+export interface ReceivePurchaseInput {
+  /** Abono entregado con la mercancía. */
+  payment?: PaymentInput | null
+}
+
+export interface PriceChange {
+  product: { id: number; code: string; name: string }
+  old_price: number
+  new_price: number
+}
+
+export type ReceivedPurchase = PurchaseDetail & { price_changes: PriceChange[] }
+
+export interface SupplierPayment {
+  id: number
+  supplier: { id: number; name: string }
+  amount: number
+  method: PaymentMethod
+  method_label: string
+  paid_on: string
+  notes: string
+  allocations: { purchase: number; document_number: string; amount: number }[]
+  created_by: string
+  created_at: string
+}
+
+export type SupplierPaymentInput = PaymentInput & {
+  supplier: number
+  /** Vacío: paga primero las compras más antiguas. */
+  purchase?: number | null
 }

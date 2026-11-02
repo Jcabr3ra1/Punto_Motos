@@ -26,6 +26,10 @@ export const DESTINOS = {
     roles: SOLO_DUENO,
     soloConConteoAbierto: true,
   },
+  compras: { ruta: '/compras', etiqueta: 'Compras', roles: SOLO_DUENO },
+  comprasLista: { ruta: '/compras/lista', etiqueta: 'Compras', roles: SOLO_DUENO },
+  proveedores: { ruta: '/compras/proveedores', etiqueta: 'Proveedores', roles: SOLO_DUENO },
+  abonos: { ruta: '/compras/abonos', etiqueta: 'Abonos', roles: SOLO_DUENO },
   configuracion: { ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
   negocio: { ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
   catalogo: { ruta: '/configuracion/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
@@ -38,6 +42,7 @@ export const MENU_PRINCIPAL: readonly Destino[] = [
   DESTINOS.productos,
   DESTINOS.movimientos,
   DESTINOS.inventarioInicial,
+  DESTINOS.compras,
   DESTINOS.configuracion,
 ]
 
@@ -50,3 +55,5 @@ export const MENU_CONFIGURACION: readonly Destino[] = [
 export function puedeVer(destino: Destino, rol: Role): boolean {
   return destino.roles.includes(rol)
 }
+
+export const MENU_COMPRAS: readonly Destino[] = [DESTINOS.comprasLista, DESTINOS.proveedores, DESTINOS.abonos]
