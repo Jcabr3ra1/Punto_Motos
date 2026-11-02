@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
@@ -152,3 +153,24 @@ class Product(models.Model):
         self.name = " ".join(self.name.split())
         self.search_text = plain_text(self.name)
         super().save(*args, **kwargs)
+
+
+class PriceChange(models.Model):
+    """Cambio del precio de venta de un producto: cuánto, por qué y quién lo hizo."""
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="price_changes", verbose_name="producto")
+    old_price = models.PositiveBigIntegerField("precio anterior")
+    new_price = models.PositiveBigIntegerField("precio nuevo")
+    reason = models.CharField("motivo", max_length=200)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="price_changes", verbose_name="cambiado por",
+    )
+    created_at = models.DateTimeField("fecha", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "cambio de precio"
+        verbose_name_plural = "cambios de precio"
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.product.code}: {self.old_price} -> {self.new_price}"

@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.4.0**.
+Versión del backend: **0.5.0**.
 
 ## Conexión
 
@@ -80,7 +80,7 @@ GET /health ──► GET /setup/status
 
 | Rol | `role` | Puede |
 | --- | --- | --- |
-| Dueño | `owner` | Todo: administrar usuarios, cambiar datos del negocio y, en los próximos módulos, cambiar precios, ver costos, ajustar inventario, cargar y terminar el inventario inicial y, en los próximos módulos, anular y restaurar |
+| Dueño | `owner` | Todo: administrar usuarios, cambiar datos del negocio y, en los próximos módulos, cambiar precios, ver costos, ajustar inventario, cargar y terminar el inventario inicial, registrar compras y abonos a proveedores y, en los próximos módulos, anular y restaurar |
 | Vendedor | `seller` | Consultar y registrar ventas y cobros; no administra usuarios ni cambia datos del negocio |
 
 La interfaz debe **ocultar** las acciones que el rol no permite, usando `user.role` de `/auth/me` o del inicio de sesión. Aun así, el backend las rechaza con 403 `permission_denied`, por lo que ocultar el botón no es la única protección.
@@ -115,6 +115,7 @@ interface ApiError {
 | 403 | `origin_not_allowed` | Llamada desde un origen no permitido | Solo debería verse en desarrollo; revisar el puerto de Vite |
 | 404 | `not_found` | Ruta o registro inexistente | Mostrar `message` |
 | 409 | `initial_count_finished` | Se intenta cargar un producto al inventario inicial o terminarlo cuando ya terminó | Mostrar `message`, volver a consultar `GET /inventory/initial-count` y ocultar la pantalla de conteo |
+| 409 | `purchase_received` | Se intenta editar, borrar o recibir otra vez una compra ya recibida | Mostrar `message` y volver a cargar la compra |
 | 405 | `method_not_allowed` | Método no soportado en la ruta | Error de programación |
 | 429 | `throttled` | Demasiados intentos de inicio de sesión (más de 10 por minuto) | Mostrar `message` y deshabilitar el botón un momento |
 | 500 | `server_error` | Fallo inesperado del backend | Mostrar `message`; la operación no se completó y se puede reintentar |
@@ -182,6 +183,18 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET /inventory/initial-count` | Sesión | Estado y avance del inventario inicial |
 | `POST /inventory/initial-count/items` | Dueño | Crea un producto con su cantidad contada |
 | `POST /inventory/initial-count/finish` | Dueño | Termina el inventario inicial |
+| `GET /suppliers` | Dueño | Proveedores con lo que se les debe |
+| `POST /suppliers` | Dueño | Crea un proveedor |
+| `GET` y `PATCH /suppliers/{id}` | Dueño | Consulta o edita un proveedor |
+| `GET /purchases` | Dueño | Compras paginadas con filtros |
+| `POST /purchases` | Dueño | Crea una compra en borrador |
+| `GET /purchases/{id}` | Dueño | Una compra con sus productos y abonos |
+| `PATCH /purchases/{id}` | Dueño | Edita el borrador |
+| `DELETE /purchases/{id}` | Dueño | Borra el borrador |
+| `POST /purchases/{id}/receive` | Dueño | Recibe la compra, con un abono opcional |
+| `GET /supplier-payments` | Dueño | Abonos a proveedores paginados |
+| `POST /supplier-payments` | Dueño | Registra un abono |
+| `GET /supplier-payments/{id}` | Dueño | Un abono con su reparto entre compras |
 
 ### Estado del backend
 
@@ -190,7 +203,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.4.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.5.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -374,6 +387,8 @@ Cada producto tiene un **código interno** corto (no hay escáner): letras, núm
 
 Todos reciben `stock` (existencia actual) e `is_low_stock`. Un producto que nunca tuvo movimientos tiene `stock: 0`. Las existencias **no se envían ni se editan** en `POST` o `PATCH /products`: solo cambian con el [inventario](#inventario).
 
+Al [recibir una compra](#compras-y-proveedores), `cost_price` pasa a ser el costo promedio y, si el costo subió, `sale_price` sube los mismos pesos, redondeado a miles. Volver a consultar los productos después de recibir.
+
 ```ts
 interface Product {
   id: number;
@@ -500,7 +515,7 @@ interface InventoryMovement {
   quantity: number;                // con signo: 5 entra, -2 sale
   unit_cost?: number;              // solo el dueño: costo por unidad en ese momento
   balance_after: number;           // existencia que quedó después del movimiento
-  reason: string;                  // vacío salvo en ajustes
+  reason: string;                  // motivo del ajuste o "Compra 15 · Distribuidora Andina"; vacío en el inventario inicial
   created_by: string;              // username
   created_at: string;
 }
@@ -581,3 +596,267 @@ Después de terminado, cargar un producto o volver a terminar responde 409 `init
 ```json
 { "code": "initial_count_finished", "message": "El inventario inicial ya terminó: usa compras o ajustes.", "fields": {} }
 ```
+
+### Compras y proveedores
+
+Todo este módulo es **solo del dueño**: compras y abonos muestran costos. El vendedor recibe 403 `permission_denied` en todas estas rutas.
+
+**Flujo:**
+
+1. **Borrador.** Se elige el proveedor y se agregan los productos con su cantidad y su costo por unidad. Se edita y se puede borrar. **No toca el inventario.**
+2. **Recibir.** `POST /purchases/{id}/receive` registra la recepción completa: entran las existencias, se recalcula el costo de cada producto y el total queda fijo. Se puede enviar un abono entregado con la mercancía. Desde aquí la compra **no se edita ni se borra**.
+3. **Abonos.** Se pagan cuando se puede, **sin plazo**, en uno o varios abonos. Un abono puede ir a una compra concreta o al proveedor en general: en ese caso paga primero las compras más antiguas.
+
+**Costo y precio al recibir.**
+
+- El costo de cada producto pasa a ser el **promedio ponderado** entre lo que había y lo que llegó: 5 unidades a $18.000 + 3 a $20.000 → $18.750. Sin existencias, queda el costo de la compra.
+- **Si el costo sube, el precio de venta sube los mismos pesos**, redondeado hacia arriba al siguiente múltiplo de $1.000: venta $25.000, costo de $18.000 a $18.750 → $25.750 → **$26.000**. Cada cambio queda en el historial de precios.
+- **Si el costo baja, el precio no cambia:** bajarlo es decisión del dueño, desde el formulario de producto.
+
+```ts
+type PurchaseStatus = "draft" | "received";
+type PaymentStatus = "pending" | "partial" | "paid";   // sin abonos, con abonos, pagada
+type PaymentMethod = "cash" | "transfer";
+
+interface Supplier {
+  id: number;
+  name: string;
+  tax_id: string;                  // NIT o cédula; puede ir vacío
+  phone: string;
+  notes: string;
+  is_active: boolean;
+  balance_due: number;             // lo que se le debe en total (compras recibidas)
+}
+
+interface SupplierInput {
+  name: string;
+  tax_id?: string;
+  phone?: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
+interface Purchase {
+  id: number;
+  supplier: { id: number; name: string };
+  document_number: string;         // factura o remisión del proveedor; puede ir vacío
+  status: PurchaseStatus;
+  status_label: string;            // "Borrador" o "Recibida"
+  total: number;                   // en borrador: suma de las líneas
+  paid_amount: number;
+  balance_due: number;             // total - paid_amount; 0 en borrador
+  payment_status: PaymentStatus | null;   // null en borrador
+  items_count: number;
+  created_by: string;              // username
+  created_at: string;
+  received_by: string | null;
+  received_at: string | null;
+}
+
+interface PurchaseItem {
+  id: number;
+  product: { id: number; code: string; name: string };
+  quantity: number;
+  unit_cost: number;               // costo por unidad que cobró el proveedor
+  subtotal: number;
+}
+
+interface PurchaseDetail extends Purchase {
+  notes: string;
+  items: PurchaseItem[];
+  allocations: {                   // abonos aplicados a esta compra
+    payment: number;               // id del abono
+    paid_on: string;               // "2026-11-01"
+    method: PaymentMethod;
+    method_label: string;          // "Efectivo" o "Transferencia"
+    amount: number;                // parte del abono aplicada a esta compra
+  }[];
+}
+
+interface PurchaseInput {
+  supplier: number;
+  document_number?: string;
+  notes?: string;
+  items?: { product: number; quantity: number; unit_cost: number }[];
+}
+
+interface PaymentInput {
+  amount: number;
+  method: PaymentMethod;
+  paid_on?: string;                // "AAAA-MM-DD"; por defecto hoy
+  notes?: string;
+}
+
+interface ReceivePurchaseInput {
+  payment?: PaymentInput | null;   // abono entregado con la mercancía
+}
+
+interface PriceChange {
+  product: { id: number; code: string; name: string };
+  old_price: number;
+  new_price: number;
+}
+
+type ReceivedPurchase = PurchaseDetail & { price_changes: PriceChange[] };
+
+interface SupplierPayment {
+  id: number;
+  supplier: { id: number; name: string };
+  amount: number;
+  method: PaymentMethod;
+  method_label: string;
+  paid_on: string;
+  notes: string;
+  allocations: { purchase: number; document_number: string; amount: number }[];
+  created_by: string;
+  created_at: string;
+}
+
+type SupplierPaymentInput = PaymentInput & {
+  supplier: number;
+  purchase?: number | null;        // vacío: paga primero las compras más antiguas
+};
+```
+
+**Proveedores.** `GET /suppliers` responde un arreglo de `Supplier` activos, sin paginar y ordenado por nombre. `POST /suppliers` responde el creado (201) y `PATCH /suppliers/{id}` el actualizado. No hay `DELETE`: se desactivan con `is_active: false`. Un proveedor desactivado no se puede elegir en compras nuevas, pero se le pueden seguir registrando abonos.
+
+| Filtro | Ejemplo | Resultado |
+| --- | --- | --- |
+| `q` | `?q=andina` | El nombre contiene el texto, sin tildes, o el NIT contiene el texto |
+| `with_debt` | `?with_debt=true` | Solo los proveedores a los que se les debe |
+| `include_inactive` | `?include_inactive=true` | Incluye los desactivados |
+
+| Campo | Reglas |
+| --- | --- |
+| `name` | Obligatorio; máximo 80; único sin importar mayúsculas |
+| `tax_id`, `phone` | Opcionales; máximo 30 |
+| `notes` | Opcional; máximo 200 |
+
+Error en `fields`: `name` con "Ya existe un proveedor con ese nombre."
+
+**Lista de compras.** `GET /purchases` responde `Paginated<Purchase>`, de la más reciente a la más antigua.
+
+| Filtro | Ejemplo | Resultado |
+| --- | --- | --- |
+| `supplier` | `?supplier=3` | Solo las de ese proveedor |
+| `status` | `?status=draft` | `draft` o `received` |
+| `payment_status` | `?payment_status=pending,partial` | Uno o varios separados por comas. Solo compras recibidas |
+| `date_from`, `date_to` | `?date_from=2026-11-01` | Por día de creación, ambos incluidos, en hora de Colombia |
+
+`GET /purchases/{id}` responde `PurchaseDetail`.
+
+**Estado de cuenta de un proveedor.** No tiene una ruta propia: se arma con tres consultas.
+
+- `GET /suppliers/{id}` → `balance_due`, lo que se le debe en total.
+- `GET /purchases?supplier={id}&payment_status=pending,partial` → las compras con saldo.
+- `GET /supplier-payments?supplier={id}` → los abonos hechos.
+
+**Borrador.** `POST /purchases` crea el borrador y responde `PurchaseDetail` (201). `PATCH /purchases/{id}` lo edita y responde `PurchaseDetail`. **Las líneas enviadas en `items` reemplazan todas las anteriores**; sin `items`, se conservan. `DELETE /purchases/{id}` borra el borrador (204). No hay `PUT`.
+
+```json
+{
+  "supplier": 3,
+  "document_number": "FV-1020",
+  "items": [
+    { "product": 7, "quantity": 3, "unit_cost": 20000 },
+    { "product": 12, "quantity": 10, "unit_cost": 9500 }
+  ]
+}
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `supplier` | Obligatorio; un proveedor activo |
+| `document_number` | Opcional; máximo 40. No se repite para el mismo proveedor, sin importar mayúsculas |
+| `notes` | Opcional; máximo 200 |
+| `items[].product` | Un producto activo; **una sola línea por producto** |
+| `items[].quantity` | Entero mayor que 0 |
+| `items[].unit_cost` | Entero mayor o igual a 0; 0 si el proveedor regala las unidades. Se sugiere precargar el `cost_price` del producto |
+
+Un borrador puede guardarse sin productos, pero no se puede recibir así.
+
+Errores en `fields`:
+
+- `document_number`: "Ya hay una compra de este proveedor con ese documento."
+- `items`: "FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total.", o un producto inexistente o desactivado.
+- `supplier`: el id no existe o el proveedor está desactivado.
+
+**Recibir.** `POST /purchases/{id}/receive` responde `ReceivedPurchase` (200). El cuerpo puede ir vacío (`{}`) si no se abona nada.
+
+```json
+{ "payment": { "amount": 50000, "method": "cash" } }
+```
+
+```json
+{
+  "id": 15,
+  "status": "received",
+  "total": 155000,
+  "paid_amount": 50000,
+  "balance_due": 105000,
+  "payment_status": "partial",
+  "price_changes": [
+    { "product": { "id": 7, "code": "FRE-PUL-PAS", "name": "Pastillas de freno Pulsar 180" }, "old_price": 25000, "new_price": 26000 }
+  ]
+}
+```
+
+La respuesta trae también los demás campos de `PurchaseDetail`. Si `price_changes` no está vacío, **mostrar al dueño qué precios subieron**: «Pastillas de freno Pulsar 180: $25.000 → $26.000».
+
+Recepción, entradas de inventario, precios y abono se guardan **juntos**: si el abono no es válido, la compra sigue en borrador y no entra nada. Pedir confirmación antes de recibir y deshabilitar el botón mientras responde. Si llega un segundo intento, responde 409 sin repetir las entradas.
+
+Errores:
+
+- 400, `fields.non_field_errors`: "La compra no tiene productos."
+- 400, `fields.payment.amount`: "Se deben $155.000: no se pueden abonar $160.000."
+- 400, `fields.payment.paid_on`: "La fecha de pago no puede ser futura."
+- 409 `purchase_received`: la compra ya se recibió.
+
+**Compra recibida.** `PATCH`, `DELETE` o `receive` sobre una compra recibida responden 409:
+
+```json
+{ "code": "purchase_received", "message": "La compra ya se recibió: no se puede modificar.", "fields": {} }
+```
+
+**Abonos.** `POST /supplier-payments` responde el `SupplierPayment` creado (201), con el reparto entre compras en `allocations`. Los abonos **no se editan ni se borran**.
+
+```json
+{ "supplier": 3, "amount": 45000, "method": "transfer", "notes": "Nequi" }
+```
+
+Con compras de $30.000 y $50.000 pendientes, ese abono salda la primera y deja $15.000 abonados a la segunda:
+
+```json
+{
+  "id": 9,
+  "supplier": { "id": 3, "name": "Distribuidora Andina" },
+  "amount": 45000,
+  "method": "transfer",
+  "method_label": "Transferencia",
+  "paid_on": "2026-11-01",
+  "notes": "Nequi",
+  "allocations": [
+    { "purchase": 12, "document_number": "FV-1001", "amount": 30000 },
+    { "purchase": 15, "document_number": "FV-1020", "amount": 15000 }
+  ],
+  "created_by": "dueno",
+  "created_at": "2026-11-01T15:20:00-05:00"
+}
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `supplier` | Obligatorio |
+| `purchase` | Opcional; una compra recibida de ese proveedor. Todo el abono se aplica a ella |
+| `amount` | Obligatorio; entero mayor que 0. No puede superar lo que se debe: al proveedor en total o a la compra elegida |
+| `method` | `cash` o `transfer` |
+| `paid_on` | Opcional; día en que se pagó, por defecto hoy. No puede ser futura |
+| `notes` | Opcional; máximo 200 |
+
+Errores en `fields`:
+
+- `amount`: "Se deben $30.000: no se pueden abonar $30.001." o "No hay saldo pendiente: no se puede abonar."
+- `purchase`: "La compra es de otro proveedor." o "La compra todavía es borrador: recíbela antes de abonar."
+- `paid_on`: "La fecha de pago no puede ser futura."
+
+`GET /supplier-payments` responde `Paginated<SupplierPayment>`, del pago más reciente al más antiguo. Filtros: `?supplier=`, `?date_from=` y `?date_to=` (por `paid_on`, ambos incluidos).
