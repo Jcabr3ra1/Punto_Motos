@@ -126,36 +126,41 @@ export function SelectorDeCliente({ valor, onCambiar, errores = [] }: Props) {
         autoComplete="off"
       />
       <ul id={`${id}-lista`} role="listbox" aria-label="Clientes" className="buscador__lista" hidden={total === 0}>
-        {visibles.map((cliente, indice) => (
-          <li
-            key={cliente.id}
-            id={`${id}-opcion-${indice}`}
-            role="option"
-            aria-selected={indice === activo}
-            className="buscador__opcion buscador__opcion--simple"
-            onMouseDown={(e) => {
-              e.preventDefault()
-              elegir(indice)
-            }}
-          >
-            <span>{cliente.name}</span>
-            <span className="tabla__detalle">{cliente.phone || 'Sin teléfono'}</span>
-          </li>
-        ))}
-        <li
-          id={`${id}-opcion-${visibles.length}`}
-          role="option"
-          aria-selected={activo === visibles.length}
-          className="buscador__opcion buscador__opcion--simple"
-          onMouseDown={(e) => {
-            e.preventDefault()
-            elegir(visibles.length)
-          }}
-        >
-          <span>
-            Crear cliente nuevo: <strong>«{texto.trim()}»</strong>
-          </span>
-        </li>
+        {/* Sin texto suficiente no hay opciones: una oculta y «seleccionada» confundiría a los lectores de pantalla. */}
+        {total > 0 && (
+          <>
+            {visibles.map((cliente, indice) => (
+              <li
+                key={cliente.id}
+                id={`${id}-opcion-${indice}`}
+                role="option"
+                aria-selected={indice === activo}
+                className="buscador__opcion buscador__opcion--simple"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  elegir(indice)
+                }}
+              >
+                <span>{cliente.name}</span>
+                <span className="tabla__detalle">{cliente.phone || 'Sin teléfono'}</span>
+              </li>
+            ))}
+            <li
+              id={`${id}-opcion-${visibles.length}`}
+              role="option"
+              aria-selected={activo === visibles.length}
+              className="buscador__opcion buscador__opcion--simple"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                elegir(visibles.length)
+              }}
+            >
+              <span>
+                Crear cliente nuevo: <strong>«{texto.trim()}»</strong>
+              </span>
+            </li>
+          </>
+        )}
       </ul>
       {errores.length > 0 && (
         <ul id={`${id}-errores`} className="campo__errores">

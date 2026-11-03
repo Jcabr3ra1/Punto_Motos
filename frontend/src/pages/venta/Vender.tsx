@@ -17,6 +17,22 @@ import { useConteoInicial } from '../inventario/useConteoInicial'
 import { Recibo } from './Recibo'
 import { SelectorDeCliente, type ClienteElegido } from './SelectorDeCliente'
 
+/**
+ * Cómo paga el cliente. El backend solo distingue efectivo y transferencia: la transferencia bancaria y Nequi
+ * se envían las dos como `transfer`, y el medio exacto queda escrito en las notas de la venta (sale en el recibo).
+ */
+type Medio = 'efectivo' | 'transferencia' | 'nequi' | 'mixto'
+type Canal = 'transferencia' | 'nequi'
+
+const MEDIOS: readonly { valor: Medio; texto: string }[] = [
+  { valor: 'efectivo', texto: 'Efectivo' },
+  { valor: 'transferencia', texto: 'Transferencia bancaria' },
+  { valor: 'nequi', texto: 'Nequi' },
+  { valor: 'mixto', texto: 'Mixto' },
+]
+
+const NOMBRE_DEL_CANAL: Record<Canal, string> = { transferencia: 'transferencia bancaria', nequi: 'Nequi' }
+
 interface Linea {
   producto: Product
   cantidad: number
@@ -35,6 +51,9 @@ export function Vender() {
 
   const [lineas, setLineas] = useState<Linea[]>([])
   const [cliente, setCliente] = useState<ClienteElegido | null>(null)
+  const [medio, setMedio] = useState<Medio>('efectivo')
+  // En el pago mixto: por dónde llega la parte que no es efectivo.
+  const [canal, setCanal] = useState<Canal>('transferencia')
   const [transferencia, setTransferencia] = useState('')
   const [efectivoRecibido, setEfectivoRecibido] = useState('')
   const [notas, setNotas] = useState('')
@@ -43,7 +62,8 @@ export function Vender() {
   const [vendida, setVendida] = useState<{ venta: SaleDetail; vuelto: number } | null>(null)
 
   const total = lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0)
-  const enTransferencia = Number(transferencia) || 0
+  const enTransferencia =
+    medio === 'efectivo' ? 0 : medio === 'mixto' ? Number(transferencia) || 0 : total
   const enEfectivo = Math.max(0, total - enTransferencia)
   const recibido = efectivoRecibido === '' ? enEfectivo : Number(efectivoRecibido) || 0
   const vuelto = Math.max(0, recibido - enEfectivo)
@@ -70,7 +90,7 @@ export function Vender() {
           ...(esDueno && l.precio !== l.producto.sale_price ? { unit_price: l.precio } : {}),
         })),
         payments: pagos,
-        notes: notas,
+        notes: [notaDelMedio(), notas.trim()].filter(Boolean).join(' · '),
       })
     },
     onSuccess: async (venta) => {
@@ -90,9 +110,18 @@ export function Vender() {
   })
   const error = cobrar.isError ? desglosarError(cobrar.error) : null
 
+  /** Deja constancia del medio exacto, que el backend no distingue (bancaria o Nequi). */
+  function notaDelMedio() {
+    if (medio === 'transferencia' || medio === 'nequi') return `Pago por ${NOMBRE_DEL_CANAL[medio]}`
+    if (medio === 'mixto' && enTransferencia > 0) return `Parte por ${NOMBRE_DEL_CANAL[canal]}: ${formatearPesos(enTransferencia)}`
+    return ''
+  }
+
   function nuevaVenta() {
     setLineas([])
     setCliente(null)
+    setMedio('efectivo')
+    setCanal('transferencia')
     setTransferencia('')
     setEfectivoRecibido('')
     setNotas('')
@@ -273,20 +302,53 @@ export function Vender() {
             <dt>Total</dt>
             <dd>{formatearPesos(total)}</dd>
           </dl>
-          <Campo
-            etiqueta="Pago por transferencia"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={1}
-            value={transferencia}
-            onChange={(e) => setTransferencia(e.target.value)}
-            errores={transferenciaDeMas ? ['La transferencia no puede ser mayor que el total.'] : undefined}
-            ayuda="Déjalo vacío si todo se paga en efectivo."
-          />
-          <p className="venta__efectivo">
-            Efectivo a cobrar: <strong>{formatearPesos(enEfectivo)}</strong>
-          </p>
+          <fieldset className="conjunto">
+            <legend>Medio de pago</legend>
+            <div className="selector-de-pago">
+              {MEDIOS.map((m) => (
+                <label key={m.valor} className="selector-de-pago__opcion">
+                  <input type="radio" name="medio-de-pago" checked={medio === m.valor} onChange={() => setMedio(m.valor)} />
+                  {m.texto}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {medio === 'mixto' && (
+            <>
+              <fieldset className="conjunto">
+                <legend>La otra parte llega por</legend>
+                <div className="opciones-en-fila">
+                  {(['transferencia', 'nequi'] as const).map((c) => (
+                    <label key={c} className="opcion">
+                      <input type="radio" name="canal-mixto" checked={canal === c} onChange={() => setCanal(c)} />
+                      {c === 'nequi' ? 'Nequi' : 'Transferencia bancaria'}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <Campo
+                etiqueta={canal === 'nequi' ? 'Valor por Nequi' : 'Valor por transferencia'}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={transferencia}
+                onChange={(e) => setTransferencia(e.target.value)}
+                errores={transferenciaDeMas ? ['No puede ser mayor que el total.'] : undefined}
+                ayuda="El resto se cobra en efectivo."
+              />
+            </>
+          )}
+          {(medio === 'transferencia' || medio === 'nequi') && (
+            <p className="venta__efectivo">
+              Cobrar <strong>{formatearPesos(total)}</strong> por {NOMBRE_DEL_CANAL[medio]}.
+            </p>
+          )}
+          {(medio === 'efectivo' || medio === 'mixto') && (
+            <p className="venta__efectivo">
+              Efectivo a cobrar: <strong>{formatearPesos(enEfectivo)}</strong>
+            </p>
+          )}
           {enEfectivo > 0 && (
             <Campo
               etiqueta="Efectivo que entrega el cliente"
@@ -305,7 +367,7 @@ export function Vender() {
               Vuelto: <strong>{formatearPesos(vuelto)}</strong>
             </p>
           )}
-          <Campo etiqueta="Notas" value={notas} onChange={(e) => setNotas(e.target.value)} maxLength={200} autoComplete="off" />
+          <Campo etiqueta="Notas" value={notas} onChange={(e) => setNotas(e.target.value)} maxLength={150} autoComplete="off" />
           <button type="submit" className="boton venta__cobrar" disabled={!puedeCobrar}>
             {cobrar.isPending ? 'Cobrando…' : `Cobrar ${formatearPesos(total)}`}
           </button>
