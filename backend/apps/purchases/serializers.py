@@ -3,6 +3,8 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.cash.exceptions import NoOpenCashSession
+from apps.cash.models import CashSessionClosed
 from apps.catalog.models import PriceChange, Product
 from apps.catalog.serializers import NamedModelSerializer
 
@@ -268,6 +270,8 @@ class ReceivePurchaseSerializer(serializers.Serializer):
             self.price_changes = instance.receive(self.context["request"].user, payment=validated_data.get("payment"))
         except PurchaseNotDraft:
             raise PurchaseReceived()
+        except CashSessionClosed:
+            raise NoOpenCashSession()
         except EmptyPurchase:
             raise serializers.ValidationError({"non_field_errors": ["La compra no tiene productos."]})
         except Overpayment as error:
@@ -334,6 +338,8 @@ class SupplierPaymentWriteSerializer(serializers.Serializer):
     def create(self, validated_data):
         try:
             return SupplierPayment.objects.record(user=self.context["request"].user, **validated_data)
+        except CashSessionClosed:
+            raise NoOpenCashSession()
         except PurchaseNotReceived:
             raise serializers.ValidationError({"purchase": ["La compra todavía es borrador: recíbela antes de abonar."]})
         except Overpayment as error:

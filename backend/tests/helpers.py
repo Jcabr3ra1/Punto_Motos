@@ -20,3 +20,10 @@ def login_client(client, user=None):
         token, _ = Token.objects.get_or_create(user=user)
         client.defaults["HTTP_AUTHORIZATION"] = f"Token {token.key}"
     return client
+
+
+def open_cash(user, opening_cash=0):
+    """Abre la caja: sin ella no se vende ni se registran pagos de hoy."""
+    from apps.cash.models import CashSession
+
+    return CashSession.objects.open(opening_cash, user)

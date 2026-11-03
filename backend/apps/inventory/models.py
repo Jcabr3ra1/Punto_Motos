@@ -11,11 +11,19 @@ class MovementKind(models.TextChoices):
     SALE = "sale", "Venta"
     RETURN = "return", "Devolución"
     ADJUSTMENT = "adjustment", "Ajuste"
+    CONSIGNMENT_OUT = "consignment_out", "Entrega en consignación"
+    CONSIGNMENT_RETURN = "consignment_return", "Devolución de consignación"
 
 
 # Tipos que solo suman y tipos que solo restan. El ajuste puede ir en ambos sentidos.
-INCOMING_KINDS = [MovementKind.INITIAL_COUNT, MovementKind.PURCHASE, MovementKind.RETURN]
-OUTGOING_KINDS = [MovementKind.SALE]
+INCOMING_KINDS = [
+    MovementKind.INITIAL_COUNT, MovementKind.PURCHASE, MovementKind.RETURN, MovementKind.CONSIGNMENT_RETURN,
+]
+OUTGOING_KINDS = [MovementKind.SALE, MovementKind.CONSIGNMENT_OUT]
+
+
+class InitialCountOpen(Exception):
+    """No salen unidades mientras el inventario inicial sigue abierto: las existencias todavía no son reales."""
 
 
 class InsufficientStock(Exception):

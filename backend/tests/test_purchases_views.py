@@ -7,7 +7,7 @@ from apps.accounts.models import Role
 from apps.inventory.models import InventoryBalance
 from apps.purchases.models import Purchase, PurchaseStatus, Supplier, SupplierPayment
 
-from .helpers import APP_TOKEN, login_client, make_user
+from .helpers import APP_TOKEN, login_client, make_user, open_cash
 from .test_catalog_models import make_product
 from .test_purchases_models import make_purchase
 
@@ -17,6 +17,7 @@ JSON = "application/json"
 class PurchaseApiMixin:
     def setUp(self):
         self.owner = make_user("dueno", role=Role.OWNER)
+        open_cash(self.owner)
         self.seller = make_user("ana")
         login_client(self.client, self.owner)
         self.supplier = Supplier.objects.create(name="Distribuidora Andina")

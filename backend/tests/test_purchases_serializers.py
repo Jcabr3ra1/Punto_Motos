@@ -13,7 +13,7 @@ from apps.purchases.serializers import (
     SupplierSerializer, pesos,
 )
 
-from .helpers import make_user
+from .helpers import make_user, open_cash
 from .test_catalog_models import make_product
 from .test_catalog_serializers import context_for
 from .test_purchases_models import make_purchase
@@ -22,6 +22,7 @@ from .test_purchases_models import make_purchase
 class PurchaseDataMixin:
     def setUp(self):
         self.owner = make_user("dueno", role=Role.OWNER)
+        open_cash(self.owner)
         self.supplier = Supplier.objects.create(name="Distribuidora Andina")
         self.brakes = make_product(cost_price=18000)
         self.plug = make_product(code="ELE-UNI-BUJ", name="Bujía NGK", cost_price=9000)

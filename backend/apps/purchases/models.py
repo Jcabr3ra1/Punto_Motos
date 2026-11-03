@@ -7,7 +7,9 @@ from django.db.models import F, Q, Sum
 from django.db.models.functions import Lower
 from django.utils import timezone
 
+from apps.cash.models import CashMovement, CashMovementKind
 from apps.catalog.models import NamedModel, PriceChange, Product
+from apps.core.models import PaymentMethod, PaymentStatus  # noqa: F401 (se importan desde aquí)
 from apps.inventory.models import InventoryBalance, InventoryMovement, MovementKind
 
 
@@ -84,14 +86,6 @@ class Supplier(NamedModel):
 class PurchaseStatus(models.TextChoices):
     DRAFT = "draft", "Borrador"
     RECEIVED = "received", "Recibida"
-
-
-class PaymentStatus(models.TextChoices):
-    """Cómo va el pago de una compra recibida. No hay plazo: se abona cuando se puede."""
-
-    PENDING = "pending", "Sin abonos"
-    PARTIAL = "partial", "Con abonos"
-    PAID = "paid", "Pagada"
 
 
 class Purchase(models.Model):
@@ -264,11 +258,6 @@ class PurchaseItem(models.Model):
         return self.quantity * self.unit_cost
 
 
-class PaymentMethod(models.TextChoices):
-    CASH = "cash", "Efectivo"
-    TRANSFER = "transfer", "Transferencia"
-
-
 class SupplierPaymentManager(models.Manager):
     def record(self, supplier, amount, method, user, purchase=None, paid_on=None, notes=""):
         """Registra un abono al proveedor y lo reparte entre sus compras con saldo.
@@ -277,6 +266,9 @@ class SupplierPaymentManager(models.Manager):
         purchase, se aplica solo a esa. Un abono mayor que lo que se debe
         lanza Overpayment; uno a una compra en borrador, PurchaseNotReceived.
         En ambos casos no queda nada guardado.
+
+        Un abono de hoy sale de la caja abierta (sin caja, CashSessionClosed).
+        Uno con fecha anterior se pagó por fuera y no toca la caja de hoy.
         """
         if purchase is not None and purchase.supplier_id != supplier.pk:
             raise ValueError("La compra es de otro proveedor.")
@@ -316,6 +308,11 @@ class SupplierPaymentManager(models.Manager):
                     raise Overpayment(supplier.balance_due, requested=amount)
                 PaymentAllocation.objects.create(payment=payment, purchase=target, amount=applied)
                 remaining -= applied
+            if payment.paid_on == timezone.localdate():
+                CashMovement.objects.record(
+                    CashMovementKind.SUPPLIER_PAYMENT, -amount, method, user,
+                    reason=f"Abono a {supplier.name}", supplier_payment=payment,
+                )
 
         if purchase is not None:
             purchase.refresh_from_db()

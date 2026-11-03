@@ -69,6 +69,14 @@ class NamedSerializerTests(CatalogDataMixin, TestCase):
         self.assertEqual(serializer.errors["name"], ["Ya existe un tipo con ese nombre."])
         self.assertEqual(serializer.errors["abbreviation"], ["Ya existe un tipo con esa sigla."])
 
+    def test_abbreviation_from_2_to_8_letters(self):
+        for value, valid in [("ac", True), ("aceitesx", True), ("a", False), ("aceitesxy", False)]:
+            with self.subTest(value=value):
+                serializer = MotoModelSerializer(data={"name": f"Moto {value}", "abbreviation": value})
+                self.assertEqual(serializer.is_valid(), valid, serializer.errors)
+                if not valid:
+                    self.assertEqual(serializer.errors["abbreviation"], ["La sigla debe tener de 2 a 8 letras."])
+
     def test_invalid_abbreviation_format(self):
         serializer = CategorySerializer(data={"name": "Aceites", "abbreviation": "a1"})
 

@@ -13,7 +13,7 @@ from apps.purchases.models import (
     PurchaseNotReceived, PurchaseStatus, Supplier, SupplierPayment, raised_sale_price, weighted_average_cost,
 )
 
-from .helpers import make_user
+from .helpers import make_user, open_cash
 from .test_catalog_models import make_product
 
 pay = SupplierPayment.objects.record
@@ -51,6 +51,7 @@ class SupplierTests(TestCase):
 class ReceivePurchaseTests(TestCase):
     def setUp(self):
         self.owner = make_user("dueno", role=Role.OWNER)
+        open_cash(self.owner)
         self.brakes = make_product(cost_price=18000)
         self.plug = make_product(code="ELE-UNI-BUJ", name="Bujía NGK", cost_price=9000)
 
@@ -146,6 +147,7 @@ class ReceivePurchaseTests(TestCase):
 class SupplierPaymentTests(TestCase):
     def setUp(self):
         self.owner = make_user("dueno", role=Role.OWNER)
+        open_cash(self.owner)
         self.supplier = Supplier.objects.create(name="Distribuidora Andina")
         self.product = make_product()
 
@@ -261,6 +263,7 @@ class SupplierPaymentTests(TestCase):
 class ReceiveWithPaymentTests(TestCase):
     def setUp(self):
         self.owner = make_user("dueno", role=Role.OWNER)
+        open_cash(self.owner)
         self.product = make_product()
 
     def test_abono_delivered_with_the_goods(self):
@@ -300,6 +303,7 @@ class RaisedSalePriceTests(TestCase):
 class ReceivePricingTests(TestCase):
     def setUp(self):
         self.owner = make_user("dueno", role=Role.OWNER)
+        open_cash(self.owner)
         self.product = make_product(cost_price=18000, sale_price=25000)
         InventoryMovement.objects.record(self.product, MovementKind.INITIAL_COUNT, 5, self.owner)
 
