@@ -81,7 +81,8 @@ describe('vender', () => {
     await u.click(await screen.findByRole('option', { name: /Crear cliente nuevo/ }))
     expect(screen.getByLabelText('Nombre del cliente')).toHaveValue('Juan Ruiz')
     await u.type(screen.getByLabelText('Teléfono'), '3115556677')
-    await u.type(screen.getByLabelText('Pago por transferencia'), '20000')
+    await u.click(screen.getByLabelText('Mixto'))
+    await u.type(screen.getByLabelText('Valor por transferencia'), '20000')
     expect(screen.getByText(/Efectivo a cobrar:/)).toHaveTextContent(/\$\s?23\.000/)
 
     await u.click(screen.getByRole('button', { name: /^Cobrar/ }))
@@ -94,6 +95,7 @@ describe('vender', () => {
         { method: 'transfer', amount: 20000 },
       ],
     })
+    expect(ventasEnviadas(api)[0].notes).toMatch(/^Parte por transferencia bancaria: \$\s?20\.000$/)
   })
 
   it('no deja cobrar sin cliente, ni si el efectivo no alcanza o la transferencia se pasa', async () => {
@@ -111,8 +113,9 @@ describe('vender', () => {
     expect(cobrar).toBeDisabled()
 
     await u.clear(screen.getByLabelText('Efectivo que entrega el cliente'))
-    await u.type(screen.getByLabelText('Pago por transferencia'), '30000')
-    expect(screen.getByText('La transferencia no puede ser mayor que el total.')).toBeInTheDocument()
+    await u.click(screen.getByLabelText('Mixto'))
+    await u.type(screen.getByLabelText('Valor por transferencia'), '30000')
+    expect(screen.getByText('No puede ser mayor que el total.')).toBeInTheDocument()
     expect(cobrar).toBeDisabled()
   })
 
@@ -174,6 +177,60 @@ describe('vender', () => {
 
     const fila = screen.getByRole('row', { name: /Pastillas de freno Pulsar 180/ })
     expect(await within(fila).findByText('Solo hay 2 unidades de FRE-PUL-PAS.')).toBeInTheDocument()
+  })
+})
+
+describe('medio de pago', () => {
+  it('por defecto es efectivo y el selector muestra los cuatro medios', async () => {
+    abrir()
+
+    const grupo = await screen.findByRole('group', { name: 'Medio de pago' })
+    expect(within(grupo).getAllByRole('radio').map((r) => r.closest('label')?.textContent)).toEqual([
+      'Efectivo',
+      'Transferencia bancaria',
+      'Nequi',
+      'Mixto',
+    ])
+    expect(within(grupo).getByLabelText('Efectivo')).toBeChecked()
+  })
+
+  it.each([
+    ['Nequi', 'Pago por Nequi'],
+    ['Transferencia bancaria', 'Pago por transferencia bancaria'],
+  ])('con %s todo va como transferencia y el medio queda en las notas', async (medio, nota) => {
+    const { api, u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta() }) })
+    await agregar(u, 'pas')
+    await elegirAna(u)
+
+    await u.click(screen.getByLabelText(medio))
+    expect(screen.queryByLabelText('Efectivo que entrega el cliente')).not.toBeInTheDocument()
+    await u.type(screen.getByLabelText('Notas'), 'Cliente frecuente')
+    await u.click(screen.getByRole('button', { name: /^Cobrar/ }))
+
+    await screen.findByRole('heading', { name: 'Venta registrada' })
+    expect(ventasEnviadas(api)[0]).toMatchObject({
+      payments: [{ method: 'transfer', amount: 25000 }],
+      notes: `${nota} · Cliente frecuente`,
+    })
+  })
+
+  it('en el pago mixto se elige si la otra parte llega por Nequi', async () => {
+    const { api, u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta() }) })
+    await agregar(u, 'pas')
+    await elegirAna(u)
+
+    await u.click(screen.getByLabelText('Mixto'))
+    await u.click(screen.getByLabelText('Nequi', { selector: '[name="canal-mixto"]' }))
+    await u.type(screen.getByLabelText('Valor por Nequi'), '10000')
+    await u.click(screen.getByRole('button', { name: /^Cobrar/ }))
+
+    await screen.findByRole('heading', { name: 'Venta registrada' })
+    const enviada = ventasEnviadas(api)[0]
+    expect(enviada.payments).toEqual([
+      { method: 'cash', amount: 15000 },
+      { method: 'transfer', amount: 10000 },
+    ])
+    expect(enviada.notes).toMatch(/^Parte por Nequi: \$\s?10\.000$/)
   })
 })
 
