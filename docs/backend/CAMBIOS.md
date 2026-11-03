@@ -11,6 +11,49 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-03 · Ventas, caja y consignación (0.6.0)
+
+**Qué cambió**
+
+- **Clientes:** `/customers`, para cualquier usuario con sesión. El nombre es obligatorio y puede repetirse; el teléfono es opcional. Búsqueda con `?q=` por todas las palabras del nombre (sin tildes) o por teléfono. No se borran: se desactivan.
+- **Ventas:** `POST /sales` confirma una venta de mostrador **pagada completa**. **No hay ventas a crédito:** los pagos, uno por medio (efectivo o transferencia), deben sumar exactamente el total.
+  - Lleva un `idempotency_key` (UUID) que genera la ventana. Si llega repetido, responde **200** con la venta ya hecha, sin descontar otra vez. Una venta nueva responde 201.
+  - El cliente va como `customer` (existente) o `new_customer` (se crea con la venta).
+  - El precio es el del catálogo. Solo el dueño puede cambiarlo en la venta; la línea queda con `price_changed`.
+  - Cada línea guarda descripción, precio de catálogo, precio cobrado y costo del momento: cambiar el catálogo después no altera la venta. El costo solo se le envía al dueño.
+  - Número consecutivo de recibo en `number`. Lista paginada con filtros y detalle para reimprimir.
+  - No se vende mientras el inventario inicial está abierto ni sin caja abierta.
+- **Anulación:** `POST /sales/{id}/void` con motivo, solo el dueño. La venta queda marcada (`is_voided`, `voided_at`, `voided_by`, `void_reason`), las unidades vuelven al inventario y los pagos se reembolsan por el mismo medio desde la caja abierta.
+- **Caja:** `/cash-sessions` y `/cash-movements`, solo el dueño, salvo `GET /cash-sessions/current`, que cualquiera puede consultar para saber si se puede vender.
+  - Se abre con el efectivo del cajón y se cierra con el contado. Si no cuadra, la explicación es obligatoria y la diferencia queda guardada.
+  - Las ventas, anulaciones, abonos a proveedores de hoy y pagos de locales entran o salen de la caja solos. Gastos y retiros del dueño se registran a mano con su motivo.
+  - Resumen por tipo de movimiento, separado en efectivo y transferencia.
+- **Consignación:** `/consignees`, `/consignment-deliveries`, `/consignment-reports` y `/consignee-payments`, solo el dueño.
+  - La entrega saca las unidades del inventario, con un valor pactado por unidad (por defecto el costo, no el precio de venta).
+  - El reporte del local suma lo vendido a su saldo y devuelve al inventario lo que no vendió.
+  - El local paga por partes; cada pago entra a la caja.
+  - `GET /consignees/{id}/pending-items` dice lo que cada local todavía tiene.
+- **Inventario:** dos tipos de movimiento nuevos, `consignment_out` (resta) y `consignment_return` (suma).
+- **Catálogo:** la sigla de tipos y motos ahora acepta **de 2 a 8 letras** (antes de 2 a 4).
+- Errores nuevos: 409 `initial_count_open`, 409 `cash_session_closed` y 409 `sale_voided`. Los errores de una línea llegan anidados (`items.1.quantity`, `lines.0.sold`).
+
+**Cambio incompatible**
+
+- **Un abono a proveedor con fecha de hoy ahora necesita caja abierta**, porque sale de ella. Sin caja, `POST /supplier-payments` y `POST /purchases/{id}/receive` con abono responden 409 `cash_session_closed`. Un abono con fecha anterior sigue funcionando igual y no toca la caja.
+
+**Qué debe hacer el frontend**
+
+- Pantalla de **venta**: carrito en la ventana, buscador de clientes (`/customers?q=...&page_size=8`) con opción de crear uno nuevo, pagos por medio con el vuelto calculado en la ventana y botón **Cobrar** que genere un `idempotency_key` nuevo por venta y lo reutilice en los reintentos. Deshabilitar el botón mientras responde.
+- Antes de vender, consultar `GET /cash-sessions/current`: si `is_open` es `false`, avisar que la caja está cerrada (el vendedor debe pedirle al dueño que la abra).
+- Mostrar el campo de precio editable solo al dueño.
+- Lista de **ventas** con filtros y detalle para reimprimir; botón **Anular** solo para el dueño, con motivo obligatorio. Mostrar las anuladas marcadas.
+- Pantalla de **caja** (solo el dueño): abrir con el efectivo sugerido (`suggested_opening_cash`), ver el esperado y el resumen, registrar gastos y retiros, y cerrar con el contado y la explicación si no cuadra.
+- Pantalla de **consignación** (solo el dueño): locales con su saldo, entregas con el valor pactado precargado con el costo, reporte armado desde `pending-items` y pagos.
+- En **compras**: manejar el 409 `cash_session_closed` al abonar o recibir con abono.
+- En el **kárdex**: agregar `consignment_out` y `consignment_return` al tipo `MovementKind` (`frontend/src/api/types.ts`).
+- En **tipos y motos**: subir el límite de la sigla a 8 letras (`maxLength={4}` en `FormularioDeCatalogo.tsx`) y los textos de ayuda «De 2 a 4 letras» en `Catalogo.tsx`.
+- Usar los tipos de [API.md](API.md#clientes-y-ventas): `Customer`, `Sale`, `SaleDetail`, `SaleInput`, `CashSession`, `CurrentCash`, `CashMovement`, `SpendInput`, `Consignee`, `ConsignmentDelivery`, `ConsignmentReport`, `ConsigneePayment` y sus `Input`.
+
 ## 2026-11-01 · Compras y proveedores (0.5.0)
 
 **Qué cambió**

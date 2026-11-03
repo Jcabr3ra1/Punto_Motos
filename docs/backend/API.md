@@ -80,8 +80,8 @@ GET /health ──► GET /setup/status
 
 | Rol | `role` | Puede |
 | --- | --- | --- |
-| Dueño | `owner` | Todo: administrar usuarios, cambiar datos del negocio y, en los próximos módulos, cambiar precios, ver costos, ajustar inventario, cargar y terminar el inventario inicial, registrar compras y abonos a proveedores y, en los próximos módulos, anular y restaurar |
-| Vendedor | `seller` | Consultar y registrar ventas y cobros; no administra usuarios ni cambia datos del negocio |
+| Dueño | `owner` | Todo: administrar usuarios, cambiar datos del negocio, cambiar precios (también dentro de una venta), ver costos, ajustar inventario, cargar y terminar el inventario inicial, registrar compras y abonos a proveedores, abrir y cerrar la caja, registrar gastos y retiros, anular ventas y manejar la consignación. En los próximos módulos, restaurar respaldos |
+| Vendedor | `seller` | Vender a precio de catálogo, crear y buscar clientes, consultar ventas y ver si la caja está abierta; no ve costos ni montos de caja, no administra usuarios ni cambia datos del negocio |
 
 La interfaz debe **ocultar** las acciones que el rol no permite, usando `user.role` de `/auth/me` o del inicio de sesión. Aun así, el backend las rechaza con 403 `permission_denied`, por lo que ocultar el botón no es la única protección.
 
@@ -116,6 +116,9 @@ interface ApiError {
 | 404 | `not_found` | Ruta o registro inexistente | Mostrar `message` |
 | 409 | `initial_count_finished` | Se intenta cargar un producto al inventario inicial o terminarlo cuando ya terminó | Mostrar `message`, volver a consultar `GET /inventory/initial-count` y ocultar la pantalla de conteo |
 | 409 | `purchase_received` | Se intenta editar, borrar o recibir otra vez una compra ya recibida | Mostrar `message` y volver a cargar la compra |
+| 409 | `initial_count_open` | Se intenta vender o entregar en consignación mientras el inventario inicial sigue abierto | Mostrar `message`; el dueño debe terminar el conteo |
+| 409 | `cash_session_closed` | No hay caja abierta (o ya se cerró) y se intenta vender, anular, abonar o pagar con fecha de hoy, registrar un gasto o cerrar otra vez | Mostrar `message` y volver a consultar `GET /cash-sessions/current`; el dueño debe abrir la caja |
+| 409 | `sale_voided` | Se intenta anular una venta ya anulada | Mostrar `message` y volver a cargar la venta |
 | 405 | `method_not_allowed` | Método no soportado en la ruta | Error de programación |
 | 429 | `throttled` | Demasiados intentos de inicio de sesión (más de 10 por minuto) | Mostrar `message` y deshabilitar el botón un momento |
 | 500 | `server_error` | Fallo inesperado del backend | Mostrar `message`; la operación no se completó y se puede reintentar |
@@ -195,6 +198,23 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET /supplier-payments` | Dueño | Abonos a proveedores paginados |
 | `POST /supplier-payments` | Dueño | Registra un abono |
 | `GET /supplier-payments/{id}` | Dueño | Un abono con su reparto entre compras |
+| `GET`, `POST /customers` | Sesión | Clientes paginados con búsqueda; crea un cliente |
+| `GET` y `PATCH /customers/{id}` | Sesión | Consulta o edita un cliente |
+| `POST /sales` | Sesión | Confirma una venta pagada completa |
+| `GET /sales` | Sesión | Ventas paginadas con filtros |
+| `GET /sales/{id}` | Sesión | Una venta con sus líneas y pagos (recibo) |
+| `POST /sales/{id}/void` | Dueño | Anula una venta |
+| `GET /cash-sessions/current` | Sesión | Si la caja está abierta; el dueño recibe también sus montos |
+| `GET`, `POST /cash-sessions` | Dueño | Historial de cajas; abre la caja |
+| `GET /cash-sessions/{id}` | Dueño | Una caja con su resumen |
+| `POST /cash-sessions/{id}/close` | Dueño | Cierra la caja con el efectivo contado |
+| `GET`, `POST /cash-movements` | Dueño | Movimientos de caja; registra un gasto o un retiro |
+| `GET`, `POST /consignees` | Dueño | Locales en consignación con su saldo |
+| `GET` y `PATCH /consignees/{id}` | Dueño | Consulta o edita un local |
+| `GET /consignees/{id}/pending-items` | Dueño | Lo que el local todavía tiene |
+| `GET`, `POST /consignment-deliveries` y `GET /consignment-deliveries/{id}` | Dueño | Entregas en consignación |
+| `GET`, `POST /consignment-reports` y `GET /consignment-reports/{id}` | Dueño | Reportes de lo vendido y devuelto |
+| `GET`, `POST /consignee-payments` y `GET /consignee-payments/{id}` | Dueño | Pagos de los locales |
 
 ### Estado del backend
 
@@ -368,7 +388,7 @@ Listas que alimentan los desplegables del formulario de producto. **Todos consul
 | Campo | Reglas |
 | --- | --- |
 | `name` | Obligatorio; máximo 80; único sin distinguir mayúsculas; se limpian los espacios |
-| `abbreviation` | De 2 a 4 letras; se acepta en minúsculas y se guarda en mayúsculas. En tipos es única; en motos puede repetirse entre versiones (Pulsar 180 y Pulsar 200 usan `PUL`) y `UNI` está reservada para los universales |
+| `abbreviation` | De 2 a 8 letras; se acepta en minúsculas y se guarda en mayúsculas. En tipos es única; en motos puede repetirse entre versiones (Pulsar 180 y Pulsar 200 usan `PUL`) y `UNI` está reservada para los universales |
 | `is_active` | Opcional; `false` lo oculta de los desplegables |
 
 Errores: `fields.name` con "Ya existe un tipo con ese nombre." (o marca, o moto), `fields.abbreviation` con "Ya existe un tipo con esa sigla." o el formato inválido.
@@ -505,13 +525,14 @@ Cada resultado trae `stock`: la pantalla de venta debe mostrar **deshabilitados*
 Las existencias de cada producto **solo cambian con movimientos**: inventario inicial, compras, ventas, devoluciones y ajustes. Cada movimiento guarda la cantidad con signo (positiva entra, negativa sale), la existencia que quedó, quién lo hizo, la fecha y el motivo. Los movimientos no se editan ni se borran: un error se corrige con otro movimiento. **Las existencias nunca quedan en negativo.**
 
 ```ts
-type MovementKind = "initial_count" | "purchase" | "sale" | "return" | "adjustment";
+type MovementKind =
+  | "initial_count" | "purchase" | "sale" | "return" | "adjustment" | "consignment_out" | "consignment_return";
 
 interface InventoryMovement {
   id: number;
   product: { id: number; code: string; name: string };
   kind: MovementKind;
-  kind_label: string;              // "Inventario inicial", "Compra", "Venta", "Devolución", "Ajuste"
+  kind_label: string;              // "Inventario inicial", "Compra", "Venta", "Devolución", "Ajuste", "Entrega en consignación", "Devolución de consignación"
   quantity: number;                // con signo: 5 entra, -2 sale
   unit_cost?: number;              // solo el dueño: costo por unidad en ese momento
   balance_after: number;           // existencia que quedó después del movimiento
@@ -605,7 +626,7 @@ Todo este módulo es **solo del dueño**: compras y abonos muestran costos. El v
 
 1. **Borrador.** Se elige el proveedor y se agregan los productos con su cantidad y su costo por unidad. Se edita y se puede borrar. **No toca el inventario.**
 2. **Recibir.** `POST /purchases/{id}/receive` registra la recepción completa: entran las existencias, se recalcula el costo de cada producto y el total queda fijo. Se puede enviar un abono entregado con la mercancía. Desde aquí la compra **no se edita ni se borra**.
-3. **Abonos.** Se pagan cuando se puede, **sin plazo**, en uno o varios abonos. Un abono puede ir a una compra concreta o al proveedor en general: en ese caso paga primero las compras más antiguas.
+3. **Abonos.** Se pagan cuando se puede, **sin plazo**, en uno o varios abonos. Un abono puede ir a una compra concreta o al proveedor en general: en ese caso paga primero las compras más antiguas. **Un abono con fecha de hoy sale de la caja abierta** (sin caja, 409 `cash_session_closed`); uno con fecha anterior no toca la caja. Esto incluye el abono que se entrega al recibir la compra.
 
 **Costo y precio al recibir.**
 
@@ -860,3 +881,376 @@ Errores en `fields`:
 - `paid_on`: "La fecha de pago no puede ser futura."
 
 `GET /supplier-payments` responde `Paginated<SupplierPayment>`, del pago más reciente al más antiguo. Filtros: `?supplier=`, `?date_from=` y `?date_to=` (por `paid_on`, ambos incluidos).
+
+### Clientes y ventas
+
+Cualquier usuario con sesión vende y crea clientes. **Las ventas se pagan completas al venderlas: no hay ventas a crédito.** Para vender debe haber **caja abierta** (ver [Caja](#caja)) y el inventario inicial debe estar terminado.
+
+**Flujo de la pantalla de venta:**
+
+1. El carrito vive en la ventana: el backend no guarda borradores.
+2. Al cobrar, la ventana genera un `idempotency_key` con `crypto.randomUUID()` y envía `POST /sales` con cliente, productos y pagos. **Si la petición se repite con la misma clave (doble clic, reintento por red), el backend devuelve la misma venta con 200 y no descuenta nada otra vez.** Generar una clave nueva solo para una venta nueva.
+3. Los pagos van uno por medio y deben **sumar exactamente el total**. El vuelto lo calcula la ventana: si el cliente entrega $50.000 en efectivo para una venta de $43.000, se envía `{"method": "cash", "amount": 43000}`.
+4. El precio de cada línea es el del catálogo. **Solo el dueño** puede enviar `unit_price` distinto; la línea queda con `price_changed: true`.
+5. La respuesta trae todo lo que va en el recibo.
+
+**El cliente es obligatorio.** Se envía `customer` (id de uno existente) o `new_customer` (se crea con la venta), nunca los dos. Al escribir el nombre, sugerir clientes con `GET /customers?q=texto&page_size=8`. El nombre **puede repetirse** (hay varios "Juan Pérez"); por eso la sugerencia muestra también el teléfono.
+
+**Anular.** Un error se corrige anulando la venta: `POST /sales/{id}/void` con su motivo, **solo el dueño** y con caja abierta. La venta no se borra: queda marcada como anulada, las unidades vuelven al inventario (movimiento `return`) y cada pago se reembolsa por el mismo medio desde la caja abierta de hoy, aunque la venta sea de otro día.
+
+```ts
+interface Customer {
+  id: number;
+  name: string;
+  phone: string;                   // puede ir vacío
+  notes: string;
+  is_active: boolean;
+}
+
+interface CustomerInput {
+  name: string;                    // obligatorio, máximo 80
+  phone?: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
+interface Sale {
+  id: number;
+  number: number;                  // consecutivo del recibo: 1, 2, 3...
+  customer: { id: number; name: string; phone: string };
+  total: number;
+  items_count: number;
+  is_voided: boolean;
+  created_by: string;              // username de quien vendió
+  created_at: string;
+}
+
+interface SaleItem {
+  id: number;
+  product: { id: number; code: string; name: string };
+  description: string;             // "FRE-PUL-PAS · Pastillas de freno Pulsar 180", como quedó en el recibo
+  quantity: number;
+  list_price: number;              // precio del catálogo al vender
+  unit_price: number;              // precio cobrado
+  price_changed: boolean;          // el dueño cambió el precio en esta venta
+  subtotal: number;
+  unit_cost?: number;              // solo el dueño
+}
+
+interface SaleDetail extends Sale {
+  notes: string;
+  items: SaleItem[];
+  payments: { method: PaymentMethod; method_label: string; amount: number }[];
+  voided_at: string | null;
+  voided_by: string | null;
+  void_reason: string;
+}
+
+interface SaleInput {
+  idempotency_key: string;         // UUID generado por la ventana para esta venta
+  customer?: number | null;        // cliente existente...
+  new_customer?: { name: string; phone?: string } | null;   // ...o uno nuevo
+  items: { product: number; quantity: number; unit_price?: number }[];
+  payments: { method: PaymentMethod; amount: number }[];
+  notes?: string;
+}
+```
+
+**`POST /sales`** responde **201** con `SaleDetail` si la venta es nueva y **200** con la venta ya hecha si la clave se repite.
+
+```json
+{
+  "idempotency_key": "6f1c2a7e-3b0d-4b8e-9b51-0c9a3f1d2e4b",
+  "new_customer": { "name": "Ana Gómez", "phone": "3001234567" },
+  "items": [
+    { "product": 12, "quantity": 2 },
+    { "product": 30, "quantity": 1 }
+  ],
+  "payments": [
+    { "method": "cash", "amount": 40000 },
+    { "method": "transfer", "amount": 24000 }
+  ]
+}
+```
+
+```json
+{
+  "id": 41,
+  "number": 41,
+  "customer": { "id": 18, "name": "Ana Gómez", "phone": "3001234567" },
+  "total": 64000,
+  "items_count": 2,
+  "is_voided": false,
+  "created_by": "ana",
+  "created_at": "2026-11-03T10:15:00-05:00",
+  "notes": "",
+  "items": [
+    {
+      "id": 77, "product": { "id": 12, "code": "FRE-PUL-PAS", "name": "Pastillas de freno Pulsar 180" },
+      "description": "FRE-PUL-PAS · Pastillas de freno Pulsar 180", "quantity": 2,
+      "list_price": 25000, "unit_price": 25000, "price_changed": false, "subtotal": 50000
+    },
+    {
+      "id": 78, "product": { "id": 30, "code": "ELE-UNI-BUJ", "name": "Bujía NGK" },
+      "description": "ELE-UNI-BUJ · Bujía NGK", "quantity": 1,
+      "list_price": 14000, "unit_price": 14000, "price_changed": false, "subtotal": 14000
+    }
+  ],
+  "payments": [
+    { "method": "cash", "method_label": "Efectivo", "amount": 40000 },
+    { "method": "transfer", "method_label": "Transferencia", "amount": 24000 }
+  ],
+  "voided_at": null,
+  "voided_by": null,
+  "void_reason": ""
+}
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `idempotency_key` | Obligatorio; UUID |
+| `customer` / `new_customer` | Exactamente uno de los dos. `customer` debe estar activo |
+| `items` | Al menos uno; productos activos, sin repetir; `quantity` entero mayor que 0 |
+| `items[].unit_price` | Opcional; solo el dueño puede enviarlo distinto del catálogo |
+| `payments` | Un registro por medio, sin repetir medio; `amount` mayor que 0; la suma debe ser igual al total. Una venta de $0 (regalo del dueño) va con `payments: []` |
+| `notes` | Opcional; máximo 200 |
+
+Errores en `fields` (los de una línea llegan anidados: `items.1.quantity`):
+
+- `customer`: "Elige un cliente o escribe el nombre de uno nuevo."
+- `items`: "Agrega al menos un producto."
+- `items.N.product`: "FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total."
+- `items.N.quantity`: "Solo hay 2 unidades de ELE-UNI-BUJ." o "No hay unidades de ELE-UNI-BUJ."
+- `items.N.unit_price`: "Solo el dueño puede cambiar el precio." o "El precio de FRE-PUL-PAS ahora es $26.000." (cambió mientras se armaba la venta: refrescar el producto)
+- `payments`: "La venta es de $64.000 y el pago suma $60.000: deben ser iguales." o "Cada medio de pago va una sola vez: suma los valores."
+
+Conflictos: 409 `cash_session_closed` (no hay caja abierta) y 409 `initial_count_open` (el inventario inicial sigue abierto).
+
+**`GET /sales`** responde `Paginated<Sale>`, de la más reciente a la más antigua. Filtros: `?number=`, `?customer=`, `?voided=true|false`, `?date_from=` y `?date_to=` (día de la venta, ambos incluidos). **`GET /sales/{id}`** responde `SaleDetail`, para ver o reimprimir el recibo.
+
+**`POST /sales/{id}/void`** (solo el dueño) recibe `{ "reason": "Se cobró al cliente equivocado" }` y responde `SaleDetail` anulada. Errores: `fields.reason` "Indica por qué se anula la venta.", 409 `sale_voided` si ya estaba anulada y 409 `cash_session_closed`.
+
+**`/customers`**: `GET` paginado (`?q=` busca todas las palabras en el nombre sin tildes, o en el teléfono; `?include_inactive=true`), `POST`, `GET /customers/{id}` y `PATCH /customers/{id}`. No se borran: se desactivan.
+
+### Caja
+
+La caja es **la jornada de dinero**: se abre con el efectivo que hay en el cajón y se cierra contándolo. **Abrir, cerrar, ver los montos y registrar gastos es solo del dueño.** Mientras no haya caja abierta **no se vende, no se anula y no se registran abonos ni pagos de hoy**: esas rutas responden 409 `cash_session_closed`.
+
+Lo que entra y sale queda como movimiento de la caja abierta, con signo (positivo entra, negativo sale):
+
+| `kind` | Signo | Lo crea |
+| --- | --- | --- |
+| `sale` | + | Cada pago de una venta, por su medio |
+| `sale_refund` | − | La anulación de una venta |
+| `consignee_payment` | + | El pago de un local en consignación |
+| `supplier_payment` | − | Un abono a proveedor con fecha de hoy. **Uno con fecha anterior se pagó por fuera y no toca la caja** |
+| `expense` | − | Un gasto, registrado a mano con su motivo |
+| `owner_withdrawal` | − | Un retiro del dueño, registrado a mano con su motivo |
+
+**El efectivo esperado** es el inicial más los movimientos en efectivo. Las transferencias se suman aparte y no cuentan para el cajón. Al cerrar, si el contado no coincide con el esperado, **la explicación es obligatoria**; la diferencia queda guardada (positiva sobra, negativa falta).
+
+```ts
+type CashMovementKind =
+  | "sale" | "sale_refund" | "consignee_payment" | "supplier_payment" | "expense" | "owner_withdrawal";
+
+interface CashSummaryRow {
+  kind: CashMovementKind;
+  kind_label: string;              // "Venta", "Gasto"...
+  cash: number;                    // con signo
+  transfer: number;                // con signo
+}
+
+interface CashSession {
+  id: number;
+  is_open: boolean;
+  opening_cash: number;
+  expected_cash: number;           // abierta: el de este momento; cerrada: el del cierre
+  counted_cash: number | null;     // null mientras está abierta
+  difference: number | null;       // contado - esperado; null mientras está abierta
+  closing_notes: string;
+  opened_by: string;
+  opened_at: string;
+  closed_by: string | null;
+  closed_at: string | null;
+  summary: {                       // no viene en el listado
+    by_kind: CashSummaryRow[];     // solo los tipos que tuvieron movimientos
+    cash_total: number;
+    transfer_total: number;
+  };
+}
+
+interface CurrentCash {
+  is_open: boolean;
+  session?: CashSession | null;    // solo el dueño
+  suggested_opening_cash?: number; // solo el dueño: efectivo contado en el último cierre
+}
+
+interface CashMovement {
+  id: number;
+  session: number;
+  kind: CashMovementKind;
+  kind_label: string;
+  method: PaymentMethod;
+  method_label: string;
+  amount: number;                  // con signo
+  reason: string;                  // "Venta 41 · Ana Gómez", "Almuerzo", "Abono a Distribuidora Andina"
+  sale: number | null;
+  sale_number: number | null;
+  supplier_payment: number | null;
+  consignee_payment: number | null;
+  created_by: string;
+  created_at: string;
+}
+
+interface SpendInput {
+  kind: "expense" | "owner_withdrawal";
+  amount: number;                  // positivo; el movimiento queda negativo
+  method: PaymentMethod;
+  reason: string;                  // obligatorio
+}
+```
+
+| Método y ruta | Acceso | Descripción |
+| --- | --- | --- |
+| `GET /cash-sessions/current` | Sesión | `CurrentCash`. El vendedor solo recibe `is_open`, para saber si puede vender |
+| `POST /cash-sessions` | Dueño | Abre con `{ "opening_cash": 50000 }`. Responde 201 con `CashSession`. Si ya hay una abierta: `non_field_errors` "Ya hay una caja abierta: ciérrala primero." |
+| `POST /cash-sessions/{id}/close` | Dueño | Cierra con `{ "counted_cash": 56000, "notes": "Faltó sencillo" }`. Responde `CashSession` cerrada |
+| `GET /cash-sessions` | Dueño | Historial paginado, sin `summary`. Filtros `?date_from=` y `?date_to=` (día de apertura) |
+| `GET /cash-sessions/{id}` | Dueño | Una caja con su resumen |
+| `GET /cash-movements` | Dueño | Paginado. Filtros `?session=`, `?kind=` y `?method=` |
+| `POST /cash-movements` | Dueño | Registra un gasto o un retiro (`SpendInput`). Responde 201 con `CashMovement` |
+
+Errores del cierre: `fields.notes` "Faltan $1.000 frente a lo esperado: explica la diferencia." (o "Sobran...") y 409 `cash_session_closed` si ya estaba cerrada. Del gasto: `fields.reason` "Indica en qué se usó el dinero." y 409 `cash_session_closed`.
+
+Ejemplo de `summary` con una venta mixta y un gasto:
+
+```json
+{
+  "by_kind": [
+    { "kind": "sale", "kind_label": "Venta", "cash": 10000, "transfer": 15000 },
+    { "kind": "expense", "kind_label": "Gasto", "cash": -3000, "transfer": 0 }
+  ],
+  "cash_total": 7000,
+  "transfer_total": 15000
+}
+```
+
+### Consignación
+
+El dueño le deja mercancía a **otros locales** para que la vendan. Todo el módulo es **solo del dueño**; el vendedor recibe 403.
+
+**Flujo:**
+
+1. **Entrega.** Se eligen el local y los productos con su cantidad y su **valor pactado** por unidad: lo que el local pagará por cada una que venda. **Por defecto es el costo del producto**, no el precio de venta, y el dueño puede ajustarlo. **Las unidades salen del inventario** de la tienda (movimiento `consignment_out`).
+2. **Reporte.** Cada cierto tiempo el local dice cuántas vendió y devuelve las que no. Por cada línea de entrega se envían las `sold` y las `returned`. Lo vendido **se suma al saldo del local al valor pactado de esa entrega**; lo devuelto **vuelve al inventario** (movimiento `consignment_return`). No se puede reportar más de lo que el local todavía tiene.
+3. **Pagos.** El local paga **por partes**. Cada pago baja su saldo y entra a la caja abierta.
+
+Para armar un reporte, `GET /consignees/{id}/pending-items` da la lista de lo que el local todavía tiene, con la entrega de donde salió cada línea.
+
+```ts
+interface Consignee {
+  id: number;
+  name: string;                    // único, sin distinguir mayúsculas
+  tax_id: string;
+  phone: string;
+  notes: string;
+  is_active: boolean;
+  balance_due: number;             // solo lectura: lo vendido reportado menos lo pagado
+}
+
+interface ConsignmentItem {
+  id: number;                      // se usa como `item` en el reporte
+  product: { id: number; code: string; name: string };
+  quantity: number;                // entregadas
+  unit_value: number;              // valor pactado por unidad
+  unit_cost: number;               // costo de la tienda al entregar
+  sold_quantity: number;
+  returned_quantity: number;
+  pending_quantity: number;        // las que el local todavía tiene
+}
+
+interface PendingConsignmentItem extends ConsignmentItem {
+  delivery: number;
+  delivered_at: string;
+}
+
+interface ConsignmentDelivery {
+  id: number;
+  consignee: { id: number; name: string };
+  notes: string;
+  items: ConsignmentItem[];
+  total_value: number;             // entregadas × valor pactado
+  created_by: string;
+  created_at: string;
+}
+
+interface ConsignmentDeliveryInput {
+  idempotency_key: string;         // UUID, igual que en las ventas
+  consignee: number;
+  items: { product: number; quantity: number; unit_value?: number }[];   // sin unit_value: el costo
+  notes?: string;
+}
+
+interface ConsignmentReport {
+  id: number;
+  consignee: { id: number; name: string };
+  total: number;                   // vendidas × valor pactado: lo que sube el saldo
+  notes: string;
+  lines: {
+    item: number;
+    delivery: number;
+    product: { id: number; code: string; name: string };
+    unit_value: number;
+    sold: number;
+    returned: number;
+    subtotal: number;              // sold × unit_value
+  }[];
+  created_by: string;
+  created_at: string;
+}
+
+interface ConsignmentReportInput {
+  consignee: number;
+  lines: { item: number; sold?: number; returned?: number }[];
+  notes?: string;
+}
+
+interface ConsigneePayment {
+  id: number;
+  consignee: { id: number; name: string };
+  amount: number;
+  method: PaymentMethod;
+  method_label: string;
+  notes: string;
+  created_by: string;
+  created_at: string;
+}
+
+interface ConsigneePaymentInput {
+  consignee: number;
+  amount: number;
+  method: PaymentMethod;
+  notes?: string;
+}
+```
+
+| Método y ruta | Descripción |
+| --- | --- |
+| `GET`, `POST /consignees` | Locales (`?q=`, `?with_debt=true`, `?include_inactive=true`; sin paginar) |
+| `GET`, `PATCH /consignees/{id}` | Consulta o edita un local; no se borran, se desactivan |
+| `GET /consignees/{id}/pending-items` | `PendingConsignmentItem[]`, de la entrega más antigua a la más nueva |
+| `GET`, `POST /consignment-deliveries` | Entregas paginadas. `POST` responde 201, o 200 si la clave se repite |
+| `GET /consignment-deliveries/{id}` | Una entrega |
+| `GET`, `POST /consignment-reports` | Reportes paginados. `POST` responde 201 |
+| `GET /consignment-reports/{id}` | Un reporte |
+| `GET`, `POST /consignee-payments` | Pagos paginados. `POST` responde 201 |
+| `GET /consignee-payments/{id}` | Un pago |
+
+Las listas de entregas, reportes y pagos filtran por `?consignee=`, `?date_from=` y `?date_to=`. Nada de esto se edita ni se borra.
+
+Errores en `fields`:
+
+- Entrega: `items` "Agrega al menos un producto."; `items.N.product` "... está repetido..."; `items.N.quantity` "Solo hay 2 unidades de ELE-UNI-BUJ."; 409 `initial_count_open`.
+- Reporte: `lines` "Indica al menos una unidad vendida o devuelta."; `lines.N.item` "Esta línea es de una entrega a otro local." o "... está repetido: deja una sola línea."; `lines.N.sold` "Al local le quedan 3 de FRE-PUL-PAS."
+- Pago: `amount` "El local debe $30.000: no se pueden pagar $30.001." o "El local no debe nada: no se puede registrar el pago."; 409 `cash_session_closed`.
+- Local: `name` "Ya existe un local con ese nombre."

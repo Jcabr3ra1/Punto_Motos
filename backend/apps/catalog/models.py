@@ -12,7 +12,7 @@ code_validator = RegexValidator(
     r"^[A-Z0-9]+(-[A-Z0-9]+)*$",
     "Usa solo letras, números y guiones, sin espacios ni otros símbolos.",
 )
-abbreviation_validator = RegexValidator(r"^[A-Z]{2,4}$", "La sigla debe tener de 2 a 4 letras.")
+abbreviation_validator = RegexValidator(r"^[A-Z]{2,8}$", "La sigla debe tener de 2 a 8 letras.")
 
 # Sigla reservada para los repuestos que sirven para cualquier moto.
 UNIVERSAL_ABBREVIATION = "UNI"
@@ -51,7 +51,7 @@ class Category(NamedModel):
     """Tipo de producto: Frenos, Eléctrico, Llantas, Aceites..."""
 
     abbreviation = models.CharField(
-        "sigla", max_length=4, validators=[abbreviation_validator],
+        "sigla", max_length=8, validators=[abbreviation_validator],
         help_text="Primera parte del código, por ejemplo FRE para frenos.",
     )
 
@@ -75,7 +75,7 @@ class MotoModel(NamedModel):
     """Moto a la que se aplica un repuesto: Pulsar 180, Boxer CT 100..."""
 
     abbreviation = models.CharField(
-        "sigla", max_length=4, validators=[abbreviation_validator],
+        "sigla", max_length=8, validators=[abbreviation_validator],
         help_text="Segunda parte del código, por ejemplo PUL para Pulsar. Puede repetirse entre versiones.",
     )
 

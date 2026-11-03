@@ -30,3 +30,18 @@ class BusinessSettings(models.Model):
     def load(cls):
         settings, _ = cls.objects.get_or_create(pk=cls.SINGLETON_PK)
         return settings
+
+
+class PaymentMethod(models.TextChoices):
+    """Medio con que se paga a un proveedor o se le cobra a un cliente."""
+
+    CASH = "cash", "Efectivo"
+    TRANSFER = "transfer", "Transferencia"
+
+
+class PaymentStatus(models.TextChoices):
+    """Cómo va el pago de una compra o una venta. No hay plazo: se abona cuando se puede."""
+
+    PENDING = "pending", "Sin abonos"
+    PARTIAL = "partial", "Con abonos"
+    PAID = "paid", "Pagada"

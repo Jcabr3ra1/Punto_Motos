@@ -6,6 +6,9 @@ urlpatterns = [
     path("api/v1/", include("apps.catalog.urls")),
     path("api/v1/", include("apps.inventory.urls")),
     path("api/v1/", include("apps.purchases.urls")),
+    path("api/v1/", include("apps.sales.urls")),
+    path("api/v1/", include("apps.consignments.urls")),
+    path("api/v1/", include("apps.cash.urls")),
 ]
 
 # Rutas inexistentes y fallos inesperados también responden con el formato de error de la API.
