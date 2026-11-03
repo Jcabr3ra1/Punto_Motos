@@ -9,6 +9,10 @@ import type {
   PurchaseDetail,
   Supplier,
   SupplierPayment,
+  SaleDetail,
+  CashSession,
+  Consignee,
+  PendingConsignmentItem,
 } from '../api/types'
 
 export const frenos: Category = { id: 1, name: 'Frenos', abbreviation: 'FRE', is_active: true }
@@ -157,4 +161,80 @@ export function abono(cambios: Partial<SupplierPayment> = {}): SupplierPayment {
 
 export function paginaDe<T>(resultados: T[], extra: Partial<Paginated<T>> = {}): Paginated<T> {
   return { count: resultados.length, next: null, previous: null, results: resultados, ...extra }
+}
+
+export function venta(cambios: Partial<SaleDetail> = {}): SaleDetail {
+  return {
+    id: 41,
+    number: 41,
+    customer: { id: 18, name: 'Ana Gómez', phone: '3001234567' },
+    total: 25000,
+    items_count: 1,
+    is_voided: false,
+    created_by: 'ana',
+    created_at: '2026-11-03T10:15:00-05:00',
+    notes: '',
+    items: [
+      {
+        id: 77,
+        product: { id: 1, code: 'FRE-PUL-PAS', name: 'Pastillas de freno Pulsar 180' },
+        description: 'FRE-PUL-PAS · Pastillas de freno Pulsar 180',
+        quantity: 1,
+        list_price: 25000,
+        unit_price: 25000,
+        price_changed: false,
+        subtotal: 25000,
+      },
+    ],
+    payments: [{ method: 'cash', method_label: 'Efectivo', amount: 25000 }],
+    voided_at: null,
+    voided_by: null,
+    void_reason: '',
+    ...cambios,
+  }
+}
+
+export function caja(cambios: Partial<CashSession> = {}): CashSession {
+  return {
+    id: 3,
+    is_open: true,
+    opening_cash: 50000,
+    expected_cash: 75000,
+    counted_cash: null,
+    difference: null,
+    closing_notes: '',
+    opened_by: 'dueno',
+    opened_at: '2026-11-03T08:00:00-05:00',
+    closed_by: null,
+    closed_at: null,
+    summary: {
+      by_kind: [
+        { kind: 'sale', kind_label: 'Venta', cash: 28000, transfer: 15000 },
+        { kind: 'expense', kind_label: 'Gasto', cash: -3000, transfer: 0 },
+      ],
+      cash_total: 25000,
+      transfer_total: 15000,
+    },
+    ...cambios,
+  }
+}
+
+export function local(cambios: Partial<Consignee> = {}): Consignee {
+  return { id: 1, name: 'Motos del Centro', tax_id: '', phone: '3009990000', notes: '', is_active: true, balance_due: 0, ...cambios }
+}
+
+export function pendiente(cambios: Partial<PendingConsignmentItem> = {}): PendingConsignmentItem {
+  return {
+    id: 5,
+    product: { id: 2, code: 'FRE-BOX-ZAP', name: 'Zapatas traseras Boxer' },
+    quantity: 4,
+    unit_value: 9000,
+    unit_cost: 9000,
+    sold_quantity: 0,
+    returned_quantity: 0,
+    pending_quantity: 4,
+    delivery: 1,
+    delivered_at: '2026-11-02T10:00:00-05:00',
+    ...cambios,
+  }
 }

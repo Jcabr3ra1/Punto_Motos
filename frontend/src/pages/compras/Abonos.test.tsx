@@ -97,3 +97,18 @@ describe('registrar abono', () => {
     expect(fecha).toHaveAttribute('max', (fecha as HTMLInputElement).value)
   })
 })
+
+describe('caja cerrada', () => {
+  it('un abono de hoy sin caja abierta muestra el mensaje del backend', async () => {
+    const { u } = abrir({
+      'POST /supplier-payments': () => errorDeApi(409, 'cash_session_closed', 'La caja está cerrada: ábrela para registrar dinero.'),
+    })
+    await u.click(await screen.findByRole('button', { name: 'Registrar abono' }))
+    await u.selectOptions(await screen.findByLabelText('Proveedor'), 'Distribuidora Andina')
+    await u.type(screen.getByLabelText('Valor'), '10000')
+    await u.click(screen.getByRole('button', { name: 'Registrar abono' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('La caja está cerrada: ábrela para registrar dinero.')
+  })
+})
+

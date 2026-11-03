@@ -17,6 +17,11 @@ export const claves = {
   proveedores: ['proveedores'] as const,
   compras: ['compras'] as const,
   abonos: ['abonos'] as const,
+  ventas: ['ventas'] as const,
+  clientes: ['clientes'] as const,
+  caja: ['caja'] as const,
+  cajaActual: ['caja', 'actual'] as const,
+  consignacion: ['consignacion'] as const,
   buscador: (texto: string) => ['buscador', texto] as const,
 }
 

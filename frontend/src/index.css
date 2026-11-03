@@ -1072,3 +1072,109 @@ summary {
 .tabla-contenedor + .campo {
   margin-top: 1rem;
 }
+
+/* Venta de mostrador */
+
+.venta__columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.venta__cobro {
+  position: sticky;
+  top: 0;
+  padding: 1rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.venta__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0.5rem 0 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--color-borde);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.venta__total dt {
+  font-weight: 600;
+}
+
+.venta__total dd {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.venta__efectivo,
+.venta__vuelto {
+  margin: 0 0 0.75rem;
+}
+
+.venta__vuelto {
+  font-size: 1.15rem;
+}
+
+.venta__cobrar {
+  min-height: 2.75rem;
+  font-size: 1.05rem;
+}
+
+.buscador__entrada--compacta {
+  min-height: 2.25rem;
+  font-size: 1rem;
+}
+
+.buscador__opcion--simple {
+  grid-template-columns: 1fr auto;
+}
+
+.etiqueta--peligro {
+  color: var(--color-error);
+  background: var(--color-error-fondo);
+}
+
+.acciones--arriba {
+  margin: 0.5rem 0 1rem;
+}
+
+.recibo {
+  max-width: 40rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.recibo__encabezado p {
+  margin: 0 0 0.25rem;
+}
+
+.recibo__numero {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.recibo .tabla__numero {
+  white-space: nowrap;
+}
+
+.recibo__pago {
+  font-weight: 400;
+  color: var(--color-texto-suave);
+}
+
+.venta__cobro .campos-en-fila {
+  grid-template-columns: 1fr;
+}
+
+/* Resultados de la búsqueda anterior mientras llegan los nuevos: se ven, pero no se eligen. */
+.buscador__lista--desactualizada {
+  opacity: 0.55;
+}

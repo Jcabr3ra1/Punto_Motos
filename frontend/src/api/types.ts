@@ -177,7 +177,14 @@ export interface InitialCountStatus {
 /** Producto nuevo con su cantidad contada: se crea junto con su movimiento de inventario inicial. */
 export type InitialCountItemInput = ProductInput & { quantity: number }
 
-export type MovementKind = 'initial_count' | 'purchase' | 'sale' | 'return' | 'adjustment'
+export type MovementKind =
+  | 'initial_count'
+  | 'purchase'
+  | 'sale'
+  | 'return'
+  | 'adjustment'
+  | 'consignment_out'
+  | 'consignment_return'
 
 export interface InventoryMovement {
   id: number
@@ -322,4 +329,237 @@ export type SupplierPaymentInput = PaymentInput & {
   supplier: number
   /** Vacío: paga primero las compras más antiguas. */
   purchase?: number | null
+}
+
+// --- Clientes y ventas (cualquier usuario con sesión vende) ---
+
+export interface Customer {
+  id: number
+  name: string
+  /** Puede ir vacío. */
+  phone: string
+  notes: string
+  is_active: boolean
+}
+
+export interface CustomerInput {
+  name: string
+  phone?: string
+  notes?: string
+  is_active?: boolean
+}
+
+export interface Sale {
+  id: number
+  /** Consecutivo del recibo. */
+  number: number
+  customer: { id: number; name: string; phone: string }
+  total: number
+  items_count: number
+  is_voided: boolean
+  /** Username de quien vendió. */
+  created_by: string
+  created_at: string
+}
+
+export interface SaleItem {
+  id: number
+  product: { id: number; code: string; name: string }
+  /** Como quedó en el recibo: «FRE-PUL-PAS · Pastillas de freno Pulsar 180». */
+  description: string
+  quantity: number
+  /** Precio del catálogo al vender. */
+  list_price: number
+  /** Precio cobrado. */
+  unit_price: number
+  /** El dueño cambió el precio en esta venta. */
+  price_changed: boolean
+  subtotal: number
+  /** Solo el dueño. */
+  unit_cost?: number
+}
+
+export interface SaleDetail extends Sale {
+  notes: string
+  items: SaleItem[]
+  payments: { method: PaymentMethod; method_label: string; amount: number }[]
+  voided_at: string | null
+  voided_by: string | null
+  void_reason: string
+}
+
+export interface SaleInput {
+  /** UUID generado por la ventana para esta venta; se reutiliza en los reintentos. */
+  idempotency_key: string
+  customer?: number | null
+  new_customer?: { name: string; phone?: string } | null
+  items: { product: number; quantity: number; unit_price?: number }[]
+  /** Uno por medio; deben sumar exactamente el total. */
+  payments: { method: PaymentMethod; amount: number }[]
+  notes?: string
+}
+
+// --- Caja (solo el dueño, salvo saber si está abierta) ---
+
+export type CashMovementKind = 'sale' | 'sale_refund' | 'consignee_payment' | 'supplier_payment' | 'expense' | 'owner_withdrawal'
+
+export interface CashSummaryRow {
+  kind: CashMovementKind
+  kind_label: string
+  /** Con signo. */
+  cash: number
+  transfer: number
+}
+
+export interface CashSession {
+  id: number
+  is_open: boolean
+  opening_cash: number
+  /** Abierta: el de este momento; cerrada: el del cierre. */
+  expected_cash: number
+  counted_cash: number | null
+  /** Contado - esperado: positiva sobra, negativa falta. */
+  difference: number | null
+  closing_notes: string
+  opened_by: string
+  opened_at: string
+  closed_by: string | null
+  closed_at: string | null
+  /** No viene en el listado. */
+  summary?: { by_kind: CashSummaryRow[]; cash_total: number; transfer_total: number }
+}
+
+export interface CurrentCash {
+  is_open: boolean
+  /** Solo el dueño. */
+  session?: CashSession | null
+  /** Solo el dueño: efectivo contado en el último cierre. */
+  suggested_opening_cash?: number
+}
+
+export interface CashMovement {
+  id: number
+  session: number
+  kind: CashMovementKind
+  kind_label: string
+  method: PaymentMethod
+  method_label: string
+  /** Con signo. */
+  amount: number
+  reason: string
+  sale: number | null
+  sale_number: number | null
+  supplier_payment: number | null
+  consignee_payment: number | null
+  created_by: string
+  created_at: string
+}
+
+export interface SpendInput {
+  kind: 'expense' | 'owner_withdrawal'
+  /** Positivo; el movimiento queda negativo. */
+  amount: number
+  method: PaymentMethod
+  reason: string
+}
+
+// --- Consignación (solo el dueño) ---
+
+export interface Consignee {
+  id: number
+  name: string
+  tax_id: string
+  phone: string
+  notes: string
+  is_active: boolean
+  /** Lo vendido reportado menos lo pagado. */
+  balance_due: number
+}
+
+export interface ConsigneeInput {
+  name: string
+  tax_id?: string
+  phone?: string
+  notes?: string
+  is_active?: boolean
+}
+
+export interface ConsignmentItem {
+  /** Se usa como `item` en el reporte. */
+  id: number
+  product: { id: number; code: string; name: string }
+  quantity: number
+  /** Valor pactado por unidad. */
+  unit_value: number
+  unit_cost: number
+  sold_quantity: number
+  returned_quantity: number
+  /** Las que el local todavía tiene. */
+  pending_quantity: number
+}
+
+export interface PendingConsignmentItem extends ConsignmentItem {
+  delivery: number
+  delivered_at: string
+}
+
+export interface ConsignmentDelivery {
+  id: number
+  consignee: { id: number; name: string }
+  notes: string
+  items: ConsignmentItem[]
+  total_value: number
+  created_by: string
+  created_at: string
+}
+
+export interface ConsignmentDeliveryInput {
+  idempotency_key: string
+  consignee: number
+  /** Sin `unit_value`: el costo. */
+  items: { product: number; quantity: number; unit_value?: number }[]
+  notes?: string
+}
+
+export interface ConsignmentReport {
+  id: number
+  consignee: { id: number; name: string }
+  /** Vendidas × valor pactado: lo que sube el saldo. */
+  total: number
+  notes: string
+  lines: {
+    item: number
+    delivery: number
+    product: { id: number; code: string; name: string }
+    unit_value: number
+    sold: number
+    returned: number
+    subtotal: number
+  }[]
+  created_by: string
+  created_at: string
+}
+
+export interface ConsignmentReportInput {
+  consignee: number
+  lines: { item: number; sold?: number; returned?: number }[]
+  notes?: string
+}
+
+export interface ConsigneePayment {
+  id: number
+  consignee: { id: number; name: string }
+  amount: number
+  method: PaymentMethod
+  method_label: string
+  notes: string
+  created_by: string
+  created_at: string
+}
+
+export interface ConsigneePaymentInput {
+  consignee: number
+  amount: number
+  method: PaymentMethod
+  notes?: string
 }

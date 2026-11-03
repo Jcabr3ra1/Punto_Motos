@@ -24,6 +24,8 @@ const TIPOS: readonly { valor: '' | MovementKind; texto: string }[] = [
   { valor: 'sale', texto: 'Venta' },
   { valor: 'return', texto: 'Devolución' },
   { valor: 'adjustment', texto: 'Ajuste' },
+  { valor: 'consignment_out', texto: 'Entrega en consignación' },
+  { valor: 'consignment_return', texto: 'Devolución de consignación' },
 ]
 
 /** Los filtros viven en la dirección (`?product=7&kind=adjustment`): sirven los enlaces y el botón «atrás». */

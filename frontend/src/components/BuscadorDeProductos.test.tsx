@@ -157,3 +157,25 @@ describe('elegir con el teclado', () => {
     expect(buscador).toHaveValue('pas')
   })
 })
+
+describe('resultados de la búsqueda anterior', () => {
+  it('mientras llegan los nuevos, Enter no elige el producto de la búsqueda anterior', async () => {
+    const { u, buscador, alElegir } = await abrir({
+      'GET /catalog/search*': (_, ruta) => ({ cuerpo: ruta.includes('q=bo') ? [boxer] : [sinStock, pastillas, boxer] }),
+    })
+
+    await u.type(buscador, 'pas')
+    await screen.findByRole('option', { name: /FRE-PUL-PAS/, selected: true })
+    await u.clear(buscador)
+    await u.type(buscador, 'bo')
+    // Todavía se ven los resultados de «pas», pero no se pueden elegir.
+    expect(screen.getByText('Buscando…')).toBeInTheDocument()
+    await u.keyboard('{Enter}')
+    expect(alElegir).not.toHaveBeenCalled()
+
+    await screen.findByText('1 resultado')
+    await u.keyboard('{Enter}')
+    expect(alElegir).toHaveBeenCalledWith(boxer)
+  })
+})
+
