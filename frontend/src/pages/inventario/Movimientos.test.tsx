@@ -103,6 +103,16 @@ describe('lista de movimientos', () => {
 })
 
 describe('filtros', () => {
+  it('ofrece los tipos de consignación', async () => {
+    const { api, u } = await abrir(dueno)
+    await screen.findByRole('table')
+
+    await u.selectOptions(screen.getByLabelText('Tipo'), 'Entrega en consignación')
+
+    await waitFor(() => expect(llamadas(api, 'kind=consignment_out')).toHaveLength(1))
+    expect(screen.getByRole('option', { name: 'Devolución de consignación' })).toBeInTheDocument()
+  })
+
   it('filtra por tipo', async () => {
     const { api, u } = await abrir(dueno)
     await screen.findByRole('table')

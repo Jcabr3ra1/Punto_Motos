@@ -37,7 +37,8 @@ const llamadas = (api: { llamadas: { clave: string }[] }, prefijo: string) =>
 
 async function agregarProducto(u: ReturnType<typeof userEvent.setup>, texto: string, codigo: RegExp) {
   await u.type(screen.getByRole('combobox', { name: 'Agregar producto' }), texto)
-  await screen.findByRole('option', { name: codigo })
+  // Solo se elige cuando los resultados ya corresponden a lo escrito (los anteriores no se pueden elegir).
+  await waitFor(() => expect(screen.getAllByRole('option').some((o) => o.getAttribute('aria-selected') === 'true')).toBe(true))
   await u.click(screen.getByRole('option', { name: codigo }))
 }
 

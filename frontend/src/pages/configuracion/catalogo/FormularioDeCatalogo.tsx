@@ -70,7 +70,7 @@ export function FormularioDeCatalogo({ seccion, elemento, onTerminar, onCancelar
           onChange={(e) => setSigla(e.target.value)}
           errores={error?.campos.abbreviation}
           ayuda={seccion.ayudaSigla}
-          maxLength={4}
+          maxLength={8}
           autoComplete="off"
           required
         />

@@ -10,7 +10,7 @@ const SECCIONES: readonly SeccionDeCatalogo[] = [
     nuevo: 'Nuevo tipo',
     creado: (nombre) => `Tipo «${nombre}» creado.`,
     conSigla: true,
-    ayudaSigla: 'De 2 a 4 letras. Es la primera parte del código del producto, por ejemplo FRE para Frenos.',
+    ayudaSigla: 'De 2 a 8 letras. Es la primera parte del código del producto, por ejemplo FRE para Frenos.',
     descripcion: 'Familias de repuestos, como Frenos o Eléctrico. Su sigla arma el código de cada producto.',
   },
   {
@@ -28,7 +28,7 @@ const SECCIONES: readonly SeccionDeCatalogo[] = [
     creado: (nombre) => `Moto «${nombre}» creada.`,
     conSigla: true,
     ayudaSigla:
-      'De 2 a 4 letras. Es la segunda parte del código: Pulsar 180 y Pulsar 200 pueden compartir PUL. UNI está reservada para los repuestos universales.',
+      'De 2 a 8 letras. Es la segunda parte del código: Pulsar 180 y Pulsar 200 pueden compartir PUL. UNI está reservada para los repuestos universales.',
     descripcion: 'Modelos de moto a los que se asocian los repuestos.',
   },
 ]

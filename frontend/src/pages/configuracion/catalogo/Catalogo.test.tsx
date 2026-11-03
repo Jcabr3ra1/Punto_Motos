@@ -137,6 +137,17 @@ describe('crear', () => {
   })
 })
 
+describe('siglas', () => {
+  it('admiten hasta 8 letras', async () => {
+    const { u } = await abrir()
+
+    await u.click(screen.getByRole('button', { name: 'Nuevo tipo' }))
+
+    expect(screen.getByLabelText('Sigla')).toHaveAttribute('maxLength', '8')
+    expect(screen.getByLabelText('Sigla')).toHaveAccessibleDescription(/De 2 a 8 letras/)
+  })
+})
+
 describe('editar', () => {
   it('desactiva una moto', async () => {
     const { api, u } = await abrir({

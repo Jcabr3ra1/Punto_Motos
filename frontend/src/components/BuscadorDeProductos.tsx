@@ -46,13 +46,16 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
   })
 
   const resultados = buscaYa ? (consulta.data ?? []) : []
-  const posibles = seleccionable ? elegibles(resultados, sePuedeElegir) : []
+  // Mientras llegan los resultados de lo que se acaba de escribir se siguen viendo los anteriores, pero no se
+  // pueden elegir: con un Enter rápido se agregaría el producto de la búsqueda anterior.
+  const vigentes = consultado === limpio && !consulta.isPlaceholderData
+  const posibles = seleccionable && vigentes ? elegibles(resultados, sePuedeElegir) : []
   // Por defecto queda marcado el primero que se puede elegir, para que Enter funcione sin tocar las flechas.
   const activo = posibles.includes(marcado) ? marcado : (posibles[0] ?? -1)
   const abierto = buscaYa && resultados.length > 0
 
   function elegir(producto: Product) {
-    if (!onElegir || !sePuedeElegir(producto)) return
+    if (!onElegir || !vigentes || !sePuedeElegir(producto)) return
     onElegir(producto)
     setTexto('')
     setMarcado(0)
@@ -121,7 +124,8 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
           : 'Escribe al menos 2 letras. Esc borra.'}
       </p>
 
-      <ul id={idLista} role="listbox" aria-label="Resultados de la búsqueda" className={seleccionable ? 'buscador__lista' : 'buscador__lista buscador__lista--consulta'}
+      <ul id={idLista} role="listbox" aria-label="Resultados de la búsqueda" className={`buscador__lista${seleccionable ? '' : ' buscador__lista--consulta'}${vigentes ? '' : ' buscador__lista--desactualizada'}`}
+        aria-busy={!vigentes || undefined}
         hidden={!abierto}
       >
         {resultados.map((producto, indice) => {
@@ -162,7 +166,8 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
 
       <div role="status" className="texto-suave buscador__estado">
         {sinResultados && 'No se encontró ningún producto.'}
-        {abierto && !sinResultados && `${resultados.length === 1 ? '1 resultado' : `${resultados.length} resultados`}`}
+        {abierto && !vigentes && 'Buscando…'}
+        {abierto && vigentes && !sinResultados && `${resultados.length === 1 ? '1 resultado' : `${resultados.length} resultados`}`}
       </div>
       {consulta.isError && buscaYa && (
         <p role="alert" className="aviso aviso--error">

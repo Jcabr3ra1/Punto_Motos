@@ -1,0 +1,46 @@
+import { api } from './client'
+import type { Customer, CustomerInput, Paginated, Sale, SaleDetail, SaleInput } from './types'
+
+// Clientes y ventas (docs/backend/API.md#clientes-y-ventas). Cualquier usuario con sesión vende.
+
+export const buscarClientes = (texto: string, signal?: AbortSignal) =>
+  api<Paginated<Customer>>('/customers', { query: { q: texto.trim(), page_size: 8 }, signal })
+
+export const crearCliente = (datos: CustomerInput) => api<Customer>('/customers', { method: 'POST', body: datos })
+
+/**
+ * Confirma una venta pagada completa. Responde la venta nueva (201) o, si la `idempotency_key`
+ * se repite (doble clic, reintento), la misma venta ya hecha (200) sin descontar otra vez.
+ */
+export const registrarVenta = (datos: SaleInput) => api<SaleDetail>('/sales', { method: 'POST', body: datos })
+
+export interface FiltrosDeVentas {
+  number?: number
+  customer?: number
+  voided?: boolean
+  date_from?: string
+  date_to?: string
+  page?: number
+}
+
+export const listarVentas = (filtros: FiltrosDeVentas = {}, signal?: AbortSignal) =>
+  api<Paginated<Sale>>('/sales', {
+    query: {
+      number: filtros.number,
+      customer: filtros.customer,
+      voided: filtros.voided,
+      date_from: filtros.date_from,
+      date_to: filtros.date_to,
+      page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+    },
+    signal,
+  })
+
+export const obtenerVenta = (id: number, signal?: AbortSignal) => api<SaleDetail>(`/sales/${id}`, { signal })
+
+/** Solo el dueño y con caja abierta. Devuelve las unidades y reembolsa los pagos. */
+export const anularVenta = (id: number, motivo: string) =>
+  api<SaleDetail>(`/sales/${id}/void`, { method: 'POST', body: { reason: motivo } })
+
+/** UUID nuevo para una venta o entrega nueva. Se reutiliza en los reintentos de la misma. */
+export const nuevaClaveDeReintento = () => crypto.randomUUID()
