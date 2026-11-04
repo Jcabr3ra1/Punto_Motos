@@ -58,7 +58,9 @@ class MechanicTests(TestCase):
             Mechanic.objects.create(name="Carlos Ruiz", labor_percentage=101)
 
 
-class SaleWithServicesTests(SalesTestCase):
+class WorkshopSalesTestCase(SalesTestCase):
+    """Ventas con servicios: dos mecánicos y los tipos «Cambio de aceite» y «Otro»."""
+
     def setUp(self):
         super().setUp()
         self.oil = make_service_type()
@@ -75,6 +77,9 @@ class SaleWithServicesTests(SalesTestCase):
         return Sale.objects.confirm(
             self.customer, list(items), payments, user or self.seller, uuid.uuid4(), services=list(services),
         )
+
+
+class SaleWithServicesTests(WorkshopSalesTestCase):
 
     def test_service_with_part_charges_both_and_discounts_part_once(self):
         sale, _ = self.sell(

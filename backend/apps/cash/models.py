@@ -132,12 +132,13 @@ class CashMovementKind(models.TextChoices):
     SUPPLIER_PAYMENT = "supplier_payment", "Abono a proveedor"
     EXPENSE = "expense", "Gasto"
     OWNER_WITHDRAWAL = "owner_withdrawal", "Retiro del dueño"
+    MECHANIC_PAYMENT = "mechanic_payment", "Pago a mecánico"
 
 
 INCOMING_KINDS = [CashMovementKind.SALE, CashMovementKind.CONSIGNEE_PAYMENT]
 OUTGOING_KINDS = [
     CashMovementKind.SALE_REFUND, CashMovementKind.SUPPLIER_PAYMENT, CashMovementKind.EXPENSE,
-    CashMovementKind.OWNER_WITHDRAWAL,
+    CashMovementKind.OWNER_WITHDRAWAL, CashMovementKind.MECHANIC_PAYMENT,
 ]
 # Los que se registran a mano en la caja necesitan decir en qué se fue la plata.
 MANUAL_KINDS = [CashMovementKind.EXPENSE, CashMovementKind.OWNER_WITHDRAWAL]
@@ -148,7 +149,7 @@ class CashMovementManager(models.Manager):
         """Registra dinero que entra (amount positivo) o sale (negativo) en la caja abierta.
 
         source es el documento que lo origina: sale=, supplier_payment= o
-        consignee_payment=. Sin caja abierta lanza CashSessionClosed. Debe
+        consignee_payment= o mechanic_settlement=. Sin caja abierta lanza CashSessionClosed. Debe
         llamarse dentro de la transacción del documento para que todo se
         deshaga junto si algo falla.
         """
@@ -192,6 +193,10 @@ class CashMovement(models.Model):
         "consignments.ConsigneePayment", on_delete=models.PROTECT, null=True, blank=True,
         related_name="cash_movements", verbose_name="pago de local",
     )
+    mechanic_settlement = models.ForeignKey(
+        "workshop.MechanicSettlement", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="cash_movements", verbose_name="liquidación de mecánico",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="cash_movements",
         verbose_name="registrado por",
@@ -228,6 +233,10 @@ class CashMovement(models.Model):
             models.CheckConstraint(
                 condition=~Q(kind=CashMovementKind.CONSIGNEE_PAYMENT) | Q(consignee_payment__isnull=False),
                 name="cash_consignee_payment_has_payment",
+            ),
+            models.CheckConstraint(
+                condition=~Q(kind=CashMovementKind.MECHANIC_PAYMENT) | Q(mechanic_settlement__isnull=False),
+                name="cash_mechanic_payment_has_settlement",
             ),
         ]
         indexes = [models.Index(fields=["session", "method"], name="cash_movement_session_idx")]

@@ -108,7 +108,7 @@ class CashMovementSerializer(serializers.ModelSerializer):
         model = CashMovement
         fields = [
             "id", "session", "kind", "kind_label", "method", "method_label", "amount", "reason", "sale",
-            "sale_number", "supplier_payment", "consignee_payment", "created_by", "created_at",
+            "sale_number", "supplier_payment", "consignee_payment", "mechanic_settlement", "created_by", "created_at",
         ]
         read_only_fields = fields
 
