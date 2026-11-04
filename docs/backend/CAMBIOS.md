@@ -11,6 +11,39 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-03 · Servicios de taller y mecánicos (0.7.0)
+
+**Qué cambió**
+
+- **Tipos de servicio:** `/service-types`, con código numérico único (`101`), nombre, precio sugerido de mano de obra y `needs_description` para el tipo «Otro». Todos consultan; solo el dueño crea y edita. No se borran: se desactivan. Ordenados por código y sin paginar.
+- **Mecánicos:** `/mechanics`. Son registros de empleado, sin usuario. Cada uno puede tener su porcentaje de la mano de obra (`labor_percentage`) o usar el general. **El vendedor recibe el nombre, pero no los porcentajes.**
+- **Datos del negocio:** campo nuevo `default_mechanic_percentage` (0 a 100, por defecto 60), el porcentaje general de los mecánicos. Solo el dueño lo cambia.
+- **Servicios en la venta:** `POST /sales` acepta `services`, cada uno con `service_type`, `mechanic` (obligatorio), `plate` opcional (se guarda como `ABC12D`) y `details`. La mano de obra es el precio sugerido; solo el dueño puede enviar `labor_price` distinto.
+  - `items` ahora es **opcional**: una venta puede ser solo de servicios, pero necesita al menos un producto o un servicio.
+  - Los repuestos usados van en `items`, como cualquier producto: se descuentan una vez.
+  - El total y los pagos incluyen la mano de obra.
+  - `SaleDetail` trae `services`; la lista trae `services_count`; `GET /sales` acepta `?mechanic=`.
+  - Anular una venta reembolsa también los servicios; quedan en su historial.
+- **Consumo del taller:** `POST /inventory/workshop-use` (solo el dueño) saca unidades de un insumo de taller sin cobrarlas. Tipo de movimiento nuevo `workshop_use` («Consumo del taller»).
+- Errores nuevos por línea: `services.N.details`, `services.N.labor_price`, `services.N.mechanic`, `services.N.service_type` y `services.N.plate`.
+
+**Cambio incompatible**
+
+- El mensaje de la venta vacía cambió de «Agrega al menos un producto.» a **«Agrega al menos un producto o un servicio.»**. Sigue en `fields.items` y con el mismo `code`; solo afecta si la ventana compara el texto.
+
+**Qué debe hacer el frontend**
+
+- Pantallas de **Configuración → Tipos de servicio y Mecánicos** (solo el dueño), con `?include_inactive=true` para ver los desactivados. En mecánicos, el porcentaje es opcional: vacío envía `null` y se muestra `effective_percentage`.
+- En **Datos del negocio**: agregar el campo «Porcentaje general de los mecánicos».
+- En la **pantalla de venta**:
+  - Cargar `/service-types` y `/mechanics` al abrirla. Si lo escrito en el buscador son solo números, ofrecer el servicio con ese código; `/catalog/search` sigue siendo solo de productos.
+  - Al agregar un servicio, pedir el mecánico (obligatorio), la placa (opcional) y la descripción si `needs_description` es `true`. Mostrar el valor editable solo al dueño.
+  - Sumar la mano de obra al total y enviar `services` en `POST /sales`. Permitir cobrar con el carrito solo de servicios.
+- En el **detalle y el recibo de la venta**: mostrar los servicios con tipo, mecánico, placa y mano de obra.
+- **Consumo del taller** (solo el dueño): formulario con producto (solo `?workshop_supply=true`), cantidad y motivo.
+- En el **kárdex**: agregar `workshop_use` a `MovementKind` (`frontend/src/api/types.ts`).
+- Usar los tipos `ServiceType`, `ServiceTypeInput`, `Mechanic`, `MechanicInput`, `SaleService`, `WorkshopUseInput` y los cambios de `Sale`, `SaleDetail`, `SaleInput` y `BusinessSettings` de [API.md](API.md#taller-tipos-de-servicio-y-mecánicos).
+
 ## 2026-11-03 · Ventas, caja y consignación (0.6.0)
 
 **Qué cambió**

@@ -157,7 +157,7 @@ class SaleWriteSerializerTests(SaleSerializerTestCase):
         self.assertFalse(Customer.objects.filter(name="Ana Gómez").exists())
 
     def test_empty_or_repeated_items_are_rejected(self):
-        self.assertEqual(self.errors(self.data(items=[], payments=[]))["items"], ["Agrega al menos un producto."])
+        self.assertEqual(self.errors(self.data(items=[], payments=[]))["items"], ["Agrega al menos un producto o un servicio."])
         errors = self.errors(self.data(
             items=[{"product": self.brakes.pk, "quantity": 1}, {"product": self.brakes.pk, "quantity": 1}],
         ))

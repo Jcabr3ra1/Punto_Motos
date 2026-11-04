@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator
 from django.db import models
 
 
@@ -14,6 +15,10 @@ class BusinessSettings(models.Model):
     address = models.CharField("dirección", max_length=200, blank=True)
     phone = models.CharField("teléfono", max_length=40, blank=True)
     receipt_footer = models.TextField("texto al pie del recibo", blank=True)
+    # Parte de la mano de obra para el mecánico que no tiene porcentaje propio; el resto es del local.
+    default_mechanic_percentage = models.PositiveSmallIntegerField(
+        "porcentaje general de los mecánicos", default=60, validators=[MaxValueValidator(100)],
+    )
     updated_at = models.DateTimeField("actualizado", auto_now=True)
 
     class Meta:
@@ -21,6 +26,10 @@ class BusinessSettings(models.Model):
         verbose_name_plural = "datos del negocio"
         constraints = [
             models.CheckConstraint(condition=models.Q(pk=1), name="business_settings_singleton"),
+            models.CheckConstraint(
+                condition=models.Q(default_mechanic_percentage__lte=100), name="business_mechanic_percentage_range",
+                violation_error_message="El porcentaje debe estar entre 0 y 100.",
+            ),
         ]
 
     def __str__(self):

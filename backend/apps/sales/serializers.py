@@ -10,12 +10,16 @@ from apps.core.models import PaymentMethod
 from apps.inventory.exceptions import InitialCountInProgress
 from apps.inventory.models import InsufficientStock
 from apps.purchases.serializers import clean_text, pesos
+from apps.workshop.models import Mechanic, ServiceType
+from apps.workshop.serializers import MechanicSummarySerializer, ServiceTypeSummarySerializer
 
 from .exceptions import SaleVoided
 from .models import (
-    Customer, EmptySale, InitialCountOpen, PaymentMismatch, PriceChangeNotAllowed, Sale, SaleAlreadyVoided, SaleItem,
-    SalePayment,
+    Customer, EmptySale, InitialCountOpen, LaborPriceChangeNotAllowed, PaymentMismatch, PriceChangeNotAllowed, Sale,
+    SaleAlreadyVoided, SaleItem, SalePayment, SaleService, normalize_plate,
 )
+
+EMPTY_SALE_MESSAGE = "Agrega al menos un producto o un servicio."
 
 
 def line_error(lines, index, field, message):
@@ -95,6 +99,21 @@ class SaleItemSerializer(serializers.ModelSerializer):
         return data
 
 
+class SaleServiceSerializer(serializers.ModelSerializer):
+    """Servicio del taller en la venta, con su mecánico."""
+
+    service_type = ServiceTypeSummarySerializer(read_only=True)
+    mechanic = MechanicSummarySerializer(read_only=True)
+    price_changed = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = SaleService
+        fields = [
+            "id", "service_type", "mechanic", "plate", "details", "suggested_price", "labor_price", "price_changed",
+        ]
+        read_only_fields = fields
+
+
 class SalePaymentSerializer(serializers.ModelSerializer):
     method_label = serializers.CharField(source="get_method_display", read_only=True)
 
@@ -109,27 +128,35 @@ class SaleSerializer(serializers.ModelSerializer):
 
     customer = CustomerSummarySerializer(read_only=True)
     items_count = serializers.SerializerMethodField()
+    services_count = serializers.SerializerMethodField()
     created_by = serializers.CharField(source="created_by.username", read_only=True)
     is_voided = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Sale
-        fields = ["id", "number", "customer", "total", "items_count", "is_voided", "created_by", "created_at"]
+        fields = [
+            "id", "number", "customer", "total", "items_count", "services_count", "is_voided", "created_by",
+            "created_at",
+        ]
         read_only_fields = fields
 
     def get_items_count(self, instance):
         return len(instance.items.all())
+
+    def get_services_count(self, instance):
+        return len(instance.services.all())
 
 
 class SaleDetailSerializer(SaleSerializer):
     """Venta completa, como se imprime en el recibo."""
 
     items = SaleItemSerializer(many=True, read_only=True)
+    services = SaleServiceSerializer(many=True, read_only=True)
     payments = SalePaymentSerializer(many=True, read_only=True)
     voided_by = serializers.CharField(source="voided_by.username", read_only=True, default=None)
 
     class Meta(SaleSerializer.Meta):
-        fields = SaleSerializer.Meta.fields + ["notes", "items", "payments", "voided_at", "voided_by", "void_reason"]
+        fields = SaleSerializer.Meta.fields + ["notes", "items", "services", "payments", "voided_at", "voided_by", "void_reason"]
         read_only_fields = fields
 
 
@@ -142,6 +169,25 @@ class SaleItemWriteSerializer(serializers.Serializer):
     unit_price = serializers.IntegerField(
         min_value=0, required=False, help_text="Solo el dueño. Vacío: el precio del catálogo.",
     )
+
+
+class SaleServiceWriteSerializer(serializers.Serializer):
+    service_type = serializers.PrimaryKeyRelatedField(queryset=ServiceType.objects.filter(is_active=True))
+    mechanic = serializers.PrimaryKeyRelatedField(queryset=Mechanic.objects.filter(is_active=True))
+    plate = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")
+    details = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    labor_price = serializers.IntegerField(
+        min_value=0, required=False, help_text="Solo el dueño. Vacío: el precio sugerido del tipo de servicio.",
+    )
+
+    def validate_plate(self, value):
+        value = normalize_plate(value)
+        if len(value) > 10:
+            raise serializers.ValidationError("La placa tiene máximo 10 caracteres.")
+        return value
+
+    def validate_details(self, value):
+        return clean_text(value)
 
 
 class SalePaymentWriteSerializer(serializers.Serializer):
@@ -176,13 +222,12 @@ class SaleWriteSerializer(serializers.Serializer):
         queryset=Customer.objects.filter(is_active=True), required=False, allow_null=True,
     )
     new_customer = NewCustomerSerializer(required=False, allow_null=True)
-    items = SaleItemWriteSerializer(many=True)
+    items = SaleItemWriteSerializer(many=True, required=False, default=list)
+    services = SaleServiceWriteSerializer(many=True, required=False, default=list)
     payments = SalePaymentWriteSerializer(many=True)
     notes = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
 
     def validate_items(self, items):
-        if not items:
-            raise serializers.ValidationError("Agrega al menos un producto.")
         seen = set()
         for index, item in enumerate(items):
             product = item["product"]
@@ -197,6 +242,20 @@ class SaleWriteSerializer(serializers.Serializer):
                 ))
         return items
 
+    def validate_services(self, services):
+        for index, service in enumerate(services):
+            service_type = service["service_type"]
+            if service_type.needs_description and not service["details"]:
+                raise serializers.ValidationError(line_error(
+                    services, index, "details", f"Escribe qué se hizo en el servicio «{service_type.name}».",
+                ))
+            labor_price = service.get("labor_price", service_type.suggested_price)
+            if labor_price != service_type.suggested_price and not _is_owner(self.context):
+                raise serializers.ValidationError(line_error(
+                    services, index, "labor_price", "Solo el dueño puede cambiar el valor del servicio.",
+                ))
+        return services
+
     def validate_payments(self, payments):
         methods = [payment["method"] for payment in payments]
         if len(methods) != len(set(methods)):
@@ -209,7 +268,12 @@ class SaleWriteSerializer(serializers.Serializer):
     def validate(self, attrs):
         if bool(attrs.get("customer")) == bool(attrs.get("new_customer")):
             raise serializers.ValidationError({"customer": ["Elige un cliente o escribe el nombre de uno nuevo."]})
+        if not attrs["items"] and not attrs["services"]:
+            raise serializers.ValidationError({"items": [EMPTY_SALE_MESSAGE]})
         total = sum(item.get("unit_price", item["product"].sale_price) * item["quantity"] for item in attrs["items"])
+        total += sum(
+            service.get("labor_price", service["service_type"].suggested_price) for service in attrs["services"]
+        )
         paid = sum(payment["amount"] for payment in attrs["payments"])
         if paid != total:
             raise serializers.ValidationError({"payments": [payment_mismatch_message(total, paid)]})
@@ -221,12 +285,13 @@ class SaleWriteSerializer(serializers.Serializer):
             self.created = False
             return existing
         items = validated_data["items"]
+        services = validated_data["services"]
         try:
             with transaction.atomic():
                 customer = validated_data.get("customer") or Customer.objects.create(**validated_data["new_customer"])
                 sale, self.created = Sale.objects.confirm(
                     customer, items, validated_data["payments"], self.context["request"].user,
-                    validated_data["idempotency_key"], notes=validated_data["notes"],
+                    validated_data["idempotency_key"], notes=validated_data["notes"], services=services,
                 )
         except InitialCountOpen:
             raise InitialCountInProgress()
@@ -241,17 +306,24 @@ class SaleWriteSerializer(serializers.Serializer):
             raise serializers.ValidationError({"items": line_error(
                 items, index, "unit_price", f"El precio de {error.product.code} ahora es {pesos(error.list_price)}.",
             )})
+        except LaborPriceChangeNotAllowed as error:
+            # El precio sugerido cambió entre la validación y la venta.
+            index = next(i for i, service in enumerate(services) if service["service_type"].pk == error.service_type.pk)
+            raise serializers.ValidationError({"services": line_error(
+                services, index, "labor_price",
+                f"El valor sugerido de «{error.service_type.name}» ahora es {pesos(error.suggested_price)}.",
+            )})
         except PaymentMismatch as error:
             raise serializers.ValidationError({"payments": [payment_mismatch_message(error.total, error.paid)]})
         except EmptySale:
-            raise serializers.ValidationError({"items": ["Agrega al menos un producto."]})
+            raise serializers.ValidationError({"items": [EMPTY_SALE_MESSAGE]})
         except DjangoValidationError as error:
             raise serializers.ValidationError({"non_field_errors": error.messages})
         return sale
 
     def to_representation(self, instance):
         instance = Sale.objects.select_related("customer", "created_by").prefetch_related(
-            "items__product", "payments",
+            "items__product", "services__service_type", "services__mechanic", "payments",
         ).get(pk=instance.pk)
         return SaleDetailSerializer(instance, context=self.context).data
 

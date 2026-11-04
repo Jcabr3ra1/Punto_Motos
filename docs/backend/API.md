@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.5.0**.
+Versión del backend: **0.7.0**.
 
 ## Conexión
 
@@ -183,6 +183,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET /catalog/code-suggestion` | Dueño | Sugiere un código mientras se llena el formulario |
 | `GET /inventory/movements` | Sesión | Movimientos de inventario (kárdex) paginados |
 | `POST /inventory/adjustments` | Dueño | Ajuste físico de existencias con motivo |
+| `POST /inventory/workshop-use` | Dueño | Saca un insumo de taller por consumo interno |
 | `GET /inventory/initial-count` | Sesión | Estado y avance del inventario inicial |
 | `POST /inventory/initial-count/items` | Dueño | Crea un producto con su cantidad contada |
 | `POST /inventory/initial-count/finish` | Dueño | Termina el inventario inicial |
@@ -204,6 +205,9 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET /sales` | Sesión | Ventas paginadas con filtros |
 | `GET /sales/{id}` | Sesión | Una venta con sus líneas y pagos (recibo) |
 | `POST /sales/{id}/void` | Dueño | Anula una venta |
+| `GET /service-types`, `/mechanics` | Sesión | Tipos de servicio y mecánicos activos |
+| `POST /service-types`, `/mechanics` | Dueño | Crea un tipo de servicio o un mecánico |
+| `GET` y `PATCH /service-types/{id}`, `/mechanics/{id}` | Sesión / Dueño | Consulta o edita uno |
 | `GET /cash-sessions/current` | Sesión | Si la caja está abierta; el dueño recibe también sus montos |
 | `GET`, `POST /cash-sessions` | Dueño | Historial de cajas; abre la caja |
 | `GET /cash-sessions/{id}` | Dueño | Una caja con su resumen |
@@ -223,7 +227,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.5.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.7.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -331,6 +335,7 @@ Datos que se imprimen en el encabezado del recibo. Hay un solo registro por inst
   "address": "Calle 1 # 2-3",
   "phone": "3001234567",
   "receipt_footer": "Gracias por su compra",
+  "default_mechanic_percentage": 60,
   "updated_at": "2026-10-30T18:56:04.523678-05:00"
 }
 ```
@@ -348,6 +353,7 @@ Datos que se imprimen en el encabezado del recibo. Hay un solo registro por inst
 | `address` | texto | Opcional; máximo 200 |
 | `phone` | texto | Opcional; máximo 40 |
 | `receipt_footer` | texto | Opcional; texto al pie del recibo, sin límite |
+| `default_mechanic_percentage` | entero | De 0 a 100; por defecto 60. Parte de la mano de obra para los mecánicos que no tienen porcentaje propio; el resto es del local |
 | `updated_at` | fecha | Solo lectura |
 
 Errores: `validation_error` con `fields.name` si el nombre llega vacío, o con el campo que exceda su longitud.
@@ -359,6 +365,7 @@ interface BusinessSettings {
   address: string;
   phone: string;
   receipt_footer: string;
+  default_mechanic_percentage: number;   // 0 a 100
   updated_at: string;
 }
 
@@ -522,17 +529,18 @@ Cada resultado trae `stock`: la pantalla de venta debe mostrar **deshabilitados*
 
 ### Inventario
 
-Las existencias de cada producto **solo cambian con movimientos**: inventario inicial, compras, ventas, devoluciones y ajustes. Cada movimiento guarda la cantidad con signo (positiva entra, negativa sale), la existencia que quedó, quién lo hizo, la fecha y el motivo. Los movimientos no se editan ni se borran: un error se corrige con otro movimiento. **Las existencias nunca quedan en negativo.**
+Las existencias de cada producto **solo cambian con movimientos**: inventario inicial, compras, ventas, devoluciones, ajustes, consignación y consumo del taller. Cada movimiento guarda la cantidad con signo (positiva entra, negativa sale), la existencia que quedó, quién lo hizo, la fecha y el motivo. Los movimientos no se editan ni se borran: un error se corrige con otro movimiento. **Las existencias nunca quedan en negativo.**
 
 ```ts
 type MovementKind =
-  | "initial_count" | "purchase" | "sale" | "return" | "adjustment" | "consignment_out" | "consignment_return";
+  | "initial_count" | "purchase" | "sale" | "return" | "adjustment" | "consignment_out" | "consignment_return"
+  | "workshop_use";
 
 interface InventoryMovement {
   id: number;
   product: { id: number; code: string; name: string };
   kind: MovementKind;
-  kind_label: string;              // "Inventario inicial", "Compra", "Venta", "Devolución", "Ajuste", "Entrega en consignación", "Devolución de consignación"
+  kind_label: string;              // "Inventario inicial", "Compra", "Venta", "Devolución", "Ajuste", "Entrega en consignación", "Devolución de consignación", "Consumo del taller"
   quantity: number;                // con signo: 5 entra, -2 sale
   unit_cost?: number;              // solo el dueño: costo por unidad en ese momento
   balance_after: number;           // existencia que quedó después del movimiento
@@ -581,6 +589,24 @@ Un filtro inválido (`?kind=robo`, `?date_from=31/10/2026`, `?product=abc`) resp
 | `reason` | Obligatorio; máximo 200; se limpian los espacios |
 
 Errores en `fields`: `quantity` con "La cantidad no puede ser cero." o "Solo hay 2 unidades: no se pueden restar 3."; `reason` si llega vacío.
+
+**Consumo del taller (solo el dueño).** Los insumos de taller (productos con `is_workshop_supply: true`, como grasa, líquido de frenos o limpiadores) no se cobran al cliente: su valor va incluido en la mano de obra. Cuando se abre un envase para el taller se registra su salida con `POST /inventory/workshop-use`, que responde el `InventoryMovement` creado (201) con `kind: "workshop_use"` y cantidad negativa.
+
+```json
+{ "product": 44, "quantity": 1, "reason": "Envase abierto para el taller" }
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `product` | Obligatorio; id de un producto marcado como insumo de taller |
+| `quantity` | Obligatorio; entero mayor que 0 (unidades que se sacan) |
+| `reason` | Opcional; máximo 200 |
+
+Errores en `fields`: `product` con "Este producto no está marcado como insumo de taller."; `quantity` con "Solo hay 2 unidades de LUB-UNI-GRA." o "No hay unidades de LUB-UNI-GRA.".
+
+```ts
+interface WorkshopUseInput { product: number; quantity: number; reason?: string; }
+```
 
 **Inventario inicial.** Al empezar a usar el programa, el dueño cuenta todo lo que hay en el negocio y lo carga producto por producto. **Mientras el conteo esté abierto no se debe vender**; el dueño lo termina una sola vez.
 
@@ -882,6 +908,85 @@ Errores en `fields`:
 
 `GET /supplier-payments` responde `Paginated<SupplierPayment>`, del pago más reciente al más antiguo. Filtros: `?supplier=`, `?date_from=` y `?date_to=` (por `paid_on`, ambos incluidos).
 
+### Taller: tipos de servicio y mecánicos
+
+Los servicios del taller **se cobran como líneas de la venta** (ver [Clientes y ventas](#clientes-y-ventas)): no hay orden de trabajo, presupuesto ni estados. Cuando el trabajo está hecho, se agrega el servicio a la venta con su mecánico y el valor acordado, y los repuestos usados como productos de la misma venta.
+
+**Todos consultan; solo el dueño crea y edita.** No se borran (`DELETE` responde 405): se desactivan con `is_active: false`. Los listados no están paginados y muestran solo lo activo, salvo `?include_inactive=true`.
+
+**Tipos de servicio.** `/service-types`, ordenados por código. El código es un número corto para el buscador de la venta: **si lo escrito son solo números, buscar el servicio con ese código** en la lista de `/service-types`, que la ventana puede cargar una vez y guardar. `/catalog/search` sigue devolviendo solo productos.
+
+`POST /service-types`
+
+```json
+{ "code": 101, "name": "Cambio de aceite", "suggested_price": 15000 }
+```
+
+```json
+{ "id": 1, "code": 101, "name": "Cambio de aceite", "suggested_price": 15000, "needs_description": false, "is_active": true }
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `code` | Obligatorio; entero de 1 a 99999; único |
+| `name` | Obligatorio; máximo 80; único sin distinguir mayúsculas; se limpian los espacios |
+| `suggested_price` | Obligatorio; pesos enteros, mayor o igual a 0. Es la mano de obra que se propone en la venta |
+| `needs_description` | Opcional, por defecto `false`. Con `true` (el tipo «Otro»), la venta debe decir qué se hizo |
+| `is_active` | Opcional |
+
+Errores: `fields.code` con "Ya existe un tipo de servicio con ese código."; `fields.name` con "Ya existe un tipo de servicio con ese nombre.".
+
+**Mecánicos.** `/mechanics`. El mecánico es un registro de empleado: **no inicia sesión** en el programa. Todos lo consultan para elegirlo en la venta, pero **el vendedor no recibe los porcentajes** (`labor_percentage` ni `effective_percentage`).
+
+`POST /mechanics`
+
+```json
+{ "name": "Carlos Ruiz", "phone": "3001112233", "labor_percentage": 70 }
+```
+
+```json
+{ "id": 1, "name": "Carlos Ruiz", "phone": "3001112233", "labor_percentage": 70, "effective_percentage": 70, "is_active": true }
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `name` | Obligatorio; máximo 80; único sin distinguir mayúsculas |
+| `phone` | Opcional; máximo 30 |
+| `labor_percentage` | Opcional; de 0 a 100, o `null` para usar el porcentaje general (`default_mechanic_percentage` de [Datos del negocio](#datos-del-negocio)) |
+| `effective_percentage` | Solo lectura: el porcentaje con que se le liquida hoy, el suyo o el general |
+| `is_active` | Opcional |
+
+Errores: `fields.name` con "Ya existe un mecánico con ese nombre."; `fields.labor_percentage` si pasa de 100.
+
+```ts
+interface ServiceType {
+  id: number;
+  code: number;                    // 101
+  name: string;
+  suggested_price: number;
+  needs_description: boolean;      // true: la venta debe llevar details
+  is_active: boolean;
+}
+
+type ServiceTypeInput = Omit<ServiceType, "id">;
+
+interface Mechanic {
+  id: number;
+  name: string;
+  phone: string;
+  labor_percentage?: number | null;  // solo el dueño; null = usa el general
+  effective_percentage?: number;     // solo el dueño
+  is_active: boolean;
+}
+
+interface MechanicInput {
+  name: string;
+  phone?: string;
+  labor_percentage?: number | null;
+  is_active?: boolean;
+}
+```
+
 ### Clientes y ventas
 
 Cualquier usuario con sesión vende y crea clientes. **Las ventas se pagan completas al venderlas: no hay ventas a crédito.** Para vender debe haber **caja abierta** (ver [Caja](#caja)) y el inventario inicial debe estar terminado.
@@ -892,11 +997,12 @@ Cualquier usuario con sesión vende y crea clientes. **Las ventas se pagan compl
 2. Al cobrar, la ventana genera un `idempotency_key` con `crypto.randomUUID()` y envía `POST /sales` con cliente, productos y pagos. **Si la petición se repite con la misma clave (doble clic, reintento por red), el backend devuelve la misma venta con 200 y no descuenta nada otra vez.** Generar una clave nueva solo para una venta nueva.
 3. Los pagos van uno por medio y deben **sumar exactamente el total**. El vuelto lo calcula la ventana: si el cliente entrega $50.000 en efectivo para una venta de $43.000, se envía `{"method": "cash", "amount": 43000}`.
 4. El precio de cada línea es el del catálogo. **Solo el dueño** puede enviar `unit_price` distinto; la línea queda con `price_changed: true`.
-5. La respuesta trae todo lo que va en el recibo.
+5. Los **servicios del taller** van en `services`, cada uno con su tipo, su mecánico (obligatorio) y la placa si la dan. La mano de obra es el `suggested_price` del tipo; **solo el dueño** puede enviar `labor_price` distinto. Los repuestos usados van en `items` como cualquier producto: se descuentan una sola vez y no entran en el porcentaje del mecánico. Una venta puede tener varios servicios, con mecánicos distintos, y puede ser solo de servicios.
+6. La respuesta trae todo lo que va en el recibo.
 
 **El cliente es obligatorio.** Se envía `customer` (id de uno existente) o `new_customer` (se crea con la venta), nunca los dos. Al escribir el nombre, sugerir clientes con `GET /customers?q=texto&page_size=8`. El nombre **puede repetirse** (hay varios "Juan Pérez"); por eso la sugerencia muestra también el teléfono.
 
-**Anular.** Un error se corrige anulando la venta: `POST /sales/{id}/void` con su motivo, **solo el dueño** y con caja abierta. La venta no se borra: queda marcada como anulada, las unidades vuelven al inventario (movimiento `return`) y cada pago se reembolsa por el mismo medio desde la caja abierta de hoy, aunque la venta sea de otro día.
+**Anular.** Un error se corrige anulando la venta: `POST /sales/{id}/void` con su motivo, **solo el dueño** y con caja abierta. La venta no se borra: queda marcada como anulada, las unidades vuelven al inventario (movimiento `return`) y cada pago se reembolsa por el mismo medio desde la caja abierta de hoy, aunque la venta sea de otro día. Los servicios de una venta anulada quedan en su historial.
 
 ```ts
 interface Customer {
@@ -918,8 +1024,9 @@ interface Sale {
   id: number;
   number: number;                  // consecutivo del recibo: 1, 2, 3...
   customer: { id: number; name: string; phone: string };
-  total: number;
+  total: number;                   // productos + mano de obra
   items_count: number;
+  services_count: number;
   is_voided: boolean;
   created_by: string;              // username de quien vendió
   created_at: string;
@@ -937,9 +1044,21 @@ interface SaleItem {
   unit_cost?: number;              // solo el dueño
 }
 
+interface SaleService {
+  id: number;
+  service_type: { id: number; code: number; name: string };
+  mechanic: { id: number; name: string };
+  plate: string;                   // "ABC12D" o vacío
+  details: string;                 // qué se hizo; obligatorio si el tipo pide descripción
+  suggested_price: number;         // precio del tipo de servicio al vender
+  labor_price: number;             // mano de obra cobrada
+  price_changed: boolean;          // el dueño cambió el valor
+}
+
 interface SaleDetail extends Sale {
   notes: string;
   items: SaleItem[];
+  services: SaleService[];
   payments: { method: PaymentMethod; method_label: string; amount: number }[];
   voided_at: string | null;
   voided_by: string | null;
@@ -950,7 +1069,14 @@ interface SaleInput {
   idempotency_key: string;         // UUID generado por la ventana para esta venta
   customer?: number | null;        // cliente existente...
   new_customer?: { name: string; phone?: string } | null;   // ...o uno nuevo
-  items: { product: number; quantity: number; unit_price?: number }[];
+  items?: { product: number; quantity: number; unit_price?: number }[];
+  services?: {
+    service_type: number;
+    mechanic: number;
+    plate?: string;
+    details?: string;
+    labor_price?: number;          // solo el dueño
+  }[];
   payments: { method: PaymentMethod; amount: number }[];
   notes?: string;
 }
@@ -996,6 +1122,7 @@ interface SaleInput {
       "list_price": 14000, "unit_price": 14000, "price_changed": false, "subtotal": 14000
     }
   ],
+  "services": [],
   "payments": [
     { "method": "cash", "method_label": "Efectivo", "amount": 40000 },
     { "method": "transfer", "method_label": "Transferencia", "amount": 24000 }
@@ -1006,27 +1133,59 @@ interface SaleInput {
 }
 ```
 
+Venta de un servicio con su repuesto:
+
+```json
+{
+  "idempotency_key": "0b6e9f5c-1d2a-4c3b-8e7f-9a0b1c2d3e4f",
+  "customer": 18,
+  "items": [{ "product": 12, "quantity": 1 }],
+  "services": [{ "service_type": 1, "mechanic": 1, "plate": "abc-12d" }],
+  "payments": [{ "method": "cash", "amount": 40000 }]
+}
+```
+
+La respuesta trae, además de `items`:
+
+```json
+"services": [
+  {
+    "id": 9, "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
+    "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "plate": "ABC12D", "details": "",
+    "suggested_price": 15000, "labor_price": 15000, "price_changed": false
+  }
+]
+```
+
 | Campo | Reglas |
 | --- | --- |
 | `idempotency_key` | Obligatorio; UUID |
 | `customer` / `new_customer` | Exactamente uno de los dos. `customer` debe estar activo |
-| `items` | Al menos uno; productos activos, sin repetir; `quantity` entero mayor que 0 |
+| `items` | Opcional; productos activos, sin repetir; `quantity` entero mayor que 0. La venta necesita al menos un producto o un servicio |
 | `items[].unit_price` | Opcional; solo el dueño puede enviarlo distinto del catálogo |
+| `services` | Opcional; `service_type` y `mechanic` activos. Se puede repetir el mismo tipo (dos cambios de aceite) |
+| `services[].plate` | Opcional; se guarda en mayúsculas sin espacios ni guiones (`abc-12d` → `ABC12D`); máximo 10 |
+| `services[].details` | Opcional, máximo 120; obligatorio si el tipo tiene `needs_description` |
+| `services[].labor_price` | Opcional; solo el dueño puede enviarlo distinto del `suggested_price` |
 | `payments` | Un registro por medio, sin repetir medio; `amount` mayor que 0; la suma debe ser igual al total. Una venta de $0 (regalo del dueño) va con `payments: []` |
 | `notes` | Opcional; máximo 200 |
 
 Errores en `fields` (los de una línea llegan anidados: `items.1.quantity`):
 
 - `customer`: "Elige un cliente o escribe el nombre de uno nuevo."
-- `items`: "Agrega al menos un producto."
+- `items`: "Agrega al menos un producto o un servicio."
 - `items.N.product`: "FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total."
 - `items.N.quantity`: "Solo hay 2 unidades de ELE-UNI-BUJ." o "No hay unidades de ELE-UNI-BUJ."
 - `items.N.unit_price`: "Solo el dueño puede cambiar el precio." o "El precio de FRE-PUL-PAS ahora es $26.000." (cambió mientras se armaba la venta: refrescar el producto)
+- `services.N.details`: "Escribe qué se hizo en el servicio «Otro»."
+- `services.N.labor_price`: "Solo el dueño puede cambiar el valor del servicio." o "El valor sugerido de «Cambio de aceite» ahora es $18.000."
+- `services.N.mechanic` o `services.N.service_type`: el id no existe o está desactivado
+- `services.N.plate`: "La placa tiene máximo 10 caracteres."
 - `payments`: "La venta es de $64.000 y el pago suma $60.000: deben ser iguales." o "Cada medio de pago va una sola vez: suma los valores."
 
 Conflictos: 409 `cash_session_closed` (no hay caja abierta) y 409 `initial_count_open` (el inventario inicial sigue abierto).
 
-**`GET /sales`** responde `Paginated<Sale>`, de la más reciente a la más antigua. Filtros: `?number=`, `?customer=`, `?voided=true|false`, `?date_from=` y `?date_to=` (día de la venta, ambos incluidos). **`GET /sales/{id}`** responde `SaleDetail`, para ver o reimprimir el recibo.
+**`GET /sales`** responde `Paginated<Sale>`, de la más reciente a la más antigua. Filtros: `?number=`, `?customer=`, `?mechanic=` (ventas con algún servicio de ese mecánico), `?voided=true|false`, `?date_from=` y `?date_to=` (día de la venta, ambos incluidos). **`GET /sales/{id}`** responde `SaleDetail`, para ver o reimprimir el recibo.
 
 **`POST /sales/{id}/void`** (solo el dueño) recibe `{ "reason": "Se cobró al cliente equivocado" }` y responde `SaleDetail` anulada. Errores: `fields.reason` "Indica por qué se anula la venta.", 409 `sale_voided` si ya estaba anulada y 409 `cash_session_closed`.
 
