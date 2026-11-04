@@ -379,22 +379,122 @@ summary {
 
 .navbar {
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
   align-items: center;
   justify-content: space-between;
-  min-height: 2.75rem;
-  padding: 0 1rem;
+  min-height: 3.25rem;
+  padding: 0 1rem 0 1.5rem;
   color: #e8e8e6;
   background: var(--color-negro);
-  border-bottom: 1px solid #2b2c2e;
+  /* Una línea lima muy fina une la barra con la marca sin cargarla. */
+  box-shadow: inset 0 -2px 0 var(--color-marca);
+}
+
+.navbar__ubicacion {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.navbar__migas {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 1.05rem;
+  color: var(--color-plata);
+  white-space: nowrap;
+}
+
+.navbar__seccion {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.navbar__separador {
+  color: var(--color-marca);
+}
+
+.navbar__lado {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.navbar__caja {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  border: 1px solid #3a3b3e;
+  border-radius: 999px;
+}
+
+.navbar__caja::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.navbar__caja--abierta {
+  color: #7ee787;
+}
+
+.navbar__caja--cerrada {
+  color: #ffb74d;
+  border-color: #6b4a1e;
+}
+
+a.navbar__caja:hover {
+  background: #1b1c1e;
+}
+
+.navbar__reloj {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--color-plata);
+}
+
+.navbar__reloj strong {
+  font-size: 0.9375rem;
+  color: #ffffff;
+}
+
+.navbar__salir {
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--color-plata);
+  background: transparent;
+  border: 1px solid #3a3b3e;
+  border-radius: var(--radio);
+}
+
+.navbar__salir:hover:not(:disabled) {
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+  border-color: var(--color-marca);
 }
 
 .navbar__negocio {
   margin: 0;
-  min-width: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-plata);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -402,8 +502,10 @@ summary {
 
 .navbar__usuario {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.625rem;
   align-items: center;
+  padding-left: 1.25rem;
+  border-left: 1px solid #2b2c2e;
 }
 
 .navbar__iniciales {
@@ -420,19 +522,6 @@ summary {
 
 .navbar__datos {
   line-height: 1.2;
-}
-
-.navbar .boton--secundario {
-  min-height: 1.75rem;
-  padding: 0.125rem 0.75rem;
-  color: #e8e8e6;
-  border-color: #5a5c5f;
-}
-
-.navbar .boton--secundario:hover:not(:disabled) {
-  color: var(--color-sobre-marca);
-  background: var(--color-marca);
-  border-color: var(--color-marca);
 }
 
 .navbar__nombre {

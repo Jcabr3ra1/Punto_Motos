@@ -64,6 +64,35 @@ describe('menú principal', () => {
   })
 })
 
+describe('barra superior: ubicación y caja', () => {
+  it('muestra la sección y la pestaña donde se está', () => {
+    mostrar(dueno, '/configuracion/usuarios')
+
+    expect(within(screen.getByRole('navigation', { name: 'Estás en' })).getByText('Configuración')).toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Estás en' })).getByText('Usuarios')).toBeInTheDocument()
+  })
+
+  it('al dueño le muestra el efectivo esperado y lo lleva a la caja', async () => {
+    simularApi({
+      'GET /cash-sessions/current': () => ({
+        cuerpo: { is_open: true, session: { id: 1, is_open: true, opening_cash: 50000, expected_cash: 95000, counted_cash: null, difference: null, closing_notes: '', opened_by: 'dueno', opened_at: 'x', closed_by: null, closed_at: null }, suggested_opening_cash: 0 },
+      }),
+    })
+    mostrar(dueno)
+
+    const enlace = await within(screen.getByRole('banner')).findByRole('link', { name: /Caja abierta · \$\s?95\.000 en el cajón/ })
+    expect(enlace).toHaveAttribute('href', '/caja/actual')
+  })
+
+  it('al vendedor solo le dice si la caja está cerrada, sin montos ni enlace', async () => {
+    simularApi({ 'GET /cash-sessions/current': () => ({ cuerpo: { is_open: false } }) })
+    mostrar(vendedor)
+
+    expect(await within(screen.getByRole('banner')).findByText('Caja cerrada')).toBeInTheDocument()
+    expect(within(screen.getByRole('banner')).queryByRole('link', { name: /Caja/ })).not.toBeInTheDocument()
+  })
+})
+
 describe('barra de estado', () => {
   it('muestra que hay conexión y la versión del backend', async () => {
     simularApi({ 'GET /health': () => ({ cuerpo: { status: 'ok', version: '0.4.0', server_time: 'x' } }) })
