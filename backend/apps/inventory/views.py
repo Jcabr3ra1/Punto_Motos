@@ -17,6 +17,7 @@ from .serializers import (
     InitialCountItemSerializer,
     InitialCountSerializer,
     InventoryMovementSerializer,
+    WorkshopUseSerializer,
 )
 
 
@@ -64,6 +65,13 @@ class AdjustmentView(generics.CreateAPIView):
 
     permission_classes = [IsOwner]
     serializer_class = AdjustmentSerializer
+
+
+class WorkshopUseView(generics.CreateAPIView):
+    """Consumo interno de un insumo de taller: solo el dueño, como los ajustes."""
+
+    permission_classes = [IsOwner]
+    serializer_class = WorkshopUseSerializer
 
 
 class InitialCountView(APIView):

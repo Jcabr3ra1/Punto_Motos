@@ -64,7 +64,7 @@ class SaleViewSet(
     POST confirma la venta pagada completa: 201 si es nueva, 200 si la
     idempotency_key ya se había usado (reintento) con la venta de entonces.
     No se editan ni se borran: el dueño las anula con POST /sales/{id}/void.
-    Filtros del listado: ?number=, ?customer=, ?voided=true|false, ?date_from=
+    Filtros del listado: ?number=, ?customer=, ?mechanic=, ?voided=true|false, ?date_from=
     y ?date_to= (día de la venta, ambos incluidos).
     """
 
@@ -87,15 +87,20 @@ class SaleViewSet(
     def get_queryset(self):
         queryset = Sale.objects.select_related("customer", "created_by", "voided_by")
         if self.action != "list":
-            return queryset.prefetch_related("items__product", "payments")
+            return queryset.prefetch_related(
+                "items__product", "services__service_type", "services__mechanic", "payments",
+            )
 
-        queryset = queryset.prefetch_related("items")
+        queryset = queryset.prefetch_related("items", "services")
         number = _id_param(self.request, "number")
         if number:
             queryset = queryset.filter(number=number)
         customer = _id_param(self.request, "customer")
         if customer:
             queryset = queryset.filter(customer_id=customer)
+        mechanic = _id_param(self.request, "mechanic")
+        if mechanic:
+            queryset = queryset.filter(services__mechanic_id=mechanic).distinct()
         voided = self.request.query_params.get("voided")
         if voided:
             queryset = queryset.filter(voided_at__isnull=not _flag(self.request, "voided"))

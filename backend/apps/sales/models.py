@@ -8,10 +8,11 @@ from apps.cash.models import CashMovement, CashMovementKind, CashSession, CashSe
 from apps.catalog.models import NamedModel, Product
 from apps.core.models import PaymentMethod
 from apps.inventory.models import InitialCount, InitialCountOpen, InventoryMovement, MovementKind
+from apps.workshop.models import Mechanic, ServiceType
 
 
 class EmptySale(Exception):
-    """Una venta necesita al menos un producto."""
+    """Una venta necesita al menos un producto o un servicio."""
 
 
 class PriceChangeNotAllowed(Exception):
@@ -22,6 +23,16 @@ class PriceChangeNotAllowed(Exception):
         self.list_price = list_price
         self.requested = requested
         super().__init__(f"{product.code}: el catálogo dice {list_price} y se piden {requested}.")
+
+
+class LaborPriceChangeNotAllowed(Exception):
+    """Solo el dueño puede cobrar un servicio a un valor distinto del sugerido."""
+
+    def __init__(self, service_type, suggested_price, requested):
+        self.service_type = service_type
+        self.suggested_price = suggested_price
+        self.requested = requested
+        super().__init__(f"{service_type}: el sugerido es {suggested_price} y se piden {requested}.")
 
 
 class SaleIsFinal(Exception):
@@ -58,7 +69,7 @@ class Customer(NamedModel):
 
 
 class SaleManager(models.Manager):
-    def confirm(self, customer, items, payments, user, idempotency_key, notes=""):
+    def confirm(self, customer, items, payments, user, idempotency_key, notes="", services=()):
         """Registra una venta confirmada: líneas, salidas de inventario y cobros, todo junto.
 
         items es una lista como [{"product": producto, "quantity": 2}]; cada
@@ -67,6 +78,13 @@ class SaleManager(models.Manager):
         medio: [{"amount": 30000, "method": "cash"}, {"amount": 10000,
         "method": "transfer"}]. No hay ventas a crédito: los pagos deben sumar
         exactamente el total (PaymentMismatch); el vuelto lo calcula la ventana.
+
+        services son los servicios del taller, cada uno con su mecánico:
+        [{"service_type": tipo, "mechanic": mecánico, "plate": "ABC12D",
+        "details": "..."}]. El valor de la mano de obra es el sugerido del tipo;
+        solo el dueño puede mandar "labor_price" distinto
+        (LaborPriceChangeNotAllowed). Los repuestos usados van en items como
+        cualquier producto. Una venta puede ser solo de servicios.
 
         idempotency_key es un UUID que genera la ventana por cada venta: si
         llega otra vez (doble clic o reintento) se devuelve la venta ya hecha
@@ -83,7 +101,7 @@ class SaleManager(models.Manager):
             raise InitialCountOpen()
         if CashSession.objects.current() is None:
             raise CashSessionClosed()
-        if not items:
+        if not items and not services:
             raise EmptySale()
 
         products = [item["product"].pk for item in items]
@@ -100,7 +118,22 @@ class SaleManager(models.Manager):
                 product=product, description=f"{product.code} · {product.name}", quantity=item["quantity"],
                 list_price=product.sale_price, unit_price=unit_price, unit_cost=product.cost_price,
             ))
-        total = sum(line.subtotal for line in lines)
+        service_lines = []
+        for service in services:
+            service_type = service["service_type"]
+            labor_price = service.get("labor_price", service_type.suggested_price)
+            if labor_price != service_type.suggested_price and not user.is_owner:
+                raise LaborPriceChangeNotAllowed(service_type, service_type.suggested_price, labor_price)
+            line = SaleService(
+                service_type=service_type, mechanic=service["mechanic"], plate=service.get("plate", ""),
+                details=service.get("details", ""), suggested_price=service_type.suggested_price,
+                labor_price=labor_price,
+            )
+            line.clean()
+            line.clean_fields(exclude=["sale"])
+            service_lines.append(line)
+
+        total = sum(line.subtotal for line in lines) + sum(line.labor_price for line in service_lines)
         paid = sum(payment["amount"] for payment in payments)
         if paid != total:
             raise PaymentMismatch(total, paid)
@@ -120,6 +153,9 @@ class SaleManager(models.Manager):
                     InventoryMovement.objects.record(
                         line.product, MovementKind.SALE, -line.quantity, user, unit_cost=line.unit_cost, reason=reason,
                     )
+                for line in service_lines:
+                    line.sale = sale
+                    line.save()
                 for payment in payments:
                     line = SalePayment(sale=sale, **payment)
                     line.full_clean(exclude=["sale"])
@@ -264,6 +300,60 @@ class SaleItem(models.Model):
     def price_changed(self):
         """El dueño cambió el precio en esta venta: el recibo y los reportes lo muestran."""
         return self.unit_price != self.list_price
+
+
+def normalize_plate(value):
+    """abc-12d, ABC 12D y ABC12D son la misma placa: ABC12D."""
+    return "".join(value.split()).replace("-", "").upper()
+
+
+class SaleService(models.Model):
+    """Servicio del taller cobrado en la venta, con el mecánico que lo hizo.
+
+    Se registra cuando el trabajo ya está hecho, con el valor acordado con el
+    cliente: no hay orden de trabajo ni estados. La mano de obra se reparte
+    entre el mecánico y el local en la liquidación diaria; los repuestos van
+    como productos de la misma venta y son 100 % del local.
+    """
+
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="services", verbose_name="venta")
+    service_type = models.ForeignKey(
+        ServiceType, on_delete=models.PROTECT, related_name="sale_services", verbose_name="tipo de servicio",
+    )
+    mechanic = models.ForeignKey(Mechanic, on_delete=models.PROTECT, related_name="services", verbose_name="mecánico")
+    plate = models.CharField("placa", max_length=10, blank=True)
+    # Qué se hizo, en pocas palabras. Obligatorio si el tipo lo pide («Otro»).
+    details = models.CharField("descripción", max_length=120, blank=True)
+    # Pesos enteros. suggested_price es el del tipo de servicio en ese momento; labor_price, el cobrado.
+    suggested_price = models.PositiveBigIntegerField("precio sugerido")
+    labor_price = models.PositiveBigIntegerField("mano de obra")
+
+    class Meta:
+        verbose_name = "servicio de la venta"
+        verbose_name_plural = "servicios de la venta"
+        ordering = ["id"]
+        indexes = [models.Index(fields=["mechanic", "sale"], name="sale_service_mechanic_idx")]
+
+    def __str__(self):
+        return f"{self.service_type.name} · {self.mechanic}"
+
+    def clean(self):
+        self.plate = normalize_plate(self.plate)
+        self.details = " ".join(self.details.split())
+        errors = {}
+        if self.service_type_id and not self.service_type.is_active:
+            errors["service_type"] = "Este tipo de servicio está desactivado."
+        if self.mechanic_id and not self.mechanic.is_active:
+            errors["mechanic"] = "Este mecánico está desactivado."
+        if self.service_type_id and self.service_type.needs_description and not self.details:
+            errors["details"] = "Escribe qué servicio se hizo."
+        if errors:
+            raise ValidationError(errors)
+
+    @property
+    def price_changed(self):
+        """El dueño cobró un valor distinto del sugerido."""
+        return self.labor_price != self.suggested_price
 
 
 class SalePayment(models.Model):

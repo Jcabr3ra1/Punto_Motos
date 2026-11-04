@@ -13,13 +13,22 @@ class MovementKind(models.TextChoices):
     ADJUSTMENT = "adjustment", "Ajuste"
     CONSIGNMENT_OUT = "consignment_out", "Entrega en consignación"
     CONSIGNMENT_RETURN = "consignment_return", "Devolución de consignación"
+    WORKSHOP_USE = "workshop_use", "Consumo del taller"
 
 
 # Tipos que solo suman y tipos que solo restan. El ajuste puede ir en ambos sentidos.
 INCOMING_KINDS = [
     MovementKind.INITIAL_COUNT, MovementKind.PURCHASE, MovementKind.RETURN, MovementKind.CONSIGNMENT_RETURN,
 ]
-OUTGOING_KINDS = [MovementKind.SALE, MovementKind.CONSIGNMENT_OUT]
+OUTGOING_KINDS = [MovementKind.SALE, MovementKind.CONSIGNMENT_OUT, MovementKind.WORKSHOP_USE]
+
+
+class NotWorkshopSupply(Exception):
+    """Solo los productos marcados como insumo de taller se sacan por consumo interno."""
+
+    def __init__(self, product):
+        self.product = product
+        super().__init__(f"{product.code} no está marcado como insumo de taller.")
 
 
 class InitialCountOpen(Exception):
@@ -89,6 +98,18 @@ class InventoryMovementManager(models.Manager):
             movement.balance_after = balance.quantity
             movement.save()
         return movement
+
+    def use_in_workshop(self, product, quantity, user, reason=""):
+        """Saca unidades de un insumo de taller que se abrió para usarlo en los servicios.
+
+        No se le cobra al cliente: su valor va incluido en la mano de obra. Así
+        el inventario cuadra sin medir pequeñas cantidades. Un producto que no
+        es insumo de taller lanza NotWorkshopSupply; si no alcanza la
+        existencia, InsufficientStock.
+        """
+        if not product.is_workshop_supply:
+            raise NotWorkshopSupply(product)
+        return self.record(product, MovementKind.WORKSHOP_USE, -quantity, user, reason=reason)
 
 
 class InventoryMovement(models.Model):

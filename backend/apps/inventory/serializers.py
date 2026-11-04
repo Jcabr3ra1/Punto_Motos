@@ -71,6 +71,36 @@ class AdjustmentSerializer(serializers.Serializer):
         return InventoryMovementSerializer(instance, context=self.context).data
 
 
+class WorkshopUseSerializer(serializers.Serializer):
+    """Salida de un insumo de taller que se abrió para los servicios. No se le cobra a nadie."""
+
+    product = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(is_workshop_supply=True),
+        error_messages={"does_not_exist": "Este producto no está marcado como insumo de taller."},
+    )
+    quantity = serializers.IntegerField(min_value=1, help_text="Unidades que se sacan, por ejemplo 1 envase.")
+    reason = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+
+    def validate_reason(self, value):
+        return " ".join(value.split())
+
+    def create(self, validated_data):
+        product = validated_data["product"]
+        try:
+            return InventoryMovement.objects.use_in_workshop(
+                product, validated_data["quantity"], self.context["request"].user, reason=validated_data["reason"],
+            )
+        except InsufficientStock as error:
+            if error.available == 0:
+                message = f"No hay unidades de {product.code}."
+            else:
+                message = f"Solo hay {error.available} unidades de {product.code}."
+            raise serializers.ValidationError({"quantity": [message]})
+
+    def to_representation(self, instance):
+        return InventoryMovementSerializer(instance, context=self.context).data
+
+
 class InitialCountItemSerializer(ProductWriteSerializer):
     """Un producto del conteo inicial: sus datos y la cantidad contada.
 

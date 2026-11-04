@@ -14,7 +14,7 @@ from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
 
-APP_VERSION = "0.6.0"
+APP_VERSION = "0.7.0"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "apps.sales",
     "apps.consignments",
     "apps.cash",
+    "apps.workshop",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
