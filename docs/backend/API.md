@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.7.0**.
+Versión del backend: **0.8.0**.
 
 ## Conexión
 
@@ -119,6 +119,8 @@ interface ApiError {
 | 409 | `initial_count_open` | Se intenta vender o entregar en consignación mientras el inventario inicial sigue abierto | Mostrar `message`; el dueño debe terminar el conteo |
 | 409 | `cash_session_closed` | No hay caja abierta (o ya se cerró) y se intenta vender, anular, abonar o pagar con fecha de hoy, registrar un gasto o cerrar otra vez | Mostrar `message` y volver a consultar `GET /cash-sessions/current`; el dueño debe abrir la caja |
 | 409 | `sale_voided` | Se intenta anular una venta ya anulada | Mostrar `message` y volver a cargar la venta |
+| 409 | `sale_has_settled_services` | Se intenta anular una venta con servicios que ya se le pagaron al mecánico | Mostrar `message`; esa venta se corrige con una devolución |
+| 409 | `nothing_to_settle` | Se intenta pagar a un mecánico que no tiene servicios sin pagar ese día (por ejemplo, un doble clic) | Mostrar `message` y volver a consultar la liquidación del día |
 | 405 | `method_not_allowed` | Método no soportado en la ruta | Error de programación |
 | 429 | `throttled` | Demasiados intentos de inicio de sesión (más de 10 por minuto) | Mostrar `message` y deshabilitar el botón un momento |
 | 500 | `server_error` | Fallo inesperado del backend | Mostrar `message`; la operación no se completó y se puede reintentar |
@@ -208,6 +210,9 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET /service-types`, `/mechanics` | Sesión | Tipos de servicio y mecánicos activos |
 | `POST /service-types`, `/mechanics` | Dueño | Crea un tipo de servicio o un mecánico |
 | `GET` y `PATCH /service-types/{id}`, `/mechanics/{id}` | Sesión / Dueño | Consulta o edita uno |
+| `GET /mechanic-settlements/daily` | Dueño | Lo que se le debe a cada mecánico en un día |
+| `POST /mechanic-settlements/daily` | Dueño | Le paga a un mecánico su parte del día |
+| `GET /mechanic-settlements` y `/mechanic-settlements/{id}` | Dueño | Liquidaciones pagadas; una con sus servicios |
 | `GET /cash-sessions/current` | Sesión | Si la caja está abierta; el dueño recibe también sus montos |
 | `GET`, `POST /cash-sessions` | Dueño | Historial de cajas; abre la caja |
 | `GET /cash-sessions/{id}` | Dueño | Una caja con su resumen |
@@ -227,7 +232,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.7.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.8.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -987,6 +992,134 @@ interface MechanicInput {
 }
 ```
 
+### Liquidación diaria de mecánicos
+
+**Solo el dueño.** Al final del día, a cada mecánico se le paga **su porcentaje de la mano de obra** de los servicios que hizo. Los repuestos no entran: son 100 % del local. El porcentaje es el suyo o el general (ver [Taller](#taller-tipos-de-servicio-y-mecánicos)) y queda guardado en la liquidación, así que cambiarlo después no altera lo pagado. El valor se redondea al peso más cercano.
+
+**Flujo de la pantalla:**
+
+1. `GET /mechanic-settlements/daily` muestra, por mecánico, cuántos servicios tiene sin pagar hoy, su mano de obra, el porcentaje y el valor a pagar. Con `?date=AAAA-MM-DD` se ve otro día, por ejemplo si ayer no se liquidó.
+2. El botón **Pagar** de cada mecánico envía `POST /mechanic-settlements/daily`. El dinero **sale de la caja abierta de hoy** (movimiento `mechanic_payment`), aunque el día liquidado sea anterior. Deshabilitar el botón mientras responde.
+3. La respuesta trae los servicios pagados, para imprimir la hoja del mecánico.
+
+**Cada servicio se paga una sola vez.** Si después de pagarle se registran más servicios ese día, el mecánico vuelve a aparecer en la vista previa solo con los nuevos, y se le paga aparte: puede haber más de una liquidación por mecánico y día. Los servicios de ventas anuladas no cuentan. **Una venta con servicios ya pagados no se puede anular** (409 `sale_has_settled_services`).
+
+`GET /mechanic-settlements/daily?date=2026-11-03`
+
+```json
+{
+  "date": "2026-11-03",
+  "mechanics": [
+    {
+      "mechanic": { "id": 1, "name": "Carlos Ruiz" },
+      "services_count": 2, "labor_total": 30000, "percentage": 60, "amount": 18000
+    },
+    {
+      "mechanic": { "id": 2, "name": "Pedro Gómez" },
+      "services_count": 1, "labor_total": 15000, "percentage": 50, "amount": 7500
+    }
+  ],
+  "total": 25500
+}
+```
+
+`mechanics` llega vacío cuando no hay nada pendiente. Una fecha inválida responde 400 con `fields.date`.
+
+`POST /mechanic-settlements/daily` responde **201** con `MechanicSettlementDetail`.
+
+```json
+{ "mechanic": 1 }
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `mechanic` | Obligatorio; id del mecánico. Uno desactivado también se puede liquidar |
+| `date` | Opcional, `AAAA-MM-DD`; por defecto hoy. No puede ser futura |
+| `method` | Opcional, `cash` o `transfer`; por defecto `cash` |
+
+```json
+{
+  "id": 7,
+  "mechanic": { "id": 1, "name": "Carlos Ruiz" },
+  "date": "2026-11-03",
+  "labor_total": 30000,
+  "percentage": 60,
+  "amount": 18000,
+  "method": "cash",
+  "method_label": "Efectivo",
+  "services_count": 2,
+  "created_by": "dueno",
+  "created_at": "2026-11-03T18:05:00-05:00",
+  "services": [
+    {
+      "id": 9, "sale_id": 41, "sale_number": 41, "customer": "Ana Gómez",
+      "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
+      "plate": "ABC12D", "details": "", "labor_price": 15000
+    },
+    {
+      "id": 10, "sale_id": 43, "sale_number": 43, "customer": "Juan Pérez",
+      "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
+      "plate": "", "details": "", "labor_price": 15000
+    }
+  ]
+}
+```
+
+Errores: `fields.date` con "No se puede liquidar un día que no ha llegado."; `fields.mechanic` si el id no existe; 409 `nothing_to_settle` si no tiene servicios sin pagar ese día; 409 `cash_session_closed` si no hay caja abierta.
+
+**Historial.** `GET /mechanic-settlements` responde `Paginated<MechanicSettlement>` (sin `services`), de la más reciente a la más antigua, con filtros `?mechanic=`, `?date_from=` y `?date_to=` (día liquidado, ambos incluidos). `GET /mechanic-settlements/{id}` responde `MechanicSettlementDetail`, para reimprimir.
+
+```ts
+interface SettlementPreviewRow {
+  mechanic: { id: number; name: string };
+  services_count: number;
+  labor_total: number;             // mano de obra sin pagar del día
+  percentage: number;              // porcentaje vigente del mecánico
+  amount: number;                  // lo que se le pagaría
+}
+
+interface DailySettlement {
+  date: string;                    // AAAA-MM-DD
+  mechanics: SettlementPreviewRow[];
+  total: number;                   // suma de amount: lo que saldría de la caja
+}
+
+interface SettleInput {
+  mechanic: number;
+  date?: string;                   // por defecto hoy
+  method?: PaymentMethod;          // por defecto "cash"
+}
+
+interface MechanicSettlement {
+  id: number;
+  mechanic: { id: number; name: string };
+  date: string;                    // día liquidado
+  labor_total: number;
+  percentage: number;              // el aplicado en ese pago
+  amount: number;                  // lo pagado
+  method: PaymentMethod;
+  method_label: string;
+  services_count: number;
+  created_by: string;              // username de quien pagó
+  created_at: string;
+}
+
+interface SettledService {
+  id: number;
+  sale_id: number;
+  sale_number: number;
+  customer: string;
+  service_type: { id: number; code: number; name: string };
+  plate: string;
+  details: string;
+  labor_price: number;
+}
+
+interface MechanicSettlementDetail extends MechanicSettlement {
+  services: SettledService[];
+}
+```
+
 ### Clientes y ventas
 
 Cualquier usuario con sesión vende y crea clientes. **Las ventas se pagan completas al venderlas: no hay ventas a crédito.** Para vender debe haber **caja abierta** (ver [Caja](#caja)) y el inventario inicial debe estar terminado.
@@ -1187,7 +1320,7 @@ Conflictos: 409 `cash_session_closed` (no hay caja abierta) y 409 `initial_count
 
 **`GET /sales`** responde `Paginated<Sale>`, de la más reciente a la más antigua. Filtros: `?number=`, `?customer=`, `?mechanic=` (ventas con algún servicio de ese mecánico), `?voided=true|false`, `?date_from=` y `?date_to=` (día de la venta, ambos incluidos). **`GET /sales/{id}`** responde `SaleDetail`, para ver o reimprimir el recibo.
 
-**`POST /sales/{id}/void`** (solo el dueño) recibe `{ "reason": "Se cobró al cliente equivocado" }` y responde `SaleDetail` anulada. Errores: `fields.reason` "Indica por qué se anula la venta.", 409 `sale_voided` si ya estaba anulada y 409 `cash_session_closed`.
+**`POST /sales/{id}/void`** (solo el dueño) recibe `{ "reason": "Se cobró al cliente equivocado" }` y responde `SaleDetail` anulada. Errores: `fields.reason` "Indica por qué se anula la venta.", 409 `sale_voided` si ya estaba anulada, 409 `sale_has_settled_services` si alguno de sus servicios ya se le pagó al mecánico y 409 `cash_session_closed`.
 
 **`/customers`**: `GET` paginado (`?q=` busca todas las palabras en el nombre sin tildes, o en el teléfono; `?include_inactive=true`), `POST`, `GET /customers/{id}` y `PATCH /customers/{id}`. No se borran: se desactivan.
 
@@ -1205,12 +1338,14 @@ Lo que entra y sale queda como movimiento de la caja abierta, con signo (positiv
 | `supplier_payment` | − | Un abono a proveedor con fecha de hoy. **Uno con fecha anterior se pagó por fuera y no toca la caja** |
 | `expense` | − | Un gasto, registrado a mano con su motivo |
 | `owner_withdrawal` | − | Un retiro del dueño, registrado a mano con su motivo |
+| `mechanic_payment` | − | El pago de la liquidación de un mecánico |
 
 **El efectivo esperado** es el inicial más los movimientos en efectivo. Las transferencias se suman aparte y no cuentan para el cajón. Al cerrar, si el contado no coincide con el esperado, **la explicación es obligatoria**; la diferencia queda guardada (positiva sobra, negativa falta).
 
 ```ts
 type CashMovementKind =
-  | "sale" | "sale_refund" | "consignee_payment" | "supplier_payment" | "expense" | "owner_withdrawal";
+  | "sale" | "sale_refund" | "consignee_payment" | "supplier_payment" | "expense" | "owner_withdrawal"
+  | "mechanic_payment";
 
 interface CashSummaryRow {
   kind: CashMovementKind;
@@ -1257,6 +1392,7 @@ interface CashMovement {
   sale_number: number | null;
   supplier_payment: number | null;
   consignee_payment: number | null;
+  mechanic_settlement: number | null;   // id de la liquidación, en los pagos a mecánicos
   created_by: string;
   created_at: string;
 }

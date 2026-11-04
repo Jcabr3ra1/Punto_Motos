@@ -11,6 +11,34 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-03 · Liquidación diaria de mecánicos (0.8.0)
+
+**Qué cambió**
+
+- **Liquidación del día** (solo el dueño):
+  - `GET /mechanic-settlements/daily?date=` muestra, por mecánico, los servicios sin pagar de ese día (hoy por defecto), su mano de obra, el porcentaje y lo que se le debe, más el `total` que saldría de la caja.
+  - `POST /mechanic-settlements/daily` con `mechanic` (y opcionales `date` y `method`) le paga su parte. Responde 201 con los servicios pagados para imprimir la hoja.
+- Se paga **solo el porcentaje de la mano de obra**; los repuestos son 100 % del local. El porcentaje aplicado queda guardado y el valor se redondea al peso.
+- **Cada servicio se paga una sola vez.** Lo que se venda después de pagarle ese día se liquida aparte, y los servicios de ventas anuladas no cuentan.
+- El pago sale de la **caja abierta de hoy**, aunque se liquide un día anterior, con el tipo de movimiento nuevo `mechanic_payment` («Pago a mecánico»). Los movimientos de caja traen el campo nuevo `mechanic_settlement`.
+- **Historial:** `GET /mechanic-settlements` (paginado, con `?mechanic=`, `?date_from=` y `?date_to=`) y `GET /mechanic-settlements/{id}` para reimprimir.
+- **Anulación:** una venta con servicios ya pagados al mecánico ya no se puede anular y responde 409 `sale_has_settled_services`. Se corregirá con las devoluciones de la siguiente versión.
+- Errores nuevos: 409 `nothing_to_settle` y 409 `sale_has_settled_services`.
+
+Ningún cambio incompatible: solo se agregan rutas, campos y casos de error.
+
+**Qué debe hacer el frontend**
+
+- Pantalla **Liquidación del día** (solo el dueño):
+  - Usar `GET /mechanic-settlements/daily`, con selector de fecha para días anteriores.
+  - Poner un botón **Pagar** por mecánico, con confirmación y el medio de pago (efectivo por defecto), y deshabilitarlo mientras responde.
+  - Mostrar la hoja con los servicios pagados.
+  - Antes de pagar, consultar `GET /cash-sessions/current`. Manejar 409 `cash_session_closed` y 409 `nothing_to_settle`: en ese caso, volver a cargar la vista previa.
+- Pantalla **Historial de liquidaciones** (solo el dueño), con filtros por mecánico y fechas y detalle para reimprimir.
+- En **Ventas**, al anular: mostrar el `message` del 409 `sale_has_settled_services`.
+- En **Caja**: agregar `mechanic_payment` a `CashMovementKind` y `mechanic_settlement` a `CashMovement` (`frontend/src/api/types.ts`).
+- Usar los tipos `DailySettlement`, `SettlementPreviewRow`, `SettleInput`, `MechanicSettlement`, `MechanicSettlementDetail` y `SettledService` de [API.md](API.md#liquidación-diaria-de-mecánicos).
+
 ## 2026-11-03 · Servicios de taller y mecánicos (0.7.0)
 
 **Qué cambió**

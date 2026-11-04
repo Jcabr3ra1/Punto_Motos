@@ -8,7 +8,7 @@ from apps.cash.models import CashMovement, CashMovementKind, CashSession, CashSe
 from apps.catalog.models import NamedModel, Product
 from apps.core.models import PaymentMethod
 from apps.inventory.models import InitialCount, InitialCountOpen, InventoryMovement, MovementKind
-from apps.workshop.models import Mechanic, ServiceType
+from apps.workshop.models import Mechanic, MechanicSettlement, ServiceType
 
 
 class EmptySale(Exception):
@@ -41,6 +41,10 @@ class SaleIsFinal(Exception):
 
 class SaleAlreadyVoided(Exception):
     """La venta ya se anuló: no se anula dos veces."""
+
+
+class SaleHasSettledServices(Exception):
+    """Un servicio de la venta ya se le pagó al mecánico: se corrige con una devolución, no anulando."""
 
 
 class PaymentMismatch(Exception):
@@ -233,7 +237,9 @@ class Sale(models.Model):
         Cada pago se reembolsa por el mismo medio con que entró. La venta queda
         con su historial y marcada como anulada. Sin motivo lanza
         ValidationError; sin caja abierta, CashSessionClosed; una segunda vez,
-        SaleAlreadyVoided. Si algo falla no queda nada.
+        SaleAlreadyVoided. Si algún servicio ya se liquidó al mecánico lanza
+        SaleHasSettledServices: ese dinero ya salió y se maneja con una
+        devolución. Si algo falla no queda nada.
         """
         reason = " ".join(reason.split())
         if not reason:
@@ -241,6 +247,8 @@ class Sale(models.Model):
         if CashSession.objects.current() is None:
             raise CashSessionClosed()
         with transaction.atomic():
+            if self.services.filter(settlement__isnull=False).exists():
+                raise SaleHasSettledServices()
             voided = Sale.objects.filter(pk=self.pk, voided_at__isnull=True).update(
                 voided_at=timezone.now(), voided_by=user, void_reason=reason,
             )
@@ -327,6 +335,11 @@ class SaleService(models.Model):
     # Pesos enteros. suggested_price es el del tipo de servicio en ese momento; labor_price, el cobrado.
     suggested_price = models.PositiveBigIntegerField("precio sugerido")
     labor_price = models.PositiveBigIntegerField("mano de obra")
+    # Liquidación en que se le pagó al mecánico. Vacío: todavía no se le ha pagado.
+    settlement = models.ForeignKey(
+        MechanicSettlement, on_delete=models.PROTECT, null=True, blank=True, related_name="services",
+        verbose_name="liquidación",
+    )
 
     class Meta:
         verbose_name = "servicio de la venta"

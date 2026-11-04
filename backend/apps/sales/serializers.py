@@ -13,10 +13,10 @@ from apps.purchases.serializers import clean_text, pesos
 from apps.workshop.models import Mechanic, ServiceType
 from apps.workshop.serializers import MechanicSummarySerializer, ServiceTypeSummarySerializer
 
-from .exceptions import SaleVoided
+from .exceptions import SaleSettled, SaleVoided
 from .models import (
     Customer, EmptySale, InitialCountOpen, LaborPriceChangeNotAllowed, PaymentMismatch, PriceChangeNotAllowed, Sale,
-    SaleAlreadyVoided, SaleItem, SalePayment, SaleService, normalize_plate,
+    SaleAlreadyVoided, SaleHasSettledServices, SaleItem, SalePayment, SaleService, normalize_plate,
 )
 
 EMPTY_SALE_MESSAGE = "Agrega al menos un producto o un servicio."
@@ -347,6 +347,8 @@ class VoidSaleSerializer(serializers.Serializer):
             instance.void(self.context["request"].user, validated_data["reason"])
         except SaleAlreadyVoided:
             raise SaleVoided()
+        except SaleHasSettledServices:
+            raise SaleSettled()
         except CashSessionClosed:
             raise NoOpenCashSession()
         return instance
