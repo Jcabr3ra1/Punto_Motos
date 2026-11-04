@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
+import { listarMecanicos } from '../../api/taller'
 import { listarVentas, type FiltrosDeVentas } from '../../api/ventas'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
@@ -13,10 +14,12 @@ import { formatearNumero } from '../../utilidades/numeros'
 
 function leerFiltros(params: URLSearchParams): FiltrosDeVentas {
   const numero = Number(params.get('number'))
+  const mecanico = Number(params.get('mechanic'))
   const pagina = Number(params.get('page'))
   const anuladas = params.get('voided')
   return {
     number: Number.isInteger(numero) && numero > 0 ? numero : undefined,
+    mechanic: Number.isInteger(mecanico) && mecanico > 0 ? mecanico : undefined,
     voided: anuladas === 'true' ? true : anuladas === 'false' ? false : undefined,
     date_from: params.get('date_from') || undefined,
     date_to: params.get('date_to') || undefined,
@@ -39,12 +42,13 @@ export function Ventas() {
     setParams(siguiente, { replace: true })
   }
 
+  const mecanicos = useQuery({ queryKey: claves.mecanicos(true), queryFn: ({ signal }) => listarMecanicos(true, signal) })
   const ventas = useQuery({
     queryKey: [...claves.ventas, filtros],
     queryFn: ({ signal }) => listarVentas(filtros, signal),
     placeholderData: keepPreviousData,
   })
-  const hayFiltros = Boolean(filtros.number || filtros.voided !== undefined || filtros.date_from || filtros.date_to)
+  const hayFiltros = Boolean(filtros.number || filtros.mechanic || filtros.voided !== undefined || filtros.date_from || filtros.date_to)
 
   return (
     <>
@@ -57,6 +61,12 @@ export function Ventas() {
           min={1}
           value={filtros.number ?? ''}
           onChange={(e) => cambiar({ number: e.target.value || undefined })}
+        />
+        <CampoSelector
+          etiqueta="Mecánico"
+          value={filtros.mechanic ? String(filtros.mechanic) : ''}
+          onChange={(e) => cambiar({ mechanic: e.target.value || undefined })}
+          opciones={[{ valor: '', texto: 'Todos' }, ...(mecanicos.data ?? []).map((m) => ({ valor: String(m.id), texto: m.name }))]}
         />
         <CampoSelector
           etiqueta="Estado"
@@ -113,6 +123,11 @@ export function Ventas() {
                         <th scope="row">
                           <Link to={`/venta/historial/${venta.id}`}>N.º {venta.number}</Link>
                           {venta.is_voided && <span className="etiqueta etiqueta--peligro">Anulada</span>}
+                          {venta.services_count > 0 && (
+                            <span className="tabla__detalle">
+                              {venta.services_count === 1 ? '1 servicio' : `${venta.services_count} servicios`}
+                            </span>
+                          )}
                         </th>
                         <td className="tabla__nowrap">{formatearFechaHora(venta.created_at)}</td>
                         <td>

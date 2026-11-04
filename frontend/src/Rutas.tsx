@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { Estructura } from './estructura/Estructura'
 import { Permiso } from './estructura/Permiso'
-import { DESTINOS, MENU_CAJA, MENU_CONSIGNACION, MENU_VENTA } from './navegacion/destinos'
+import { DESTINOS, MENU_CAJA, MENU_CONSIGNACION, MENU_TALLER, MENU_VENTA } from './navegacion/destinos'
 import { Inicio } from './pages/Inicio'
 import { NoEncontrada } from './pages/NoEncontrada'
 import { Configuracion } from './pages/configuracion/Configuracion'
@@ -14,6 +14,10 @@ import { NuevaCompra } from './pages/compras/NuevaCompra'
 import { Proveedores } from './pages/compras/Proveedores'
 import { Catalogo } from './pages/configuracion/catalogo/Catalogo'
 import { Usuarios } from './pages/configuracion/usuarios/Usuarios'
+import { Mecanicos } from './pages/configuracion/taller/Mecanicos'
+import { TiposDeServicio } from './pages/configuracion/taller/TiposDeServicio'
+import { DetalleDeLiquidacion, HistorialDeLiquidaciones } from './pages/taller/HistorialDeLiquidaciones'
+import { LiquidacionDelDia } from './pages/taller/LiquidacionDelDia'
 import { InventarioInicial } from './pages/inventario/InventarioInicial'
 import { Movimientos } from './pages/inventario/Movimientos'
 import { Productos } from './pages/productos/Productos'
@@ -67,6 +71,19 @@ export function Rutas() {
           <Route path="abonos" element={<Abonos />} />
         </Route>
         <Route
+          path="taller"
+          element={
+            <Permiso destino={DESTINOS.taller}>
+              <SeccionConPestanas titulo="Taller" destinos={MENU_TALLER} />
+            </Permiso>
+          }
+        >
+          <Route index element={<Navigate to="liquidacion" replace />} />
+          <Route path="liquidacion" element={<LiquidacionDelDia />} />
+          <Route path="historial" element={<HistorialDeLiquidaciones />} />
+          <Route path="historial/:id" element={<DetalleDeLiquidacion />} />
+        </Route>
+        <Route
           path="caja"
           element={
             <Permiso destino={DESTINOS.caja}>
@@ -101,6 +118,22 @@ export function Rutas() {
             element={
               <Permiso destino={DESTINOS.catalogo} nivel={2}>
                 <Catalogo />
+              </Permiso>
+            }
+          />
+          <Route
+            path="servicios"
+            element={
+              <Permiso destino={DESTINOS.tiposDeServicio} nivel={2}>
+                <TiposDeServicio />
+              </Permiso>
+            }
+          />
+          <Route
+            path="mecanicos"
+            element={
+              <Permiso destino={DESTINOS.mecanicos} nivel={2}>
+                <Mecanicos />
               </Permiso>
             }
           />

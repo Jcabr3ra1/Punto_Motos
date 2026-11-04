@@ -17,6 +17,8 @@ export const registrarVenta = (datos: SaleInput) => api<SaleDetail>('/sales', { 
 export interface FiltrosDeVentas {
   number?: number
   customer?: number
+  /** Ventas con algún servicio de ese mecánico. */
+  mechanic?: number
   voided?: boolean
   date_from?: string
   date_to?: string
@@ -28,6 +30,7 @@ export const listarVentas = (filtros: FiltrosDeVentas = {}, signal?: AbortSignal
     query: {
       number: filtros.number,
       customer: filtros.customer,
+      mechanic: filtros.mechanic,
       voided: filtros.voided,
       date_from: filtros.date_from,
       date_to: filtros.date_to,

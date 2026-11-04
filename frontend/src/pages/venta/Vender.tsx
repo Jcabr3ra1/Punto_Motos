@@ -1,15 +1,17 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { isApiError } from '../../api/client'
 import { claves } from '../../api/consultas'
 import { desglosarError } from '../../api/errors'
-import type { Product, SaleDetail, SaleInput } from '../../api/types'
+import { listarMecanicos, listarTiposDeServicio } from '../../api/taller'
+import type { Product, SaleDetail, SaleInput, ServiceType } from '../../api/types'
 import { nuevaClaveDeReintento, registrarVenta } from '../../api/ventas'
 import { useUsuario } from '../../auth/useUsuario'
 import { AvisoDeError } from '../../components/AvisoDeError'
-import { BuscadorDeProductos } from '../../components/BuscadorDeProductos'
+import { BuscadorDeProductos, type OpcionAdicional } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
+import { CampoSelector } from '../../components/CampoSelector'
 import { Titulo } from '../../components/Titulo'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -33,6 +35,18 @@ const MEDIOS: readonly { valor: Medio; texto: string }[] = [
 
 const NOMBRE_DEL_CANAL: Record<Canal, string> = { transferencia: 'transferencia bancaria', nequi: 'Nequi' }
 
+/** Servicio del taller en la venta: se cobra la mano de obra; los repuestos van como productos. */
+interface LineaDeServicio {
+  clave: string
+  tipo: ServiceType
+  /** Id del mecánico; obligatorio. */
+  mecanico: string
+  placa: string
+  detalles: string
+  /** Mano de obra; solo el dueño puede cambiarla. */
+  precio: number
+}
+
 interface Linea {
   producto: Product
   cantidad: number
@@ -50,6 +64,9 @@ export function Vender() {
   const conteo = useConteoInicial()
 
   const [lineas, setLineas] = useState<Linea[]>([])
+  const [servicios, setServicios] = useState<LineaDeServicio[]>([])
+  const tipos = useQuery({ queryKey: claves.tiposDeServicio(false), queryFn: ({ signal }) => listarTiposDeServicio(false, signal) })
+  const mecanicos = useQuery({ queryKey: claves.mecanicos(false), queryFn: ({ signal }) => listarMecanicos(false, signal) })
   const [cliente, setCliente] = useState<ClienteElegido | null>(null)
   const [medio, setMedio] = useState<Medio>('efectivo')
   // En el pago mixto: por dónde llega la parte que no es efectivo.
@@ -61,7 +78,8 @@ export function Vender() {
   const [clave, setClave] = useState(nuevaClaveDeReintento)
   const [vendida, setVendida] = useState<{ venta: SaleDetail; vuelto: number } | null>(null)
 
-  const total = lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0)
+  const total =
+    lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0) + servicios.reduce((suma, s) => suma + s.precio, 0)
   const enTransferencia =
     medio === 'efectivo' ? 0 : medio === 'mixto' ? Number(transferencia) || 0 : total
   const enEfectivo = Math.max(0, total - enTransferencia)
@@ -84,11 +102,26 @@ export function Vender() {
         ...(cliente?.tipo === 'nuevo'
           ? { new_customer: { name: cliente.nombre, ...(cliente.telefono.trim() ? { phone: cliente.telefono } : {}) } }
           : {}),
-        items: lineas.map((l) => ({
-          product: l.producto.id,
-          quantity: l.cantidad,
-          ...(esDueno && l.precio !== l.producto.sale_price ? { unit_price: l.precio } : {}),
-        })),
+        ...(lineas.length > 0
+          ? {
+              items: lineas.map((l) => ({
+                product: l.producto.id,
+                quantity: l.cantidad,
+                ...(esDueno && l.precio !== l.producto.sale_price ? { unit_price: l.precio } : {}),
+              })),
+            }
+          : {}),
+        ...(servicios.length > 0
+          ? {
+              services: servicios.map((s) => ({
+                service_type: s.tipo.id,
+                mechanic: Number(s.mecanico),
+                ...(s.placa.trim() ? { plate: s.placa } : {}),
+                ...(s.detalles.trim() ? { details: s.detalles } : {}),
+                ...(esDueno && s.precio !== s.tipo.suggested_price ? { labor_price: s.precio } : {}),
+              })),
+            }
+          : {}),
         payments: pagos,
         notes: [notaDelMedio(), notas.trim()].filter(Boolean).join(' · '),
       })
@@ -119,6 +152,7 @@ export function Vender() {
 
   function nuevaVenta() {
     setLineas([])
+    setServicios([])
     setCliente(null)
     setMedio('efectivo')
     setCanal('transferencia')
@@ -130,6 +164,41 @@ export function Vender() {
     // Clave nueva solo para una venta nueva.
     setClave(nuevaClaveDeReintento())
     cobrar.reset()
+  }
+
+  function agregarServicio(tipo: ServiceType) {
+    setMensaje(null)
+    // Se puede repetir el mismo tipo (dos cambios de aceite): cada uno es una línea.
+    setServicios((actuales) => [
+      ...actuales,
+      { clave: nuevaClaveDeReintento(), tipo, mecanico: '', placa: '', detalles: '', precio: tipo.suggested_price },
+    ])
+  }
+
+  function cambiarServicio(clave: string, cambios: Partial<LineaDeServicio>) {
+    setServicios((actuales) => actuales.map((s) => (s.clave === clave ? { ...s, ...cambios } : s)))
+  }
+
+  /** Si lo escrito son solo números, se ofrecen los servicios con ese código (`/catalog/search` es solo de productos). */
+  function serviciosPorCodigo(texto: string): OpcionAdicional[] {
+    if (!/^\d+$/.test(texto)) return []
+    return (tipos.data ?? [])
+      .filter((t) => String(t.code).startsWith(texto))
+      .slice(0, 5)
+      .map((t) => ({
+        clave: `servicio-${t.id}`,
+        contenido: (
+          <>
+            <span className="tabla__codigo">{t.code}</span>
+            <span className="buscador__nombre">
+              Servicio: {t.name}
+              <span className="tabla__detalle">Mano de obra</span>
+            </span>
+            <span className="buscador__precio">{formatearPesos(t.suggested_price)}</span>
+          </>
+        ),
+        alElegir: () => agregarServicio(t),
+      }))
   }
 
   function agregar(producto: Product) {
@@ -176,8 +245,16 @@ export function Vender() {
   }
 
   const bloqueada = cajaCerrada || conteoAbierto
+  const faltaMecanico = servicios.some((s) => s.mecanico === '')
+  const hayAlgo = lineas.length > 0 || servicios.length > 0
   const puedeCobrar =
-    !bloqueada && lineas.length > 0 && cliente !== null && faltaEfectivo === 0 && !transferenciaDeMas && !cobrar.isPending
+    !bloqueada &&
+    hayAlgo &&
+    !faltaMecanico &&
+    cliente !== null &&
+    faltaEfectivo === 0 &&
+    !transferenciaDeMas &&
+    !cobrar.isPending
 
   return (
     <form onSubmit={alCobrar} noValidate className="venta">
@@ -192,17 +269,23 @@ export function Vender() {
           El inventario inicial todavía no ha terminado: no se puede vender hasta que el dueño lo termine.
         </p>
       )}
-      <AvisoDeError mensajes={[...(error?.generales ?? []), ...(error?.campos.items ?? []), ...(error?.campos.payments ?? [])]} />
+      <AvisoDeError
+        mensajes={[...(error?.generales ?? []), ...(error?.campos.items ?? []), ...(error?.campos.services ?? []), ...(error?.campos.payments ?? [])]}
+      />
 
       <div className="venta__columnas">
         <section aria-label="Productos de la venta" className="venta__carrito">
-          <BuscadorDeProductos onElegir={agregar} />
+          <BuscadorDeProductos
+            etiqueta="Buscar producto o servicio"
+            onElegir={agregar}
+            opcionesAdicionales={serviciosPorCodigo}
+            ayuda="Escribe 2 letras para buscar productos, o el código de un servicio (por ejemplo 101). Flechas y Enter para elegir; Esc borra."
+          />
           <div role="status" className="texto-suave">
             {mensaje}
           </div>
-          {lineas.length === 0 ? (
-            <p className="texto-suave">Busca un producto y pulsa Enter para agregarlo.</p>
-          ) : (
+          {!hayAlgo && <p className="texto-suave">Busca un producto o escribe el código de un servicio y pulsa Enter.</p>}
+          {lineas.length > 0 && (
             <div className="tabla-contenedor">
               <table className="tabla">
                 <caption className="solo-lectores">Productos de la venta</caption>
@@ -294,6 +377,128 @@ export function Vender() {
               </table>
             </div>
           )}
+
+          <section aria-label="Servicios del taller" className="venta__servicios">
+            <div className="barra-de-acciones">
+              <h3>Servicios del taller</h3>
+              <CampoSelector
+                etiqueta="Agregar servicio"
+                value=""
+                onChange={(e) => {
+                  const tipo = tipos.data?.find((t) => String(t.id) === e.target.value)
+                  if (tipo) agregarServicio(tipo)
+                }}
+                opciones={[
+                  { valor: '', texto: tipos.isPending ? 'Cargando…' : 'Elige un servicio' },
+                  ...(tipos.data ?? []).map((t) => ({ valor: String(t.id), texto: `${t.code} · ${t.name}` })),
+                ]}
+              />
+            </div>
+            {servicios.length > 0 && (
+              <div className="tabla-contenedor">
+                <table className="tabla">
+                  <caption className="solo-lectores">Servicios de la venta</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Servicio</th>
+                      <th scope="col">Mecánico</th>
+                      <th scope="col">Placa</th>
+                      <th scope="col">Qué se hizo</th>
+                      <th scope="col">Mano de obra</th>
+                      <th scope="col">
+                        <span className="solo-lectores">Acciones</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {servicios.map((servicio, indice) => {
+                      const errores = ['service_type', 'mechanic', 'plate', 'details', 'labor_price'].flatMap(
+                        (campo) => error?.campos[`services.${indice}.${campo}`] ?? [],
+                      )
+                      const nombre = `${servicio.tipo.name} (${indice + 1})`
+                      return (
+                        <tr key={servicio.clave}>
+                          <th scope="row">
+                            {servicio.tipo.name}
+                            <span className="tabla__detalle tabla__codigo">{servicio.tipo.code}</span>
+                            {errores.length > 0 && (
+                              <ul className="campo__errores">
+                                {errores.map((m) => (
+                                  <li key={m}>{m}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </th>
+                          <td>
+                            <select
+                              className="celda-selector"
+                              aria-label={`Mecánico de ${nombre}`}
+                              aria-invalid={servicio.mecanico === '' || undefined}
+                              value={servicio.mecanico}
+                              onChange={(e) => cambiarServicio(servicio.clave, { mecanico: e.target.value })}
+                            >
+                              <option value="">Elige el mecánico</option>
+                              {(mecanicos.data ?? []).map((m) => (
+                                <option key={m.id} value={String(m.id)}>
+                                  {m.name}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <input
+                              className="celda-texto celda-texto--corta"
+                              aria-label={`Placa de ${nombre}`}
+                              value={servicio.placa}
+                              maxLength={10}
+                              onChange={(e) => cambiarServicio(servicio.clave, { placa: e.target.value })}
+                              placeholder="Opcional"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="celda-texto"
+                              aria-label={`Qué se hizo en ${nombre}`}
+                              value={servicio.detalles}
+                              maxLength={120}
+                              onChange={(e) => cambiarServicio(servicio.clave, { detalles: e.target.value })}
+                              placeholder={servicio.tipo.needs_description ? 'Obligatorio' : 'Opcional'}
+                              aria-required={servicio.tipo.needs_description || undefined}
+                            />
+                          </td>
+                          <td>
+                            {esDueno ? (
+                              <input
+                                type="number"
+                                className="celda-numero celda-numero--ancha"
+                                aria-label={`Mano de obra de ${nombre}`}
+                                min={0}
+                                step={1}
+                                value={servicio.precio}
+                                onChange={(e) => cambiarServicio(servicio.clave, { precio: Math.max(0, Math.trunc(e.target.valueAsNumber) || 0) })}
+                              />
+                            ) : (
+                              formatearPesos(servicio.precio)
+                            )}
+                          </td>
+                          <td className="tabla__acciones">
+                            <button
+                              type="button"
+                              className="boton-enlace"
+                              aria-label={`Quitar ${nombre}`}
+                              onClick={() => setServicios((actuales) => actuales.filter((s) => s.clave !== servicio.clave))}
+                            >
+                              Quitar
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </section>
 
         <section aria-label="Cobro" className="venta__cobro">
@@ -371,7 +576,8 @@ export function Vender() {
           <button type="submit" className="boton venta__cobrar" disabled={!puedeCobrar}>
             {cobrar.isPending ? 'Cobrando…' : `Cobrar ${formatearPesos(total)}`}
           </button>
-          {!bloqueada && lineas.length > 0 && cliente === null && <p className="campo__ayuda">Elige o crea el cliente para cobrar.</p>}
+          {!bloqueada && hayAlgo && cliente === null && <p className="campo__ayuda">Elige o crea el cliente para cobrar.</p>}
+          {!bloqueada && faltaMecanico && <p className="campo__ayuda">Elige el mecánico de cada servicio para cobrar.</p>}
           <p className="campo__ayuda">El total es orientativo: el programa confirma los precios al cobrar.</p>
         </section>
       </div>

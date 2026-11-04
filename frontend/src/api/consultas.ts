@@ -22,6 +22,10 @@ export const claves = {
   caja: ['caja'] as const,
   cajaActual: ['caja', 'actual'] as const,
   consignacion: ['consignacion'] as const,
+  taller: ['taller'] as const,
+  tiposDeServicio: (incluirInactivos: boolean) => ['taller', 'tipos', incluirInactivos] as const,
+  mecanicos: (incluirInactivos: boolean) => ['taller', 'mecanicos', incluirInactivos] as const,
+  liquidaciones: ['liquidaciones'] as const,
   buscador: (texto: string) => ['buscador', texto] as const,
 }
 

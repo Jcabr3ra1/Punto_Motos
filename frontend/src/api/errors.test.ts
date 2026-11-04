@@ -78,3 +78,16 @@ describe('desglosarError con errores anidados', () => {
     expect(resultado.campos).toEqual({ items: ['FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total.'] })
   })
 })
+
+describe('errores de línea como objeto con índice', () => {
+  it('se aplanan igual que los de una lista', () => {
+    const resultado = desglosarError({
+      code: 'validation_error',
+      message: 'Revisa los datos marcados.',
+      fields: { services: { 0: { mechanic: ['Este campo es requerido.'] } } } as never,
+    })
+
+    expect(resultado.campos).toEqual({ 'services.0.mechanic': ['Este campo es requerido.'] })
+  })
+})
+

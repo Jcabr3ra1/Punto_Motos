@@ -10,6 +10,7 @@ const negocio = {
   address: 'Calle 1 # 2-3',
   phone: '3001234567',
   receipt_footer: 'Gracias por su compra',
+  default_mechanic_percentage: 60,
   updated_at: '2026-11-01T08:00:00-05:00',
 }
 
@@ -48,6 +49,7 @@ describe('Datos del negocio (dueño)', () => {
       address: 'Calle 1 # 2-3',
       phone: '3001234567',
       receipt_footer: 'Gracias por su compra',
+      default_mechanic_percentage: 60,
     })
     expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled()
   })
@@ -124,6 +126,26 @@ describe('Datos del negocio (dueño)', () => {
     await u.click(screen.getByRole('button', { name: 'Reintentar' }))
 
     expect(await screen.findByLabelText('Nombre del negocio')).toHaveValue('Punto Moto')
+  })
+})
+
+describe('porcentaje general de los mecánicos', () => {
+  it('el dueño lo cambia y se envía como número', async () => {
+    const api = simularApi({
+      'GET /settings/business': () => ({ cuerpo: negocio }),
+      'PUT /settings/business': (cuerpo) => ({ cuerpo: { ...(cuerpo as object), updated_at: 'x' } }),
+    })
+    mostrarRutas(dueno, '/configuracion/negocio')
+    const u = userEvent.setup()
+
+    const campo = await screen.findByLabelText('Porcentaje general de los mecánicos')
+    expect(campo).toHaveValue(60)
+    await u.clear(campo)
+    await u.type(campo, '55')
+    await u.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    await screen.findByText('Datos guardados.')
+    expect(api.llamadas.find((l) => l.clave === 'PUT /settings/business')?.cuerpo).toMatchObject({ default_mechanic_percentage: 55 })
   })
 })
 

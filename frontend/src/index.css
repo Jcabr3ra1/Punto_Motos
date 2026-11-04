@@ -1175,8 +1175,12 @@ summary {
 }
 
 /* Resultados de la búsqueda anterior mientras llegan los nuevos: se ven, pero no se eligen. */
-.buscador__lista--desactualizada {
+.buscador__opcion--desactualizada {
   opacity: 0.55;
+}
+
+.buscador__opcion--adicional {
+  grid-template-columns: 9rem 1fr auto;
 }
 
 /* Medio de pago: opciones grandes, fáciles de ver y de elegir en el mostrador. */
@@ -1209,4 +1213,45 @@ summary {
 
 .selector-de-pago__opcion input {
   accent-color: var(--color-sobre-marca);
+}
+
+/* Servicios del taller en la venta */
+
+.venta__servicios {
+  margin-top: 1.25rem;
+}
+
+.venta__servicios h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.venta__servicios .barra-de-acciones .campo {
+  min-width: 16rem;
+  margin-bottom: 0;
+}
+
+.celda-selector,
+.celda-texto {
+  min-height: 2rem;
+  padding: 0.125rem 0.5rem;
+  font: inherit;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-texto-suave);
+  border-radius: var(--radio);
+}
+
+.celda-selector[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.celda-texto {
+  width: 100%;
+  min-width: 8rem;
+}
+
+.celda-texto--corta {
+  min-width: 6rem;
+  width: 6rem;
+  text-transform: uppercase;
 }

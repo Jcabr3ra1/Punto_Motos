@@ -40,10 +40,15 @@ export const DESTINOS = {
   entregas: { ruta: '/consignacion/entregas', etiqueta: 'Entregas', roles: SOLO_DUENO },
   reportes: { ruta: '/consignacion/reportes', etiqueta: 'Reportes', roles: SOLO_DUENO },
   pagosDeLocales: { ruta: '/consignacion/pagos', etiqueta: 'Pagos', roles: SOLO_DUENO },
+  taller: { ruta: '/taller', etiqueta: 'Taller', roles: SOLO_DUENO },
+  liquidacion: { ruta: '/taller/liquidacion', etiqueta: 'Liquidación del día', roles: SOLO_DUENO },
+  historialDeLiquidaciones: { ruta: '/taller/historial', etiqueta: 'Historial de liquidaciones', roles: SOLO_DUENO },
   configuracion: { ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
   negocio: { ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
   catalogo: { ruta: '/configuracion/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
   usuarios: { ruta: '/configuracion/usuarios', etiqueta: 'Usuarios', roles: SOLO_DUENO },
+  tiposDeServicio: { ruta: '/configuracion/servicios', etiqueta: 'Tipos de servicio', roles: SOLO_DUENO },
+  mecanicos: { ruta: '/configuracion/mecanicos', etiqueta: 'Mecánicos', roles: SOLO_DUENO },
 } as const satisfies Record<string, Destino>
 
 export const MENU_PRINCIPAL: readonly Destino[] = [
@@ -53,6 +58,7 @@ export const MENU_PRINCIPAL: readonly Destino[] = [
   DESTINOS.movimientos,
   DESTINOS.inventarioInicial,
   DESTINOS.compras,
+  DESTINOS.taller,
   DESTINOS.caja,
   DESTINOS.consignacion,
   DESTINOS.configuracion,
@@ -61,6 +67,8 @@ export const MENU_PRINCIPAL: readonly Destino[] = [
 export const MENU_CONFIGURACION: readonly Destino[] = [
   DESTINOS.negocio,
   DESTINOS.catalogo,
+  DESTINOS.tiposDeServicio,
+  DESTINOS.mecanicos,
   DESTINOS.usuarios,
 ]
 
@@ -80,3 +88,5 @@ export const MENU_CONSIGNACION: readonly Destino[] = [
   DESTINOS.reportes,
   DESTINOS.pagosDeLocales,
 ]
+
+export const MENU_TALLER: readonly Destino[] = [DESTINOS.liquidacion, DESTINOS.historialDeLiquidaciones]

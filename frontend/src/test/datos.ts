@@ -13,6 +13,9 @@ import type {
   CashSession,
   Consignee,
   PendingConsignmentItem,
+  ServiceType,
+  Mechanic,
+  MechanicSettlementDetail,
 } from '../api/types'
 
 export const frenos: Category = { id: 1, name: 'Frenos', abbreviation: 'FRE', is_active: true }
@@ -170,6 +173,7 @@ export function venta(cambios: Partial<SaleDetail> = {}): SaleDetail {
     customer: { id: 18, name: 'Ana Gómez', phone: '3001234567' },
     total: 25000,
     items_count: 1,
+    services_count: 0,
     is_voided: false,
     created_by: 'ana',
     created_at: '2026-11-03T10:15:00-05:00',
@@ -186,6 +190,7 @@ export function venta(cambios: Partial<SaleDetail> = {}): SaleDetail {
         subtotal: 25000,
       },
     ],
+    services: [],
     payments: [{ method: 'cash', method_label: 'Efectivo', amount: 25000 }],
     voided_at: null,
     voided_by: null,
@@ -235,6 +240,35 @@ export function pendiente(cambios: Partial<PendingConsignmentItem> = {}): Pendin
     pending_quantity: 4,
     delivery: 1,
     delivered_at: '2026-11-02T10:00:00-05:00',
+    ...cambios,
+  }
+}
+
+export function tipoDeServicio(cambios: Partial<ServiceType> = {}): ServiceType {
+  return { id: 1, code: 101, name: 'Cambio de aceite', suggested_price: 15000, needs_description: false, is_active: true, ...cambios }
+}
+
+export function mecanico(cambios: Partial<Mechanic> = {}): Mechanic {
+  return { id: 1, name: 'Carlos Ruiz', phone: '3001112233', labor_percentage: 70, effective_percentage: 70, is_active: true, ...cambios }
+}
+
+export function liquidacion(cambios: Partial<MechanicSettlementDetail> = {}): MechanicSettlementDetail {
+  return {
+    id: 7,
+    mechanic: { id: 1, name: 'Carlos Ruiz' },
+    date: '2026-11-03',
+    labor_total: 30000,
+    percentage: 60,
+    amount: 18000,
+    method: 'cash',
+    method_label: 'Efectivo',
+    services_count: 2,
+    created_by: 'dueno',
+    created_at: '2026-11-03T18:05:00-05:00',
+    services: [
+      { id: 9, sale_id: 41, sale_number: 41, customer: 'Ana Gómez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, plate: 'ABC12D', details: '', labor_price: 15000 },
+      { id: 10, sale_id: 43, sale_number: 43, customer: 'Juan Pérez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, plate: '', details: '', labor_price: 15000 },
+    ],
     ...cambios,
   }
 }

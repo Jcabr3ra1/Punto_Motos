@@ -11,8 +11,8 @@ import { CampoLargo } from '../../components/CampoLargo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Titulo } from '../../components/Titulo'
 
-function aValores({ name, tax_id, address, phone, receipt_footer }: BusinessSettings): BusinessSettingsInput {
-  return { name, tax_id, address, phone, receipt_footer }
+function aValores({ name, tax_id, address, phone, receipt_footer, default_mechanic_percentage }: BusinessSettings): BusinessSettingsInput {
+  return { name, tax_id, address, phone, receipt_footer, default_mechanic_percentage }
 }
 
 const hayCambios = (a: BusinessSettingsInput, b: BusinessSettingsInput) =>
@@ -118,6 +118,23 @@ function FormularioDelNegocio({ negocio }: { negocio: BusinessSettings }) {
         onChange={(e) => cambiar('receipt_footer', e.target.value)}
         errores={error?.campos.receipt_footer}
         ayuda="Por ejemplo: «Gracias por su compra»."
+        readOnly={!puedeEditar}
+      />
+      <Campo
+        etiqueta="Porcentaje general de los mecánicos"
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={100}
+        step={1}
+        value={Number.isNaN(valores.default_mechanic_percentage) ? '' : String(valores.default_mechanic_percentage ?? '')}
+        onChange={(e) => {
+          const texto = e.target.value
+          setValores((anteriores) => ({ ...anteriores, default_mechanic_percentage: texto === '' ? Number.NaN : Number(texto) }))
+          setGuardado(false)
+        }}
+        errores={error?.campos.default_mechanic_percentage}
+        ayuda="De 0 a 100. Parte de la mano de obra para los mecánicos sin porcentaje propio; el resto es del local."
         readOnly={!puedeEditar}
       />
       {puedeEditar && (
