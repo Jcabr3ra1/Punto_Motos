@@ -68,6 +68,8 @@ export interface BusinessSettings {
   address: string
   phone: string
   receipt_footer: string
+  /** De 0 a 100: parte de la mano de obra para los mecánicos sin porcentaje propio. */
+  default_mechanic_percentage: number
   updated_at: string
 }
 
@@ -185,6 +187,7 @@ export type MovementKind =
   | 'adjustment'
   | 'consignment_out'
   | 'consignment_return'
+  | 'workshop_use'
 
 export interface InventoryMovement {
   id: number
@@ -354,8 +357,10 @@ export interface Sale {
   /** Consecutivo del recibo. */
   number: number
   customer: { id: number; name: string; phone: string }
+  /** Productos + mano de obra. */
   total: number
   items_count: number
+  services_count: number
   is_voided: boolean
   /** Username de quien vendió. */
   created_by: string
@@ -382,6 +387,7 @@ export interface SaleItem {
 export interface SaleDetail extends Sale {
   notes: string
   items: SaleItem[]
+  services: SaleService[]
   payments: { method: PaymentMethod; method_label: string; amount: number }[]
   voided_at: string | null
   voided_by: string | null
@@ -393,7 +399,16 @@ export interface SaleInput {
   idempotency_key: string
   customer?: number | null
   new_customer?: { name: string; phone?: string } | null
-  items: { product: number; quantity: number; unit_price?: number }[]
+  /** Opcional: la venta necesita al menos un producto o un servicio. */
+  items?: { product: number; quantity: number; unit_price?: number }[]
+  services?: {
+    service_type: number
+    mechanic: number
+    plate?: string
+    details?: string
+    /** Solo el dueño. */
+    labor_price?: number
+  }[]
   /** Uno por medio; deben sumar exactamente el total. */
   payments: { method: PaymentMethod; amount: number }[]
   notes?: string
@@ -401,7 +416,14 @@ export interface SaleInput {
 
 // --- Caja (solo el dueño, salvo saber si está abierta) ---
 
-export type CashMovementKind = 'sale' | 'sale_refund' | 'consignee_payment' | 'supplier_payment' | 'expense' | 'owner_withdrawal'
+export type CashMovementKind =
+  | 'sale'
+  | 'sale_refund'
+  | 'consignee_payment'
+  | 'supplier_payment'
+  | 'expense'
+  | 'owner_withdrawal'
+  | 'mechanic_payment'
 
 export interface CashSummaryRow {
   kind: CashMovementKind
@@ -451,6 +473,8 @@ export interface CashMovement {
   sale_number: number | null
   supplier_payment: number | null
   consignee_payment: number | null
+  /** Id de la liquidación, en los pagos a mecánicos. */
+  mechanic_settlement: number | null
   created_by: string
   created_at: string
 }
@@ -562,4 +586,111 @@ export interface ConsigneePaymentInput {
   amount: number
   method: PaymentMethod
   notes?: string
+}
+
+// --- Taller: tipos de servicio, mecánicos y liquidación ---
+
+export interface ServiceType {
+  id: number
+  /** Código corto para el buscador de la venta: 101. */
+  code: number
+  name: string
+  /** Mano de obra que se propone en la venta. */
+  suggested_price: number
+  /** `true` (el tipo «Otro»): la venta debe decir qué se hizo. */
+  needs_description: boolean
+  is_active: boolean
+}
+
+export type ServiceTypeInput = Omit<ServiceType, 'id'>
+
+export interface Mechanic {
+  id: number
+  name: string
+  phone: string
+  /** Solo el dueño; `null` = usa el porcentaje general. */
+  labor_percentage?: number | null
+  /** Solo el dueño: el suyo o el general. */
+  effective_percentage?: number
+  is_active: boolean
+}
+
+export interface MechanicInput {
+  name: string
+  phone?: string
+  labor_percentage?: number | null
+  is_active?: boolean
+}
+
+export interface SaleService {
+  id: number
+  service_type: { id: number; code: number; name: string }
+  mechanic: { id: number; name: string }
+  /** «ABC12D» o vacío. */
+  plate: string
+  details: string
+  suggested_price: number
+  /** Mano de obra cobrada. */
+  labor_price: number
+  price_changed: boolean
+}
+
+export interface WorkshopUseInput {
+  product: number
+  quantity: number
+  reason?: string
+}
+
+export interface SettlementPreviewRow {
+  mechanic: { id: number; name: string }
+  services_count: number
+  /** Mano de obra sin pagar del día. */
+  labor_total: number
+  percentage: number
+  /** Lo que se le pagaría. */
+  amount: number
+}
+
+export interface DailySettlement {
+  /** AAAA-MM-DD */
+  date: string
+  mechanics: SettlementPreviewRow[]
+  /** Lo que saldría de la caja. */
+  total: number
+}
+
+export interface SettleInput {
+  mechanic: number
+  date?: string
+  method?: PaymentMethod
+}
+
+export interface MechanicSettlement {
+  id: number
+  mechanic: { id: number; name: string }
+  /** Día liquidado. */
+  date: string
+  labor_total: number
+  percentage: number
+  amount: number
+  method: PaymentMethod
+  method_label: string
+  services_count: number
+  created_by: string
+  created_at: string
+}
+
+export interface SettledService {
+  id: number
+  sale_id: number
+  sale_number: number
+  customer: string
+  service_type: { id: number; code: number; name: string }
+  plate: string
+  details: string
+  labor_price: number
+}
+
+export interface MechanicSettlementDetail extends MechanicSettlement {
+  services: SettledService[]
 }

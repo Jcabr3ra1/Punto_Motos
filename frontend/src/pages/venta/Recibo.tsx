@@ -24,10 +24,10 @@ export function Recibo({ venta, vuelto }: { venta: SaleDetail; vuelto?: number }
         </p>
       )}
       <table className="tabla">
-        <caption className="solo-lectores">Productos vendidos</caption>
+        <caption className="solo-lectores">Productos y servicios vendidos</caption>
         <thead>
           <tr>
-            <th scope="col">Producto</th>
+            <th scope="col">Detalle</th>
             <th scope="col" className="tabla__numero">
               Cant.
             </th>
@@ -51,6 +51,22 @@ export function Recibo({ venta, vuelto }: { venta: SaleDetail; vuelto?: number }
               <td className="tabla__numero">{item.quantity}</td>
               <td className="tabla__numero">{formatearPesos(item.unit_price)}</td>
               <td className="tabla__numero">{formatearPesos(item.subtotal)}</td>
+            </tr>
+          ))}
+          {venta.services.map((servicio) => (
+            <tr key={`servicio-${servicio.id}`}>
+              <th scope="row">
+                {servicio.service_type.code} · {servicio.service_type.name}
+                <span className="tabla__detalle">
+                  {[`Mecánico: ${servicio.mechanic.name}`, servicio.plate && `Placa ${servicio.plate}`, servicio.details].filter(Boolean).join(' · ')}
+                </span>
+                {servicio.price_changed && (
+                  <span className="tabla__detalle">Mano de obra sugerida {formatearPesos(servicio.suggested_price)}</span>
+                )}
+              </th>
+              <td className="tabla__numero">1</td>
+              <td className="tabla__numero">{formatearPesos(servicio.labor_price)}</td>
+              <td className="tabla__numero">{formatearPesos(servicio.labor_price)}</td>
             </tr>
           ))}
         </tbody>

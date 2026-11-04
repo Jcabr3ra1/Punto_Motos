@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { claves } from '../api/consultas'
 import { desglosarError } from '../api/errors'
 import { buscarProductos } from '../api/productos'
@@ -9,9 +9,12 @@ import { formatearPesos } from '../utilidades/dinero'
 
 const MINIMO_DE_CARACTERES = 2
 
-/** Índices de los resultados que se pueden elegir. */
-const elegibles = (resultados: Product[], sePuedeElegir: (producto: Product) => boolean) =>
-  resultados.flatMap((producto, indice) => (sePuedeElegir(producto) ? [indice] : []))
+/** Opción que la pantalla agrega antes de los productos (por ejemplo, un servicio por su código). */
+export interface OpcionAdicional {
+  clave: string
+  contenido: ReactNode
+  alElegir: () => void
+}
 
 interface Props {
   /** Sin esta función solo consulta: muestra los resultados y no se puede elegir ninguno. */
@@ -19,11 +22,20 @@ interface Props {
   etiqueta?: string
   /** Por defecto los productos sin existencias se muestran pero no se pueden elegir (pantalla de venta). */
   incluirAgotados?: boolean
+  /** Opciones propias de la pantalla según lo escrito; van primero y se eligen igual que los productos. */
+  opcionesAdicionales?: (texto: string) => OpcionAdicional[]
+  ayuda?: string
 }
 
 // Buscador de productos (GET /catalog/search). Se maneja con el teclado:
 // flechas para moverse, Enter para elegir y Escape para borrar. Tras elegir, el foco se queda en el campo.
-export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', incluirAgotados = false }: Props) {
+export function BuscadorDeProductos({
+  onElegir,
+  etiqueta = 'Buscar producto',
+  incluirAgotados = false,
+  opcionesAdicionales,
+  ayuda,
+}: Props) {
   const seleccionable = onElegir !== undefined
   const sePuedeElegir = (producto: Product) => incluirAgotados || producto.stock > 0
   const id = useId()
@@ -45,21 +57,37 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
     placeholderData: keepPreviousData,
   })
 
+  const adicionales = seleccionable && limpio ? (opcionesAdicionales?.(limpio) ?? []) : []
+  const desplazamiento = adicionales.length
   const resultados = buscaYa ? (consulta.data ?? []) : []
   // Mientras llegan los resultados de lo que se acaba de escribir se siguen viendo los anteriores, pero no se
   // pueden elegir: con un Enter rápido se agregaría el producto de la búsqueda anterior.
   const vigentes = consultado === limpio && !consulta.isPlaceholderData
-  const posibles = seleccionable && vigentes ? elegibles(resultados, sePuedeElegir) : []
+  // Índices elegibles en la lista completa: primero las opciones adicionales y después los productos.
+  const posibles = [
+    ...adicionales.map((_, i) => i),
+    ...(seleccionable && vigentes ? resultados.flatMap((p, i) => (sePuedeElegir(p) ? [desplazamiento + i] : [])) : []),
+  ]
   // Por defecto queda marcado el primero que se puede elegir, para que Enter funcione sin tocar las flechas.
   const activo = posibles.includes(marcado) ? marcado : (posibles[0] ?? -1)
-  const abierto = buscaYa && resultados.length > 0
+  const abierto = adicionales.length > 0 || (buscaYa && resultados.length > 0)
 
-  function elegir(producto: Product) {
-    if (!onElegir || !vigentes || !sePuedeElegir(producto)) return
-    onElegir(producto)
+  function limpiar() {
     setTexto('')
     setMarcado(0)
     entrada.current?.focus()
+  }
+
+  function elegirIndice(indice: number) {
+    if (indice < desplazamiento) {
+      adicionales[indice].alElegir()
+      limpiar()
+      return
+    }
+    const producto = resultados[indice - desplazamiento]
+    if (!onElegir || !producto || !vigentes || !sePuedeElegir(producto)) return
+    onElegir(producto)
+    limpiar()
   }
 
   function moverMarca(paso: 1 | -1) {
@@ -83,7 +111,7 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
       case 'Enter':
         if (!seleccionable) break
         evento.preventDefault()
-        if (activo >= 0) elegir(resultados[activo])
+        if (activo >= 0) elegirIndice(activo)
         break
       case 'Escape':
         if (texto) {
@@ -94,7 +122,8 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
     }
   }
 
-  const sinResultados = buscaYa && consulta.isSuccess && !consulta.isPlaceholderData && resultados.length === 0
+  const sinResultados = buscaYa && consulta.isSuccess && !consulta.isPlaceholderData && resultados.length === 0 && adicionales.length === 0
+  const cantidad = adicionales.length + resultados.length
 
   return (
     <div className="buscador">
@@ -119,16 +148,38 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
         autoFocus
       />
       <p className="campo__ayuda">
-        {seleccionable
-          ? 'Escribe al menos 2 letras. Usa las flechas y Enter para elegir; Esc borra.'
-          : 'Escribe al menos 2 letras. Esc borra.'}
+        {ayuda ??
+          (seleccionable
+            ? 'Escribe al menos 2 letras. Usa las flechas y Enter para elegir; Esc borra.'
+            : 'Escribe al menos 2 letras. Esc borra.')}
       </p>
 
-      <ul id={idLista} role="listbox" aria-label="Resultados de la búsqueda" className={`buscador__lista${seleccionable ? '' : ' buscador__lista--consulta'}${vigentes ? '' : ' buscador__lista--desactualizada'}`}
+      <ul
+        id={idLista}
+        role="listbox"
+        aria-label="Resultados de la búsqueda"
+        className={`buscador__lista${seleccionable ? '' : ' buscador__lista--consulta'}`}
         aria-busy={!vigentes || undefined}
         hidden={!abierto}
       >
-        {resultados.map((producto, indice) => {
+        {adicionales.map((opcion, indice) => (
+          <li
+            key={opcion.clave}
+            id={idOpcion(indice)}
+            role="option"
+            aria-selected={indice === activo}
+            className="buscador__opcion buscador__opcion--adicional"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              elegirIndice(indice)
+            }}
+            onMouseEnter={() => setMarcado(indice)}
+          >
+            {opcion.contenido}
+          </li>
+        ))}
+        {resultados.map((producto, i) => {
+          const indice = desplazamiento + i
           const sinExistencias = producto.stock <= 0
           const deshabilitada = !sePuedeElegir(producto)
           return (
@@ -138,11 +189,11 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
               role="option"
               aria-selected={seleccionable ? indice === activo : undefined}
               aria-disabled={deshabilitada || undefined}
-              className="buscador__opcion"
+              className={`buscador__opcion${vigentes ? '' : ' buscador__opcion--desactualizada'}`}
               // mousedown (y no click) evita que el campo pierda el foco al elegir con el ratón.
               onMouseDown={(e) => {
                 e.preventDefault()
-                elegir(producto)
+                elegirIndice(indice)
               }}
               onMouseEnter={() => !deshabilitada && setMarcado(indice)}
             >
@@ -150,9 +201,7 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
               <span className="buscador__nombre">
                 {producto.name}
                 <span className="tabla__detalle">
-                  {[producto.brand?.name, producto.is_universal ? 'Universal' : producto.moto?.name]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {[producto.brand?.name, producto.is_universal ? 'Universal' : producto.moto?.name].filter(Boolean).join(' · ')}
                 </span>
               </span>
               <span className="buscador__precio">{formatearPesos(producto.sale_price)}</span>
@@ -166,8 +215,8 @@ export function BuscadorDeProductos({ onElegir, etiqueta = 'Buscar producto', in
 
       <div role="status" className="texto-suave buscador__estado">
         {sinResultados && 'No se encontró ningún producto.'}
-        {abierto && !vigentes && 'Buscando…'}
-        {abierto && vigentes && !sinResultados && `${resultados.length === 1 ? '1 resultado' : `${resultados.length} resultados`}`}
+        {abierto && buscaYa && !vigentes && 'Buscando…'}
+        {abierto && (vigentes || !buscaYa) && !sinResultados && `${cantidad === 1 ? '1 resultado' : `${cantidad} resultados`}`}
       </div>
       {consulta.isError && buscaYa && (
         <p role="alert" className="aviso aviso--error">

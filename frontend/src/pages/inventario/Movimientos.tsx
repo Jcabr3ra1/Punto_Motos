@@ -15,6 +15,7 @@ import { Titulo } from '../../components/Titulo'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearConSigno, formatearNumero } from '../../utilidades/numeros'
+import { ConsumoDelTaller } from './ConsumoDelTaller'
 import { FormularioDeAjuste } from './FormularioDeAjuste'
 
 const TIPOS: readonly { valor: '' | MovementKind; texto: string }[] = [
@@ -26,6 +27,7 @@ const TIPOS: readonly { valor: '' | MovementKind; texto: string }[] = [
   { valor: 'adjustment', texto: 'Ajuste' },
   { valor: 'consignment_out', texto: 'Entrega en consignación' },
   { valor: 'consignment_return', texto: 'Devolución de consignación' },
+  { valor: 'workshop_use', texto: 'Consumo del taller' },
 ]
 
 /** Los filtros viven en la dirección (`?product=7&kind=adjustment`): sirven los enlaces y el botón «atrás». */
@@ -46,6 +48,7 @@ export function Movimientos() {
   const esDueno = useUsuario().role === 'owner'
   const [params, setParams] = useSearchParams()
   const [ajustando, setAjustando] = useState(false)
+  const [consumiendo, setConsumiendo] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const filtros = leerFiltros(params)
 
@@ -71,6 +74,21 @@ export function Movimientos() {
     enabled: filtros.product !== undefined,
   })
 
+  if (consumiendo) {
+    return (
+      <section>
+        <Titulo>Consumo del taller</Titulo>
+        <ConsumoDelTaller
+          onTerminar={(mensaje) => {
+            setAviso(mensaje)
+            setConsumiendo(false)
+          }}
+          onCancelar={() => setConsumiendo(false)}
+        />
+      </section>
+    )
+  }
+
   if (ajustando) {
     return (
       <section>
@@ -94,16 +112,28 @@ export function Movimientos() {
       <div className="barra-de-acciones">
         <Titulo>Movimientos de inventario</Titulo>
         {esDueno && (
-          <button
-            type="button"
-            className="boton boton--auto"
-            onClick={() => {
-              setAviso(null)
-              setAjustando(true)
-            }}
-          >
-            Ajustar existencia
-          </button>
+          <div className="acciones">
+            <button
+              type="button"
+              className="boton boton--secundario boton--auto"
+              onClick={() => {
+                setAviso(null)
+                setConsumiendo(true)
+              }}
+            >
+              Consumo del taller
+            </button>
+            <button
+              type="button"
+              className="boton boton--auto"
+              onClick={() => {
+                setAviso(null)
+                setAjustando(true)
+              }}
+            >
+              Ajustar existencia
+            </button>
+          </div>
         )}
       </div>
       <p className="texto-suave">

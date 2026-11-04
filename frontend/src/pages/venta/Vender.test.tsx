@@ -28,7 +28,7 @@ function abrir(usuario: User = vendedor, rutas: Parameters<typeof simularApi>[0]
 }
 
 async function agregar(u: ReturnType<typeof userEvent.setup>, texto: string) {
-  const buscador = await screen.findByRole('combobox', { name: 'Buscar producto' })
+  const buscador = await screen.findByRole('combobox', { name: 'Buscar producto o servicio' })
   await u.type(buscador, texto)
   // Espera a que los resultados correspondan a lo escrito: los de la búsqueda anterior no se pueden elegir.
   await waitFor(() => expect(screen.getAllByRole('option').some((o) => o.getAttribute('aria-selected') === 'true')).toBe(true))

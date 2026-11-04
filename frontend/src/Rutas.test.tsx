@@ -35,7 +35,7 @@ describe('menú principal', () => {
     mostrar(dueno)
 
     const enlaces = within(menuPrincipal()).getAllByRole('link')
-    expect(enlaces.map((e) => e.textContent)).toEqual(['Inicio', 'Venta', 'Productos', 'Movimientos', 'Compras', 'Caja', 'Consignación', 'Configuración'])
+    expect(enlaces.map((e) => e.textContent)).toEqual(['Inicio', 'Venta', 'Productos', 'Movimientos', 'Compras', 'Taller', 'Caja', 'Consignación', 'Configuración'])
     expect(within(menuPrincipal()).getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page')
   })
 
@@ -173,11 +173,11 @@ describe('configuración', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
-  it('el dueño ve las tres pestañas', () => {
+  it('el dueño ve todas las pestañas', () => {
     mostrar(dueno, '/configuracion/negocio')
 
     const pestanas = within(menuConfiguracion()).getAllByRole('link')
-    expect(pestanas.map((p) => p.textContent)).toEqual(['Datos del negocio', 'Tipos, marcas y motos', 'Usuarios'])
+    expect(pestanas.map((p) => p.textContent)).toEqual(['Datos del negocio', 'Tipos, marcas y motos', 'Tipos de servicio', 'Mecánicos', 'Usuarios'])
   })
 
   it('el vendedor solo ve Datos del negocio', () => {
