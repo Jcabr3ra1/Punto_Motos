@@ -46,6 +46,8 @@ La descarga se verifica antes de ejecutar el instalador. Sin internet, puedes se
 
 ## Desarrollo
 
+Si retomas el proyecto como colaborador o con otra IA, empieza por [AGENTS.md](AGENTS.md). Explica cómo entregar cambios a instalaciones existentes, conservar las claves de firma y publicar nuevas versiones. Subir código por sí solo no activa una actualización.
+
 Consulta [la guía de escritorio](desktop/README.md) para instalar los requisitos. Desde la raíz:
 
 ```powershell

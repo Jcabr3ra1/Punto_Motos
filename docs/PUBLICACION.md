@@ -29,7 +29,15 @@ No se debe publicar únicamente el ejecutable Rust: el instalador incluye `backe
 
 ## Publicar otra versión
 
-1. Cambia a una versión superior (por ejemplo `0.1.1`) en `desktop/package.json`, `desktop/package-lock.json` (raíz y `packages[""]`), `desktop/src-tauri/Cargo.toml` y `desktop/src-tauri/tauri.conf.json`. Actualiza Cargo.lock ejecutando Cargo y comprueba que no queden versiones discordantes.
+### Nota para quien retome el repositorio
+
+Cambiar React, Django o Rust y subir el código no actualiza los programas instalados. Para entregar esos cambios hay que generar una **versión superior**, publicar su etiqueta y esperar a que Actions publique una Release comprobada. El dueño verá el aviso al entrar en Inicio con internet o al pulsar **Buscar actualizaciones**; confirma cuándo instalar, y recibe los tres componentes juntos.
+
+Otro colaborador o IA debe comenzar por [AGENTS.md](../AGENTS.md) y [CLAUDE.md](../CLAUDE.md). Si el clon no tiene la clave privada local, no debe crear una nueva para sustituir la de confianza: el workflow ya tiene el secreto de firma configurado. Los cambios solo documentales no necesitan un instalador nuevo.
+
+### Pasos de publicación
+
+1. Cambia a una versión superior a la última publicada en `desktop/package.json`, `desktop/package-lock.json` (raíz y `packages[""]`), `desktop/src-tauri/Cargo.toml` y `desktop/src-tauri/tauri.conf.json`. Actualiza Cargo.lock ejecutando Cargo y comprueba que no queden versiones discordantes.
 2. Actualiza `docs/RELEASE_NOTES.md` con cambios concretos y pendientes. Si cambió el backend, actualiza también API, CAMBIOS y su README.
 3. Ejecuta pruebas, revisión y construcción local. Comprueba que no se incluyen claves ni datos reales.
 4. Sube los cambios revisados y una etiqueta `v<versión>` al repositorio.
