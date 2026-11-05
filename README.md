@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
   <img src="frontend/public/logo.png" alt="Punto Moto" width="200" />
   <h1>Punto Moto</h1>
   <p>Gestión local para tiendas de repuestos y talleres de motocicletas.</p>
@@ -17,7 +17,7 @@ Punto Moto funciona en un solo computador con Windows y guarda los datos en su d
 ## Descargar e instalar
 
 1. Abre [la última versión publicada](https://github.com/Jcabr3ra1/Punto_Motos/releases/latest).
-2. Descarga el archivo `Punto Moto_<versión>_x64-setup.exe` y ejecútalo en Windows de 64 bits.
+2. Descarga el archivo `Punto.Moto_<versión>_x64-setup.exe` y ejecútalo en Windows de 64 bits.
 3. Abre Punto Moto desde el menú Inicio. En el primer uso crea la cuenta del dueño.
 
 El instalador es por usuario. Usa WebView2 de Windows; si falta, su bootstrapper necesita internet para instalarlo. Las actualizaciones tienen firma criptográfica propia de Tauri. Esto es distinto de un certificado comercial de editor de Windows: Windows puede mostrar un aviso de editor desconocido.

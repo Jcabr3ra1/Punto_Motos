@@ -1,10 +1,10 @@
-﻿# Desktop
+# Desktop
 
 Punto Moto utiliza Tauri 2 en Windows x64. La versión instalada incluye React y Django con Python empaquetado: no requiere instalar herramientas de desarrollo en el computador del negocio.
 
 ## Descargar
 
-Abre [la última Release](https://github.com/Jcabr3ra1/Punto_Motos/releases/latest) y descarga `Punto Moto_<versión>_x64-setup.exe`. El instalador NSIS es por usuario y utiliza WebView2. Si WebView2 no está instalado, necesita internet para completar ese requisito.
+Abre [la última Release](https://github.com/Jcabr3ra1/Punto_Motos/releases/latest) y descarga `Punto.Moto_<versión>_x64-setup.exe`. El instalador NSIS es por usuario y utiliza WebView2. Si WebView2 no está instalado, necesita internet para completar ese requisito.
 
 ## Preparación del desarrollo
 

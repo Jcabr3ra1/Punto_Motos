@@ -41,6 +41,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Pruebas del frontend
         run: npm.cmd test --prefix frontend
+      - name: Comprobar nombres públicos y manifiesto
+        run: node --test desktop/scripts/release-assets.test.mjs
       - name: Revisar frontend
         run: npm.cmd run lint --prefix frontend
       - name: Pruebas del backend
