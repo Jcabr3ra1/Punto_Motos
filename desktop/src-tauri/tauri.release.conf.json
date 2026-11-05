@@ -1,0 +1,28 @@
+{
+  "bundle": {
+    "externalBin": [
+      "binaries/backend"
+    ],
+    "targets": [
+      "nsis"
+    ],
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "languages": [
+          "Spanish"
+        ]
+      }
+    },
+    "icon": [
+      "icons/icon.ico"
+    ]
+  }
+}

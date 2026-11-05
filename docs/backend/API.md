@@ -1549,3 +1549,6 @@ Errores en `fields`:
 - Reporte: `lines` "Indica al menos una unidad vendida o devuelta."; `lines.N.item` "Esta línea es de una entrega a otro local." o "... está repetido: deja una sola línea."; `lines.N.sold` "Al local le quedan 3 de FRE-PUL-PAS."
 - Pago: `amount` "El local debe $30.000: no se pueden pagar $30.001." o "El local no debe nada: no se puede registrar el pago."; 409 `cash_session_closed`.
 - Local: `name` "Ya existe un local con ese nombre."
+## Distribución y migraciones del backend local
+
+Desde la integración del instalador, Django también se ejecuta como `backend.exe` empaquetado con PyInstaller. El contrato HTTP y sus credenciales no cambian. Antes de aplicar migraciones pendientes sobre una base existente, el arranque guarda una copia SQLite consistente, `secret_key` y un manifiesto en `data/backups/pre-migration/`. Si falla el respaldo o la migración, no habilita la API; la ventana informa el fallo de arranque. No se añaden endpoints ni tipos TypeScript. Véase [publicación y recuperación](../PUBLICACION.md).

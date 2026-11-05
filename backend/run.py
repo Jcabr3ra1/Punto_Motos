@@ -13,8 +13,10 @@ HOST = "127.0.0.1"
 
 def main(argv=None):
     # Tauri lee esta salida como UTF-8; en Windows la consola usaría cp1252.
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
+    if sys.stdout is not None:
+        sys.stdout.reconfigure(encoding="utf-8")
+    if sys.stderr is not None:
+        sys.stderr.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(description="Backend local de Punto Moto")
     parser.add_argument(
@@ -31,11 +33,22 @@ def main(argv=None):
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
+    from pathlib import Path
+    data_dir = Path(os.environ.get("PUNTO_MOTO_DATA_DIR", Path(__file__).resolve().parent / ".data"))
+    existing_database = (data_dir / "punto_moto.sqlite3").is_file()
+
     import django
     from django.core.management import call_command
 
     django.setup()
-    # TODO: hacer un respaldo antes de migrar cuando exista el módulo de respaldos.
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+    from django.conf import settings
+    from upgrade_backup import backup_before_upgrade
+
+    executor = MigrationExecutor(connection)
+    if existing_database and executor.migration_plan(executor.loader.graph.leaf_nodes()):
+        backup_before_upgrade(data_dir.resolve(), settings.APP_VERSION)
     call_command("migrate", interactive=False, verbosity=0)
 
     # Las sesiones no sobreviven al cierre del programa: al abrirlo hay que

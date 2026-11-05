@@ -1344,3 +1344,9 @@ a.navbar__caja:hover {
   width: 6rem;
   text-transform: uppercase;
 }
+/* Actualizaciones: solo desde Inicio, con confirmación modal antes de cerrar. */
+.actualizaciones { margin-top: 2rem; padding: 1rem; border: 1px solid #b1afae; border-radius: 4px; }
+.actualizaciones button { margin-right: .75rem; margin-top: .75rem; }
+.actualizaciones__notas { white-space: pre-wrap; max-height: 12rem; overflow: auto; }
+.actualizaciones__dialogo { max-width: 34rem; padding: 1.5rem; border: 1px solid #b1afae; border-radius: 4px; }
+.actualizaciones__dialogo::backdrop { background: rgb(0 0 0 / 55%); }

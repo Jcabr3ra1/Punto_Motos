@@ -1,0 +1,68 @@
+name: Instalador de Windows
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Comprobar etiqueta y versión
+        shell: pwsh
+        run: |
+          $version = (Get-Content desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ('${{ github.ref_type }}' -eq 'tag' -and '${{ github.ref_name }}' -ne "v$version") { throw 'La etiqueta no coincide con la versión.' }
+      - name: Preparar dependencias
+        shell: pwsh
+        run: |
+          npm.cmd ci --prefix frontend
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npm.cmd ci --prefix desktop
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m venv backend/.venv
+          backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-build.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Pruebas del frontend
+        run: npm.cmd test --prefix frontend
+      - name: Revisar frontend
+        run: npm.cmd run lint --prefix frontend
+      - name: Pruebas del backend
+        run: backend/.venv/Scripts/python.exe backend/manage.py test
+      - name: Compilar instalador firmado
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm.cmd run build --prefix desktop
+      - name: Pruebas del escritorio
+        run: cargo test --manifest-path desktop/src-tauri/Cargo.toml
+      - name: Comprobar Django empaquetado
+        run: cargo test --manifest-path desktop/src-tauri/Cargo.toml --lib frozen_backend_boots_and_reopens_without_python -- --ignored
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Punto-Moto-Windows
+          path: desktop/src-tauri/target/release/bundle/nsis/*
+      - name: Publicar versión comprobada
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create '${{ github.ref_name }}' --verify-tag --title 'Punto Moto ${{ github.ref_name }}' --notes-file docs/RELEASE_NOTES.md desktop/src-tauri/target/release/bundle/nsis/*.exe desktop/src-tauri/target/release/bundle/nsis/*.sig desktop/src-tauri/target/release/bundle/nsis/latest.json desktop/src-tauri/target/release/bundle/nsis/SHA256SUMS.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }

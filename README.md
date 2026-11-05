@@ -1,43 +1,80 @@
-# Tienda y taller de motocicletas
+﻿<div align="center">
+  <img src="frontend/public/logo.png" alt="Punto Moto" width="200" />
+  <h1>Punto Moto</h1>
+  <p>Gestión local para tiendas de repuestos y talleres de motocicletas.</p>
+  <p><strong>Windows · React + TypeScript · Tauri 2 · Django · SQLite</strong></p>
+  <p>
+    <a href="https://github.com/Jcabr3ra1/Punto_Motos/releases/latest">Descargar para Windows</a> ·
+    <a href="docs/PUBLICACION.md">Publicar una versión</a> ·
+    <a href="docs/backend/API.md">Contrato de la API</a>
+  </p>
+</div>
 
-Propuesta de un sistema de gestión para una tienda de repuestos y taller de motocicletas, con inventario, compras, ventas, caja, servicios de taller, liquidación diaria de mecánicos y cierre de mes.
+Punto Moto funciona en un solo computador con Windows y guarda los datos en su disco local. La versión instalada incluye el frontend, Django y su entorno de ejecución: el usuario final no necesita instalar Python, Node ni Rust.
 
-## Informe del proyecto
+> **Versión inicial para pruebas.** Revisa el estado de los módulos antes de usarlo como sistema del negocio. Las copias externas y la impresión todavía están pendientes.
 
-- [Leer el informe funcional y técnico](docs/informe_proyecto_taller.md).
-- [Descargar la versión editable en Word](docs/informe_proyecto_taller.docx).
+## Descargar e instalar
 
-El informe contiene el alcance, las reglas del negocio, la arquitectura, el modelo de datos propuesto, la API, los respaldos, la impresión, el reparto del trabajo entre dos personas y las etapas de implementación.
+1. Abre [la última versión publicada](https://github.com/Jcabr3ra1/Punto_Motos/releases/latest).
+2. Descarga el archivo `Punto Moto_<versión>_x64-setup.exe` y ejecútalo en Windows de 64 bits.
+3. Abre Punto Moto desde el menú Inicio. En el primer uso crea la cuenta del dueño.
 
-## Arquitectura propuesta
+El instalador es por usuario. Usa WebView2 de Windows; si falta, su bootstrapper necesita internet para instalarlo. Las actualizaciones tienen firma criptográfica propia de Tauri. Esto es distinto de un certificado comercial de editor de Windows: Windows puede mostrar un aviso de editor desconocido.
 
-- Aplicación de escritorio para Windows con Tauri 2 (WebView2), con Django como sidecar.
-- Impresión directa de recibos ESC/POS desde Django a la impresora térmica.
-- Interfaz con React y TypeScript.
-- Backend con Django y Django REST Framework.
-- Base de datos local con SQLite para la modalidad inicial propuesta.
-- Guardado automático y respaldos recuperables en ubicaciones configuradas.
+## Actualizaciones desde el programa
 
-Confirmado con el dueño: un solo computador con Windows y datos en su disco duro; impresora térmica de recibos de 80 mm; recibos sin facturación electrónica ni impuestos. Toda venta lleva el nombre del cliente. Cada servicio se registra como una línea de venta con tipo de servicio y mecánico obligatorios y placa opcional; la venta de productos no lleva mecánico. Solo el dueño puede cambiar precios. Sin escáner: cada producto tiene un código interno corto, sugerido o generado por el sistema. La mano de obra se reparte por porcentaje entre mecánico y local (los repuestos son 100 % del local) y se paga al mecánico al final de cada día. Al cerrar el mes se guarda el resumen y los informes en Excel y PDF; el detalle de ventas se conserva un mes más y se elimina automáticamente al cerrar el mes siguiente. Si el dueño concluye que un servicio estuvo mal hecho, se le descuenta al mecánico en su siguiente pago la mano de obra devuelta y los repuestos que no pueden volver al inventario; los repuestos que vuelven en buen estado no se le descuentan, y si la causa es otra la asume el local. Siguen pendientes el modelo de impresora y el destino externo de los respaldos.
+El dueño puede revisar las versiones desde **Inicio → Actualizaciones del programa**. Cuando hay una nueva, el programa ofrece **Actualizar y reiniciar**. Guarda tus operaciones y confirma cuando puedas cerrar la aplicación. La nueva versión incluye juntos interfaz, backend y escritorio.
 
-## Equipo
+La descarga se verifica antes de ejecutar el instalador. Sin internet, puedes seguir trabajando con la versión instalada. Los datos están fuera de la carpeta del programa; antes de aplicar migraciones pendientes sobre una base existente se crea un respaldo local verificado. No se hacen retrocesos automáticos de esquema.
 
-- **Juan:** parte visual (React), aplicación de escritorio (Tauri), diseño del recibo de 80 mm y prueba en la impresora, carga del inventario inicial, instalador, guía de uso y pruebas con el dueño.
-- **Alex:** backend (Django, Django REST Framework y SQLite): modelos, API, reglas del negocio, liquidación diaria, cierre de mes, informes en Excel y PDF, envío ESC/POS a la impresora, respaldos y empaquetado Python como sidecar de Tauri.
+## Funciones disponibles
 
-## Carpetas de trabajo
+| Área | Implementado |
+| --- | --- |
+| Acceso | Primer dueño, usuarios, roles y sesiones |
+| Catálogo | Productos, códigos internos, tipos, marcas y motos |
+| Inventario | Existencias, movimientos, ajustes y conteo inicial |
+| Compras | Proveedores, borradores, recepción, costos y abonos |
+| Ventas | Clientes, carrito, pagos y anulación completa |
+| Caja | Apertura, gastos, retiros, cierre e historial |
+| Taller | Servicios, mecánicos, porcentajes y liquidación diaria |
+| Consignaciones | Entregas, reportes y pagos de otros locales |
+| Escritorio | Django integrado, datos locales e instancia única |
 
-| Carpeta | Responsable | Contenido |
-| --- | --- | --- |
-| [frontend/](frontend/README.md) | Juan | Interfaz en React y TypeScript |
-| [desktop/](desktop/README.md) | Juan, con Alex en el sidecar | Aplicación Tauri 2 e instalador para Windows |
-| [backend/](backend/README.md) | Alex | API Django, SQLite, impresión ESC/POS, informes y respaldos |
-| [docs/](docs/) | Ambos | Informe del proyecto y contrato de la API |
+**Pendiente:** devoluciones parciales y de servicios, cierres y reportes mensuales, impresión ESC/POS y respaldos externos. El respaldo previo a migraciones no sustituye la política completa de recuperación del negocio.
 
-Todo cambio en el backend se documenta para el frontend en [docs/backend/API.md](docs/backend/API.md) (contrato) y [docs/backend/CAMBIOS.md](docs/backend/CAMBIOS.md) (bitácora). Las reglas del proyecto están en [CLAUDE.md](CLAUDE.md).
+## Desarrollo
 
-## Estado
+Consulta [la guía de escritorio](desktop/README.md) para instalar los requisitos. Desde la raíz:
 
-El repositorio contiene la documentación inicial para socializar y acordar el proyecto. La aplicación todavía no está implementada.
+```powershell
+npm.cmd ci --prefix frontend
+npm.cmd ci --prefix desktop
+python -m venv backend/.venv
+backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-build.txt
+cd desktop
+npm.cmd run doctor
+npm.cmd run dev
+```
 
-Fecha del informe: 29 de octubre de 2026.
+Para construir el instalador firmado: `npm.cmd run build` dentro de `desktop/`, con la clave de firma configurada. Para publicar futuras versiones, sigue [la guía de publicación](docs/PUBLICACION.md).
+
+## Organización
+
+| Carpeta | Contenido |
+| --- | --- |
+| [frontend/](frontend/README.md) | Interfaz React y TypeScript |
+| [desktop/](desktop/README.md) | Ventana Tauri, actualizador y empaquetado Windows |
+| [backend/](backend/README.md) | Django, API y reglas del negocio |
+| [docs/](docs/) | Informe, contratos y guías |
+
+**Juan:** frontend y escritorio. **Alex:** backend y reglas del negocio. Cada cambio del backend mantiene actualizado el [contrato](docs/backend/API.md) y la [bitácora](docs/backend/CAMBIOS.md), según [CLAUDE.md](CLAUDE.md).
+
+## Documentación
+
+- [Informe funcional y técnico](docs/informe_proyecto_taller.md) · [versión Word](docs/informe_proyecto_taller.docx).
+- [Preparación y ejecución del escritorio](desktop/README.md).
+- [Publicación, claves y actualizaciones](docs/PUBLICACION.md).
+- [Notas de la versión](docs/RELEASE_NOTES.md).
+- [API del backend](docs/backend/API.md) · [cambios para el frontend](docs/backend/CAMBIOS.md).

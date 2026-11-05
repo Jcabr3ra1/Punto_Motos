@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "La ventana principal solo consulta el estado de su backend.",
+  "windows": ["main"],
+  "permissions": ["allow-desktop-status", "allow-check-update", "allow-install-update"]
+}

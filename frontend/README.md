@@ -77,6 +77,8 @@ frontend/
 
 ## Cómo ejecutarlo
 
+Para ejecutar la ventana de escritorio con inicio automático de Django, sigue [desktop/README.md](../desktop/README.md). `src/desktop/InicioDesktop.tsx` espera la configuración de Rust antes de montar la aplicación; en navegador conserva el flujo descrito a continuación. La credencial de escritorio se recibe en memoria, no mediante un archivo `.env`.
+
 Requiere Node 24 o superior.
 
 ```bash

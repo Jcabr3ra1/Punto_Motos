@@ -11,6 +11,13 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-05 — Empaquetado y respaldo previo a migraciones
+
+- El backend puede distribuirse congelado con PyInstaller dentro del instalador de Tauri.
+- Antes de migraciones pendientes sobre una base existente se crea y verifica un respaldo local consistente con la clave Django y un manifiesto. Si falla, el arranque se detiene antes de migrar.
+- No cambian endpoints, respuestas ni permisos. **Ninguna acción para el frontend de la API**; el escritorio mantiene su pantalla de preparación hasta que responde salud.
+- Estas copias locales no sustituyen los respaldos externos pendientes. Guía: [PUBLICACION.md](../PUBLICACION.md).
+
 ## 2026-11-03 · Liquidación diaria de mecánicos (0.8.0)
 
 **Qué cambió**

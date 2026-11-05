@@ -1,45 +1,87 @@
-# Desktop
+﻿# Desktop
 
-Responsable: **Juan**, con Alex en la integración del sidecar de Django.
+Punto Moto utiliza Tauri 2 en Windows x64. La versión instalada incluye React y Django con Python empaquetado: no requiere instalar herramientas de desarrollo en el computador del negocio.
 
-Aplicación de escritorio con Tauri 2. Abre la ventana con la interfaz de `frontend/`, inicia el backend de Django como *sidecar* y genera el instalador para Windows. Ver las secciones [7](../docs/informe_proyecto_taller.md#7-arquitectura-de-escritorio-y-alternativas) y [12](../docs/informe_proyecto_taller.md#12-desarrollo-en-linux-y-entrega-en-windows) del informe.
+## Descargar
 
-## Tecnologías
+Abre [la última Release](https://github.com/Jcabr3ra1/Punto_Motos/releases/latest) y descarga `Punto Moto_<versión>_x64-setup.exe`. El instalador NSIS es por usuario y utiliza WebView2. Si WebView2 no está instalado, necesita internet para completar ese requisito.
 
-- Tauri 2 con proceso principal en Rust.
-- WebView2 en Windows (WebKitGTK al desarrollar en Linux).
-- Plugins de Tauri para diálogos de carpetas, instancia única e inicio con Windows.
-- Instalador NSIS o MSI con el instalador de WebView2 incluido.
+## Preparación del desarrollo
 
-## Responsabilidades
+Requiere Node 24+, Rust estable (1.90+), Python 3.12+, Visual Studio Build Tools con C++ y SDK de Windows y WebView2. Consulta los [requisitos oficiales de Tauri](https://v2.tauri.app/start/prerequisites/).
 
-- Ventana, ícono, inicio y cierre de la aplicación.
-- Arrancar el sidecar de Django, esperar a que responda antes de mostrar las pantallas y cerrarlo al salir.
-- Generar la credencial efímera de cada inicio y entregarla al backend y a la interfaz.
-- Selección de carpetas de datos y respaldos con los diálogos de Windows.
-- Impedir dos instancias abiertas sobre los mismos datos.
-- Permisos de la ventana: solo las capacidades declaradas y una política de seguridad de contenido restrictiva.
-- Instalador, asistente inicial y actualización con respaldo previo.
+Desde la raíz, en PowerShell:
 
-## Estructura propuesta
-
-```text
-desktop/
-  src-tauri/
-    src/              # código Rust del proceso principal
-    binaries/         # backend-x86_64-pc-windows-msvc.exe generado con PyInstaller
-    capabilities/     # permisos de la ventana
-    icons/
-    tauri.conf.json   # frontendDist apunta a ../frontend/dist
-    Cargo.toml
+```powershell
+npm.cmd ci --prefix frontend
+npm.cmd ci --prefix desktop
+python -m venv backend/.venv
+backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-build.txt
+cd desktop
+npm.cmd run doctor
+npm.cmd run dev
 ```
 
-El ejecutable del sidecar no se sube al repositorio: se genera en el empaquetado.
+Si `python` abre Microsoft Store, usa un Python ya instalado para crear el entorno. No hay que activar el entorno, migrar manualmente ni abrir Django por separado. Puedes definir `PUNTO_MOTO_PYTHON` con la ruta absoluta a otro Python con las dependencias del backend; solo se utiliza en desarrollo.
 
-## Primer entregable
+`doctor` comprueba requisitos y `dev` agrega Cargo al PATH de ese proceso sin modificar el sistema. La primera compilación tarda varios minutos. Cierra cualquier Vite previo en 5173 antes de ejecutar el escritorio. Tauri administra su Vite y Django; cierra la ventana o usa Ctrl+C en su terminal para terminar el desarrollo.
 
-La prueba de escritorio de la etapa 1: un instalador que abra una pantalla sencilla, arranque Django, guarde un dato en SQLite que persista después de reiniciar Windows e imprima un recibo de prueba.
+## Instalador y actualizaciones
 
-## Estado
+```powershell
+# Dentro de desktop/, con la clave de firma configurada
+npm.cmd run package:backend  # solo Django congelado
+npm.cmd run build            # backend, frontend, Rust, NSIS, firma y latest.json
+```
 
-Carpeta preparada. El código todavía no está implementado.
+La configuración base permite desarrollar sin un sidecar precompilado. `tauri.release.conf.json` añade el binario y el instalador al construir. Los archivos generados no se versionan. El backend compilado se instala como `backend.exe` junto al programa.
+
+El dueño ve la búsqueda automática y el botón de consulta en **Inicio → Actualizaciones del programa**. Confirma cuándo instalar, después de guardar sus operaciones. El programa descarga y verifica el paquete antes de detener Django. Si falla la descarga, permanece disponible. Si falla la ejecución del instalador después del cierre del backend, hay que cerrar y volver a abrir Punto Moto.
+
+Las actualizaciones desde la interfaz solo se ejecutan en la versión instalada, no en debug. La clave pública y el endpoint GitHub están en la configuración base; la privada nunca se versiona. Consulta [PUBLICACION.md](../docs/PUBLICACION.md) para generar, firmar y publicar las próximas versiones.
+
+## Datos y seguridad
+
+Identificador permanente: `com.puntomoto.desktop`.
+
+- SQLite y clave Django: `%LOCALAPPDATA%\com.puntomoto.desktop\data\`.
+- Marca de inicialización: `%APPDATA%\com.puntomoto.desktop\desktop-initialized`.
+- Registro del backend instalado: `data/logs/backend.log`.
+- Copias previas a migraciones: `data/backups/pre-migration/`.
+
+Los datos están fuera del repositorio y de los binarios; no se trasladan automáticamente desde `backend/.data`. Tras el primer arranque correcto, si faltan base, clave o carpeta, el programa informa el error y no las sustituye silenciosamente. No borres la marca para resolver problemas de datos.
+
+Antes de migraciones pendientes sobre una base existente, Django guarda y verifica una copia consistente con su clave y un manifiesto. Si falla, no migra. Las copias externas, retención y restauración guiada siguen pendientes.
+
+La API escucha solo en loopback con un puerto disponible y credencial aleatoria por apertura. Rust entrega la configuración a React antes de que consulte la API; ninguna credencial se guarda en localStorage. El cambio de versión conserva los datos pero exige iniciar sesión nuevamente.
+
+La aplicación permite una sola instancia. En Windows, Python se crea suspendido, se asigna a un Job Object y después se reanuda: al salir se cierra también su árbol de procesos. La salud tiene un plazo de 60 segundos. La ventana solo tiene permisos para consultar el arranque y las actualizaciones; instalar una actualización valida además la sesión de dueño contra Django. No tiene acceso general a archivos ni ejecución arbitraria de procesos.
+
+## Comprobaciones
+
+```powershell
+# Desde la raíz, con Cargo en PATH
+cargo test --manifest-path desktop/src-tauri/Cargo.toml
+cargo fmt --manifest-path desktop/src-tauri/Cargo.toml --check
+npm.cmd test --prefix frontend
+npm.cmd run lint --prefix frontend
+npm.cmd run build --prefix frontend
+backend/.venv/Scripts/python.exe backend/manage.py test
+
+# Después de package:backend
+cargo test --manifest-path desktop/src-tauri/Cargo.toml --lib frozen_backend_boots_and_reopens_without_python -- --ignored
+```
+
+Las pruebas usan datos ficticios temporales, nunca la base del usuario. La prueba frozen comprueba el backend sin Python del proyecto. La primera Release debe distinguirse de una prueba real de actualización entre dos versiones publicadas; esa comprobación se hará antes de entregar cambios de esquema al negocio.
+
+## Estructura
+
+- `scripts/`: diagnóstico, desarrollo y empaquetado reproducible.
+- `src-tauri/src/lib.rs`: ventana, permisos de arranque e instancia única.
+- `src-tauri/src/backend.rs`: proceso, salud y cierre.
+- `src-tauri/src/data.rs`: protección de datos existentes.
+- `src-tauri/src/updates.rs`: consulta, autorización y actualización firmada.
+- `src-tauri/tauri.conf.json`: identidad, ventana, CSP, clave pública y endpoint.
+- `src-tauri/tauri.release.conf.json`: sidecar y NSIS.
+- `src-tauri/capabilities/`: comandos permitidos a la ventana principal.
+- `.github/workflows/release.yml`: pruebas y publicación por etiqueta.

@@ -15,6 +15,9 @@
 media/
 backend/.data/
 secret_key
+.release-keys/
+*.sig
+*.spec.bak
 
 # Dependencias y archivos generados
 node_modules/
