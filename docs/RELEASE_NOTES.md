@@ -1,4 +1,14 @@
-# Punto Moto 0.1.0
+# Punto Moto 0.1.1
+
+## Cambios de esta versión
+
+- El instalador y el desinstalador muestran el logo de Punto Moto en lugar del icono predeterminado de NSIS.
+- El asistente de instalación incorpora el logo en su cabecera y panel lateral.
+- Los iconos de la aplicación se generan desde el logo original de mayor resolución.
+
+No cambian el contrato de la API ni el esquema de datos.
+
+## Funciones de la versión inicial
 
 Primera versión instalable para Windows de 64 bits.
 
