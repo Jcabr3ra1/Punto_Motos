@@ -18,6 +18,7 @@ export const claves = {
   compras: ['compras'] as const,
   abonos: ['abonos'] as const,
   ventas: ['ventas'] as const,
+  devoluciones: ['devoluciones'] as const,
   clientes: ['clientes'] as const,
   caja: ['caja'] as const,
   cajaActual: ['caja', 'actual'] as const,
@@ -26,6 +27,7 @@ export const claves = {
   tiposDeServicio: (incluirInactivos: boolean) => ['taller', 'tipos', incluirInactivos] as const,
   mecanicos: (incluirInactivos: boolean) => ['taller', 'mecanicos', incluirInactivos] as const,
   liquidaciones: ['liquidaciones'] as const,
+  descuentos: ['descuentos'] as const,
   buscador: (texto: string) => ['buscador', texto] as const,
 }
 

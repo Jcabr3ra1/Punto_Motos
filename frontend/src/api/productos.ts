@@ -49,3 +49,6 @@ export const buscarProductos = (texto: string, signal?: AbortSignal) =>
   api<Product[]>('/catalog/search', { query: { q: texto }, signal })
 
 export const obtenerProducto = (id: number, signal?: AbortSignal) => api<Product>(`/products/${id}`, { signal })
+
+/** Solo el dueño: elimina un producto que nunca se usó (204). Si tiene historial responde 409 `product_has_history`. */
+export const eliminarProducto = (id: number) => api<void>(`/products/${id}`, { method: 'DELETE' })

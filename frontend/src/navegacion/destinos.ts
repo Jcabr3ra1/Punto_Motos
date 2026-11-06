@@ -20,6 +20,7 @@ export const DESTINOS = {
   venta: { ruta: '/venta', etiqueta: 'Venta', roles: TODOS },
   vender: { ruta: '/venta/vender', etiqueta: 'Vender', roles: TODOS },
   ventas: { ruta: '/venta/historial', etiqueta: 'Ventas', roles: TODOS },
+  devoluciones: { ruta: '/venta/devoluciones', etiqueta: 'Devoluciones', roles: TODOS },
   productos: { ruta: '/productos', etiqueta: 'Productos', roles: TODOS },
   movimientos: { ruta: '/inventario/movimientos', etiqueta: 'Movimientos', roles: TODOS },
   inventarioInicial: {
@@ -78,7 +79,7 @@ export function puedeVer(destino: Destino, rol: Role): boolean {
 
 export const MENU_COMPRAS: readonly Destino[] = [DESTINOS.comprasLista, DESTINOS.proveedores, DESTINOS.abonos]
 
-export const MENU_VENTA: readonly Destino[] = [DESTINOS.vender, DESTINOS.ventas]
+export const MENU_VENTA: readonly Destino[] = [DESTINOS.vender, DESTINOS.ventas, DESTINOS.devoluciones]
 
 export const MENU_CAJA: readonly Destino[] = [DESTINOS.cajaActual, DESTINOS.cajaHistorial]
 

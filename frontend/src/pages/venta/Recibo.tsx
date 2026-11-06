@@ -49,6 +49,13 @@ export function Recibo({ venta, vuelto }: { venta: SaleDetail; vuelto?: number }
                 {item.price_changed && (
                   <span className="tabla__detalle">Precio de catálogo {formatearPesos(item.list_price)}</span>
                 )}
+                {item.returned_quantity > 0 && (
+                  <span className="tabla__detalle">
+                    {item.returned_quantity === item.quantity
+                      ? 'Devuelto'
+                      : `Devueltas: ${item.returned_quantity} de ${item.quantity}`}
+                  </span>
+                )}
               </th>
               <td className="tabla__numero">{item.quantity}</td>
               <td className="tabla__numero">{formatearPesos(item.unit_price)}</td>
@@ -65,6 +72,7 @@ export function Recibo({ venta, vuelto }: { venta: SaleDetail; vuelto?: number }
                 {servicio.price_changed && (
                   <span className="tabla__detalle">Mano de obra sugerida {formatearPesos(servicio.suggested_price)}</span>
                 )}
+                {servicio.is_returned && <span className="tabla__detalle">Devuelto</span>}
               </th>
               <td className="tabla__numero">1</td>
               <td className="tabla__numero">{formatearPesos(servicio.labor_price)}</td>

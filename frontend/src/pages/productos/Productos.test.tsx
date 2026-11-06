@@ -68,6 +68,7 @@ describe('lista de productos', () => {
     expect(screen.queryByText('Bajo el costo')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nuevo producto' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Editar/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Eliminar/ })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Mostrar desactivados')).not.toBeInTheDocument()
     expect(screen.getByText('FRE-PUL-PAS')).toBeInTheDocument()
   })
@@ -387,5 +388,62 @@ describe('editar producto', () => {
 
     await screen.findByText(/Cambios de/)
     expect(api.llamadas.find((l) => l.clave === 'PATCH /products/1')?.cuerpo).toMatchObject({ is_active: false })
+  })
+})
+
+describe('eliminar producto', () => {
+  it('el dueño elimina con confirmación un producto sin historial y no envía dos veces por doble clic', async () => {
+    let borrado = false
+    const { api, u } = await abrir(dueno, {
+      'GET /products*': () => ({ cuerpo: pagina(borrado ? [bujia] : [bujia, pastillas]) }),
+      'DELETE /products/1': () => {
+        borrado = true
+        return { estado: 204 }
+      },
+    })
+
+    await u.click(screen.getByRole('button', { name: 'Eliminar Pastillas de freno Pulsar 180' }))
+    const confirmacion = screen.getByRole('group', { name: '¿Eliminar «Pastillas de freno Pulsar 180»?' })
+    expect(confirmacion).toHaveTextContent(/FRE-PUL-PAS/)
+
+    await u.dblClick(within(confirmacion).getByRole('button', { name: 'Sí, eliminar' }))
+
+    expect(await screen.findByText('Producto «Pastillas de freno Pulsar 180» eliminado.')).toBeInTheDocument()
+    expect(api.cuantas('DELETE /products/1')).toBe(1)
+    await waitFor(() => expect(screen.queryByText('FRE-PUL-PAS')).not.toBeInTheDocument())
+  })
+
+  it('si el producto ya tiene historial (409), muestra el mensaje y ofrece desactivarlo ahí mismo', async () => {
+    const { api, u } = await abrir(dueno, {
+      'DELETE /products/1': () =>
+        errorDeApi(409, 'product_has_history', 'Este producto ya tiene movimientos y no se puede eliminar: desactívalo.'),
+      'PATCH /products/1': () => ({ cuerpo: { ...pastillas, is_active: false } }),
+    })
+
+    await u.click(screen.getByRole('button', { name: 'Eliminar Pastillas de freno Pulsar 180' }))
+    await u.click(screen.getByRole('button', { name: 'Sí, eliminar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Este producto ya tiene movimientos y no se puede eliminar: desactívalo.',
+    )
+    await u.click(screen.getByRole('button', { name: 'Desactivar producto' }))
+
+    expect(await screen.findByText('Producto «Pastillas de freno Pulsar 180» desactivado.')).toBeInTheDocument()
+    expect(api.llamadas.find((l) => l.clave === 'PATCH /products/1')?.cuerpo).toEqual({ is_active: false })
+  })
+
+  it('si falla la desactivación posterior al 409, muestra el error nuevo sin ocultarlo tras el 409', async () => {
+    const { u } = await abrir(dueno, {
+      'DELETE /products/1': () =>
+        errorDeApi(409, 'product_has_history', 'Este producto ya tiene movimientos y no se puede eliminar: desactívalo.'),
+      'PATCH /products/1': () => errorDeApi(500, 'server_error', 'No se pudo desactivar el producto.'),
+    })
+
+    await u.click(screen.getByRole('button', { name: 'Eliminar Pastillas de freno Pulsar 180' }))
+    await u.click(screen.getByRole('button', { name: 'Sí, eliminar' }))
+    await screen.findByRole('button', { name: 'Desactivar producto' })
+
+    await u.click(screen.getByRole('button', { name: 'Desactivar producto' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo desactivar el producto.')
   })
 })
