@@ -190,7 +190,9 @@ describe('borrador guardado', () => {
 
     await u.click(await screen.findByRole('button', { name: 'Borrar borrador' }))
     expect(api.cuantas('DELETE /purchases/20')).toBe(0)
-    await u.click(screen.getByRole('button', { name: 'Sí, borrar' }))
+    const confirmacion = screen.getByRole('alertdialog', { name: '¿Borrar este borrador?' })
+    expect(within(confirmacion).getByRole('button', { name: 'Volver' })).toHaveFocus()
+    await u.click(within(confirmacion).getByRole('button', { name: 'Sí, borrar' }))
 
     expect(await screen.findByText('Borrador borrado.')).toBeInTheDocument()
     expect(api.cuantas('DELETE /purchases/20')).toBe(1)

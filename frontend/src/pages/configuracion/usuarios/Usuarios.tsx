@@ -8,6 +8,7 @@ import { Titulo } from '../../../components/Titulo'
 import { formatearFechaHora } from '../../../utilidades/fechas'
 import { CambiarClave } from './CambiarClave'
 import { FormularioUsuario } from './FormularioUsuario'
+import { PanelLateral } from '../../../components/PanelLateral'
 
 type Vista =
   | { tipo: 'lista' }
@@ -38,7 +39,7 @@ export function Usuarios() {
       {consulta.isPending && <Cargando />}
       {consulta.isError && <ErrorDeCarga error={consulta.error} onReintentar={() => void consulta.refetch()} />}
 
-      {consulta.isSuccess && vista.tipo === 'lista' && (
+      {consulta.isSuccess && (
         <>
           {aviso && (
             <p role="status" className="aviso aviso--exito">
@@ -72,25 +73,27 @@ export function Usuarios() {
         </>
       )}
 
-      {consulta.isSuccess && vista.tipo === 'crear' && (
-        <>
-          <Titulo nivel={3}>Nuevo usuario</Titulo>
-          <FormularioUsuario onTerminar={volver} onCancelar={() => volver()} />
-        </>
-      )}
-
-      {consulta.isSuccess && vista.tipo === 'editar' && elegido && (
-        <>
-          <Titulo nivel={3}>Editar a {elegido.display_name}</Titulo>
-          <FormularioUsuario usuario={elegido} onTerminar={volver} onCancelar={() => volver()} />
-        </>
-      )}
-
-      {consulta.isSuccess && vista.tipo === 'clave' && elegido && (
-        <>
-          <Titulo nivel={3}>Cambiar la contraseña de {elegido.display_name}</Titulo>
-          <CambiarClave usuario={elegido} onTerminar={volver} onCancelar={() => volver()} />
-        </>
+      {consulta.isSuccess && vista.tipo !== 'lista' && (vista.tipo === 'crear' || elegido) && (
+        <PanelLateral
+          titulo={
+            vista.tipo === 'crear'
+              ? 'Nuevo usuario'
+              : vista.tipo === 'clave'
+                ? `Cambiar la contraseña de ${elegido?.display_name}`
+                : `Editar a ${elegido?.display_name}`
+          }
+          modulo="Configuración"
+          descripcion={vista.tipo === 'clave' ? 'Al cambiarla, se cierran sus sesiones abiertas.' : 'Quién entra al programa y qué puede hacer.'}
+          onCerrar={() => volver()}
+        >
+          {vista.tipo === 'crear' ? (
+            <FormularioUsuario onTerminar={volver} onCancelar={() => volver()} />
+          ) : vista.tipo === 'clave' ? (
+            <CambiarClave usuario={elegido!} onTerminar={volver} onCancelar={() => volver()} />
+          ) : (
+            <FormularioUsuario usuario={elegido} onTerminar={volver} onCancelar={() => volver()} />
+          )}
+        </PanelLateral>
       )}
     </section>
   )

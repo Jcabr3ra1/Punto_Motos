@@ -13,6 +13,7 @@ import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { formatearPesos } from '../../utilidades/dinero'
 import { RecibirCompra } from './RecibirCompra'
+import { DialogoDeConfirmacion } from '../../components/DialogoDeConfirmacion'
 
 interface Linea {
   producto: { id: number; code: string; name: string }
@@ -285,27 +286,24 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
           <button type="button" className="boton boton--secundario boton--auto" onClick={() => navegar('/compras/lista')}>
             {editando ? 'Volver a la lista' : 'Cancelar'}
           </button>
-          {editando &&
-            (confirmandoBorrado ? (
-              <span className="confirmacion-en-linea" role="group" aria-label="Confirmar borrado">
-                ¿Borrar este borrador?
-                <button
-                  type="button"
-                  className="boton boton--peligro boton--auto"
-                  disabled={borrar.isPending}
-                  onClick={() => borrar.mutate()}
-                >
-                  {borrar.isPending ? 'Borrando…' : 'Sí, borrar'}
-                </button>
-                <button type="button" className="boton boton--secundario boton--auto" onClick={() => setConfirmandoBorrado(false)}>
-                  No
-                </button>
-              </span>
-            ) : (
-              <button type="button" className="boton boton--secundario boton--auto" onClick={() => setConfirmandoBorrado(true)}>
-                Borrar borrador
-              </button>
-            ))}
+          {editando && (
+            <button type="button" className="boton boton--secundario boton--auto" onClick={() => setConfirmandoBorrado(true)}>
+              Borrar borrador
+            </button>
+          )}
+          {confirmandoBorrado && (
+            <DialogoDeConfirmacion
+              titulo="¿Borrar este borrador?"
+              accion={borrar.isPending ? 'Borrando…' : 'Sí, borrar'}
+              cancelar="Volver"
+              peligro
+              ocupado={borrar.isPending}
+              onConfirmar={() => borrar.mutate()}
+              onCancelar={() => setConfirmandoBorrado(false)}
+            >
+              <p>La compra todavía no se recibió: no cambia el inventario ni lo que se le debe al proveedor.</p>
+            </DialogoDeConfirmacion>
+          )}
         </div>
       </form>
 

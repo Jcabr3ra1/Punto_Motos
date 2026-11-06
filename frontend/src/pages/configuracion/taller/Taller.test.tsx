@@ -52,6 +52,16 @@ describe('tipos de servicio', () => {
 })
 
 describe('mecánicos', () => {
+  it('Nuevo mecánico se abre en un panel', async () => {
+    simularApi({ 'GET /mechanics?include_inactive=true': () => ({ cuerpo: [mecanico()] }) })
+    mostrarRutas(dueno, '/configuracion/mecanicos')
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Nuevo mecánico' }))
+
+    expect(screen.getByRole('dialog', { name: 'Nuevo mecánico' })).toBeInTheDocument()
+  })
+
   it('muestra el porcentaje con que se liquida y si es propio o el general', async () => {
     simularApi({
       'GET /mechanics?include_inactive=true': () => ({

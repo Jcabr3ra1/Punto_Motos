@@ -14,6 +14,7 @@ import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
 import { SelectorDeLocal } from './SelectorDeLocal'
+import { PanelLateral } from '../../components/PanelLateral'
 
 // Pagos de los locales (solo el dueño): pagan por partes, cada pago baja su saldo y entra a la caja abierta.
 export function PagosDeLocales() {
@@ -27,21 +28,6 @@ export function PagosDeLocales() {
     queryFn: ({ signal }) => listarPagosDeLocales(filtros, signal),
     placeholderData: keepPreviousData,
   })
-
-  if (nuevo) {
-    return (
-      <>
-        <Titulo nivel={2}>Registrar pago de un local</Titulo>
-        <FormularioDePago
-          onTerminar={(m) => {
-            setAviso(m)
-            setNuevo(false)
-          }}
-          onCancelar={() => setNuevo(false)}
-        />
-      </>
-    )
-  }
 
   return (
     <>
@@ -118,6 +104,22 @@ export function PagosDeLocales() {
             />
           </>
         ))}
+      {nuevo && (
+        <PanelLateral
+          titulo="Registrar pago de un local"
+          modulo="Consignación"
+          descripcion="Lo que un local paga por la mercancía que vendió."
+          onCerrar={() => setNuevo(false)}
+        >
+          <FormularioDePago
+            onTerminar={(m) => {
+              setAviso(m)
+              setNuevo(false)
+            }}
+            onCancelar={() => setNuevo(false)}
+          />
+        </PanelLateral>
+      )}
     </>
   )
 }

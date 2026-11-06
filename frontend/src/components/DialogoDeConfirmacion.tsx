@@ -22,7 +22,7 @@ interface Props {
 }
 
 // Pregunta de sí o no antes de algo que no se puede deshacer. Ventana pequeña centrada; el foco empieza en
-// Cancelar para que un Enter distraído no borre nada.
+// Cancelar (o en el campo que pida) para que un Enter distraído no borre nada.
 export function DialogoDeConfirmacion({ titulo, children, accion, cancelar: textoCancelar = 'Cancelar', otrasAcciones, peligro = false, ocupado = false, onConfirmar, onCancelar }: Props) {
   const ventana = useRef<HTMLDivElement>(null)
   const cancelar = useRef<HTMLButtonElement>(null)
@@ -32,8 +32,10 @@ export function DialogoDeConfirmacion({ titulo, children, accion, cancelar: text
   useDevolverFoco()
   useFocoAtrapado(ventana, true)
 
+  // Si la pregunta pide un dato (un motivo), el foco va a ese campo; si no, a Cancelar.
   useEffect(() => {
-    cancelar.current?.focus()
+    const campo = ventana.current?.querySelector<HTMLElement>('input, textarea, select')
+    ;(campo ?? cancelar.current)?.focus()
   }, [])
 
   return createPortal(

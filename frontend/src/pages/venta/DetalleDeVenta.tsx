@@ -10,6 +10,8 @@ import { useUsuario } from '../../auth/useUsuario'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { DialogoDeConfirmacion } from '../../components/DialogoDeConfirmacion'
+import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
 import { ComprobanteDeDevolucion } from './ComprobanteDeDevolucion'
 import { FormularioDeDevolucion } from './FormularioDeDevolucion'
@@ -79,52 +81,66 @@ export function DetalleDeVenta() {
 
       {!venta.data.is_voided && (
         <section className="terminar" aria-label="Acciones de la venta">
-          {!anulando && !devolviendo && (
-            <div className="acciones">
-              {hayPorDevolver && (
-                <button
-                  type="button"
-                  className="boton boton--secundario boton--auto"
-                  onClick={() => {
-                    setAviso(null)
-                    setDevolviendo(true)
-                  }}
-                >
-                  Devolver…
-                </button>
-              )}
-              {esDueno && (
-                <button
-                  type="button"
-                  className="boton boton--secundario boton--auto"
-                  onClick={() => {
-                    setAviso(null)
-                    setAnulando(true)
-                  }}
-                >
-                  Anular venta…
-                </button>
-              )}
-            </div>
-          )}
+          <div className="acciones">
+            {hayPorDevolver && (
+              <button
+                type="button"
+                className="boton boton--secundario boton--auto"
+                onClick={() => {
+                  setAviso(null)
+                  setDevolviendo(true)
+                }}
+              >
+                Devolver…
+              </button>
+            )}
+            {esDueno && (
+              <button
+                type="button"
+                className="boton boton--secundario boton--auto"
+                onClick={() => {
+                  setAviso(null)
+                  setAnulando(true)
+                }}
+              >
+                Anular venta…
+              </button>
+            )}
+          </div>
           {devolviendo && (
-            <FormularioDeDevolucion
-              venta={venta.data}
-              esDueno={esDueno}
-              onRegistrada={(registrada) => {
-                setDevolviendo(false)
-                setDevolucionRegistrada(registrada)
-                setAviso(`Devolución n.º ${registrada.number} registrada.`)
-                void clienteDeConsultas.invalidateQueries({ queryKey: clave })
-              }}
-              onCancelar={() => setDevolviendo(false)}
-            />
+            <PanelLateral
+              titulo="Devolver productos o servicios"
+              modulo="Venta"
+              descripcion={`Venta n.º ${venta.data.number}: elige qué devuelve el cliente y cómo se le reembolsa.`}
+              ancho="ancho"
+              onCerrar={() => setDevolviendo(false)}
+            >
+              <FormularioDeDevolucion
+                venta={venta.data}
+                esDueno={esDueno}
+                onRegistrada={(registrada) => {
+                  setDevolviendo(false)
+                  setDevolucionRegistrada(registrada)
+                  setAviso(`Devolución n.º ${registrada.number} registrada.`)
+                  void clienteDeConsultas.invalidateQueries({ queryKey: clave })
+                }}
+                onCancelar={() => setDevolviendo(false)}
+              />
+            </PanelLateral>
           )}
           {esDueno && anulando && (
-            <div role="group" aria-labelledby="titulo-anular" className="confirmacion">
-              <Titulo nivel={3}>
-                <span id="titulo-anular">¿Anular la venta n.º {venta.data.number}?</span>
-              </Titulo>
+            <DialogoDeConfirmacion
+              titulo={`¿Anular la venta n.º ${venta.data.number}?`}
+              accion={anular.isPending ? 'Anulando…' : 'Sí, anular la venta'}
+              cancelar="Volver"
+              peligro
+              ocupado={anular.isPending}
+              onConfirmar={() => anular.mutate()}
+              onCancelar={() => {
+                anular.reset()
+                setAnulando(false)
+              }}
+            >
               <p>
                 No se borra: queda marcada como anulada, las unidades vuelven al inventario y cada pago se reembolsa por
                 el mismo medio desde la caja abierta.
@@ -137,29 +153,8 @@ export function DetalleDeVenta() {
                 errores={error?.campos.reason}
                 ayuda="Obligatorio. Por ejemplo: «Se cobró al cliente equivocado»."
                 autoComplete="off"
-                autoFocus
               />
-              <div className="acciones">
-                <button
-                  type="button"
-                  className="boton boton--peligro boton--auto"
-                  disabled={anular.isPending}
-                  onClick={() => anular.mutate()}
-                >
-                  {anular.isPending ? 'Anulando…' : 'Sí, anular la venta'}
-                </button>
-                <button
-                  type="button"
-                  className="boton boton--secundario boton--auto"
-                  onClick={() => {
-                    anular.reset()
-                    setAnulando(false)
-                  }}
-                >
-                  Volver
-                </button>
-              </div>
-            </div>
+            </DialogoDeConfirmacion>
           )}
         </section>
       )}

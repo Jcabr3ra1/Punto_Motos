@@ -12,6 +12,7 @@ import { Titulo } from '../../components/Titulo'
 import { useDebounce } from '../../hooks/useDebounce'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
+import { PanelLateral } from '../../components/PanelLateral'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; local: Consignee } | { tipo: 'tiene'; local: Consignee }
 
@@ -33,15 +34,17 @@ export function Locales() {
     setVista(siguiente)
   }
 
-  if (vista.tipo === 'crear' || vista.tipo === 'editar') {
-    const local = vista.tipo === 'editar' ? vista.local : undefined
-    return (
-      <>
-        <Titulo nivel={2}>{local ? `Editar «${local.name}»` : 'Nuevo local'}</Titulo>
-        <FormularioDeLocal local={local} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
-      </>
-    )
-  }
+  const local = vista.tipo === 'editar' ? vista.local : undefined
+  const panel = (vista.tipo === 'crear' || vista.tipo === 'editar') && (
+    <PanelLateral
+      titulo={local ? `Editar «${local.name}»` : 'Nuevo local'}
+      modulo="Consignación"
+      descripcion="Otro local que recibe mercancía para vender y la paga después."
+      onCerrar={() => ir({ tipo: 'lista' })}
+    >
+      <FormularioDeLocal local={local} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
+    </PanelLateral>
+  )
 
   if (vista.tipo === 'tiene') {
     return (
@@ -123,6 +126,7 @@ export function Locales() {
             </table>
           </div>
         ))}
+      {panel}
     </>
   )
 }

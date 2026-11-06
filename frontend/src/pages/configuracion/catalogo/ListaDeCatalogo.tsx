@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { listarCatalogo, type ElementoDeCatalogo, type TipoDeCatalogo } from '../../../api/catalogo'
 import { claves } from '../../../api/consultas'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
-import { Titulo } from '../../../components/Titulo'
 import { FormularioDeCatalogo } from './FormularioDeCatalogo'
+import { PanelLateral } from '../../../components/PanelLateral'
 
 export interface SeccionDeCatalogo {
   tipo: TipoDeCatalogo
@@ -37,23 +37,16 @@ export function ListaDeCatalogo({ seccion }: { seccion: SeccionDeCatalogo }) {
   if (consulta.isPending) return <Cargando />
   if (consulta.isError) return <ErrorDeCarga error={consulta.error} onReintentar={() => void consulta.refetch()} />
 
-  if (vista.tipo === 'crear') {
-    return (
-      <>
-        <Titulo nivel={3}>{seccion.nuevo}</Titulo>
-        <FormularioDeCatalogo seccion={seccion} onTerminar={volver} onCancelar={() => volver()} />
-      </>
-    )
-  }
-
-  if (vista.tipo === 'editar' && elegido) {
-    return (
-      <>
-        <Titulo nivel={3}>Editar «{elegido.name}»</Titulo>
-        <FormularioDeCatalogo seccion={seccion} elemento={elegido} onTerminar={volver} onCancelar={() => volver()} />
-      </>
-    )
-  }
+  const panel = (vista.tipo === 'crear' || (vista.tipo === 'editar' && elegido)) && (
+    <PanelLateral
+      titulo={vista.tipo === 'editar' && elegido ? `Editar «${elegido.name}»` : seccion.nuevo}
+      modulo="Configuración"
+      descripcion={seccion.descripcion}
+      onCerrar={() => volver()}
+    >
+      <FormularioDeCatalogo seccion={seccion} elemento={vista.tipo === 'editar' ? elegido : undefined} onTerminar={volver} onCancelar={() => volver()} />
+    </PanelLateral>
+  )
 
   return (
     <>
@@ -116,6 +109,7 @@ export function ListaDeCatalogo({ seccion }: { seccion: SeccionDeCatalogo }) {
           </table>
         </div>
       )}
+      {panel}
     </>
   )
 }

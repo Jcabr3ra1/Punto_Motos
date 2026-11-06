@@ -174,6 +174,16 @@ describe('registrar devolución desde el detalle de la venta', () => {
     })
   })
 
+  it('la devolución se abre en un panel ancho con el recibo detrás', async () => {
+    simularApi({ 'GET /sales/41': () => ({ cuerpo: ventaMixta() }) })
+    mostrarRutas(vendedor, '/venta/historial/41')
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Devolver…' }))
+
+    expect(screen.getByRole('dialog', { name: 'Devolver productos o servicios' })).toHaveClass('panel-lateral--ancho')
+  })
+
   it('limita a las unidades que faltan por devolver y deshabilita los servicios ya devueltos', async () => {
     const { u } = abrirDetalle(dueno, {
       'GET /sales/41': () => ({
