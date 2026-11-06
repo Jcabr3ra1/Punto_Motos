@@ -64,7 +64,7 @@ class WorkshopSalesTestCase(SalesTestCase):
     def setUp(self):
         super().setUp()
         self.oil = make_service_type()
-        self.other = make_service_type(code=999, name="Otro", suggested_price=0, needs_description=True)
+        self.other = make_service_type(code=999, name="Otro", suggested_price=0)
         self.carlos = Mechanic.objects.create(name="Carlos Ruiz")
         self.pedro = Mechanic.objects.create(name="Pedro Gómez")
 
@@ -123,12 +123,11 @@ class SaleWithServicesTests(WorkshopSalesTestCase):
         self.assertTrue(service.price_changed)
         self.assertEqual(sale.total, 20000)
 
-    def test_other_service_needs_description(self):
-        with self.assertRaises(ValidationError) as error:
-            self.sell(
-                services=[{"service_type": self.other, "mechanic": self.carlos, "labor_price": 8000}], user=self.owner,
-            )
-        self.assertIn("details", error.exception.message_dict)
+    def test_other_service_description_is_optional(self):
+        without, _ = self.sell(
+            services=[{"service_type": self.other, "mechanic": self.carlos, "labor_price": 8000}], user=self.owner,
+        )
+        self.assertEqual(without.services.get().details, "")
 
         sale, _ = self.sell(
             services=[{

@@ -7,7 +7,7 @@ import { mecanico, paginaDe, producto, tipoDeServicio, venta } from '../../test/
 import { mostrarRutas } from '../../test/mostrar'
 
 const aceite = tipoDeServicio()
-const otro = tipoDeServicio({ id: 2, code: 999, name: 'Otro', suggested_price: 0, needs_description: true })
+const otro = tipoDeServicio({ id: 2, code: 999, name: 'Otro', suggested_price: 0 })
 const carlos = mecanico()
 const pastillas = producto({ id: 1, sale_price: 25000, stock: 3 })
 
@@ -111,7 +111,7 @@ describe('servicios en la venta', () => {
     await screen.findByRole('option', { name: '101 · Cambio de aceite' })
     await u.selectOptions(screen.getByLabelText('Agregar servicio'), '1')
     await u.selectOptions(screen.getByLabelText('Agregar servicio'), '2')
-    expect(screen.getByLabelText('Qué se hizo en Otro (2)')).toHaveAttribute('placeholder', 'Obligatorio')
+    expect(screen.getByLabelText('Qué se hizo en Otro (2)')).toHaveAttribute('placeholder', 'Opcional')
     await u.selectOptions(screen.getByLabelText('Mecánico de Cambio de aceite (1)'), 'Carlos Ruiz')
     await u.selectOptions(screen.getByLabelText('Mecánico de Otro (2)'), 'Carlos Ruiz')
     await elegirAna(u)

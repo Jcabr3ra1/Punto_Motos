@@ -10,14 +10,13 @@ afterEach(() => {
 })
 
 describe('tipos de servicio', () => {
-  it('lista con código, mano de obra sugerida y los que piden descripción', async () => {
-    simularApi({ 'GET /service-types?include_inactive=true': () => ({ cuerpo: [tipoDeServicio(), tipoDeServicio({ id: 2, code: 999, name: 'Otro', suggested_price: 0, needs_description: true, is_active: false })] }) })
+  it('lista con código, mano de obra sugerida y estado', async () => {
+    simularApi({ 'GET /service-types?include_inactive=true': () => ({ cuerpo: [tipoDeServicio(), tipoDeServicio({ id: 2, code: 999, name: 'Otro', suggested_price: 0, is_active: false })] }) })
     mostrarRutas(dueno, '/configuracion/servicios')
 
     const fila = await screen.findByRole('row', { name: /Cambio de aceite/ })
     expect(fila).toHaveTextContent('101')
     expect(fila).toHaveTextContent(/\$\s?15\.000/)
-    expect(screen.getByRole('row', { name: /Otro/ })).toHaveTextContent('Pide descripción en la venta')
     expect(screen.getByRole('row', { name: /Otro/ })).toHaveTextContent('Inactivo')
   })
 
@@ -48,7 +47,6 @@ describe('tipos de servicio', () => {
       code: 102,
       name: 'Ajuste de frenos',
       suggested_price: 12000,
-      needs_description: false,
     })
   })
 })

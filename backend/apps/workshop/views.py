@@ -1,14 +1,17 @@
+from django.db.models import F
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsOwner
-from apps.catalog.views import CatalogViewSet, _id_param
+from apps.catalog.views import CatalogViewSet, _flag, _id_param
 from apps.core.pagination import StandardPagination
 from apps.inventory.views import _date_param
 
-from .models import Mechanic, MechanicSettlement, ServiceType
+from .models import Mechanic, MechanicDeduction, MechanicSettlement, ServiceType
 from .serializers import (
+    SETTLEMENT_DETAIL_PREFETCH,
+    MechanicDeductionSerializer,
     MechanicSerializer,
     MechanicSettlementDetailSerializer,
     MechanicSettlementSerializer,
@@ -96,5 +99,29 @@ class SettlementDetailView(generics.RetrieveAPIView):
     permission_classes = [IsOwner]
     serializer_class = MechanicSettlementDetailSerializer
     queryset = MechanicSettlement.objects.select_related("mechanic", "created_by").prefetch_related(
-        "services__service_type", "services__sale__customer",
+        *SETTLEMENT_DETAIL_PREFETCH,
     )
+
+
+class DeductionListView(generics.ListAPIView):
+    """Descuentos por mal servicio, los más antiguos primero. Solo el dueño.
+
+    La vista previa de la liquidación solo muestra mecánicos con servicios sin
+    pagar ese día; aquí se ve el saldo de cualquiera. Filtros: ?mechanic= y
+    ?pending=true (solo los que aún tienen saldo).
+    """
+
+    permission_classes = [IsOwner]
+    serializer_class = MechanicDeductionSerializer
+    pagination_class = StandardPagination
+
+    def get_queryset(self):
+        queryset = MechanicDeduction.objects.with_applied().select_related(
+            "mechanic", "sale_return__sale__customer",
+        ).prefetch_related("sale_return__services__sale_service__service_type")
+        mechanic = _id_param(self.request, "mechanic")
+        if mechanic:
+            queryset = queryset.filter(mechanic_id=mechanic)
+        if _flag(self.request, "pending"):
+            queryset = queryset.filter(applied__lt=F("amount"))
+        return queryset

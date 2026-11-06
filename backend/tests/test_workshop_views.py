@@ -39,7 +39,7 @@ class ServiceTypeApiTests(WorkshopApiTestCase):
         data = self.client.get("/api/v1/service-types").json()
         self.assertEqual([t["code"] for t in data], [101, 200])
         self.assertEqual(
-            set(data[0]), {"id", "code", "name", "suggested_price", "needs_description", "is_active"},
+            set(data[0]), {"id", "code", "name", "suggested_price", "is_active"},
         )
 
     def test_seller_cannot_create_or_edit(self):

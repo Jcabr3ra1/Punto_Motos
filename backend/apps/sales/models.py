@@ -1,14 +1,14 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, models, transaction
-from django.db.models import Max, Q
+from django.db.models import F, Max, Q
 from django.utils import timezone
 
 from apps.cash.models import CashMovement, CashMovementKind, CashSession, CashSessionClosed
 from apps.catalog.models import NamedModel, Product
 from apps.core.models import PaymentMethod
 from apps.inventory.models import InitialCount, InitialCountOpen, InventoryMovement, MovementKind
-from apps.workshop.models import Mechanic, MechanicSettlement, ServiceType
+from apps.workshop.models import Mechanic, MechanicDeduction, MechanicSettlement, ServiceType
 
 
 class EmptySale(Exception):
@@ -47,6 +47,10 @@ class SaleHasSettledServices(Exception):
     """Un servicio de la venta ya se le pagó al mecánico: se corrige con una devolución, no anulando."""
 
 
+class SaleHasReturns(Exception):
+    """La venta ya tiene devoluciones: anularla reembolsaría dos veces ese dinero."""
+
+
 class PaymentMismatch(Exception):
     """Las ventas no se dan a crédito: lo pagado debe ser exactamente el total."""
 
@@ -54,6 +58,41 @@ class PaymentMismatch(Exception):
         self.total = total
         self.paid = paid
         super().__init__(f"La venta es de {total} y se pagan {paid}.")
+
+
+class EmptyReturn(Exception):
+    """Una devolución necesita al menos un producto o un servicio."""
+
+
+class BadServiceOwnerOnly(Exception):
+    """Solo el dueño registra una devolución con causa de mal servicio."""
+
+
+class ReturnExceedsSold(Exception):
+    """No se puede devolver más de lo vendido menos lo ya devuelto."""
+
+    def __init__(self, item, available, requested):
+        self.item = item
+        self.available = available
+        self.requested = requested
+        super().__init__(f"{item.description}: se pueden devolver {available} y se piden {requested}.")
+
+
+class ServiceAlreadyReturned(Exception):
+    """Un servicio se devuelve completo y una sola vez."""
+
+    def __init__(self, service):
+        self.service = service
+        super().__init__(f"El servicio {service} ya se devolvió.")
+
+
+class RefundMismatch(Exception):
+    """El reembolso debe ser exactamente el valor de lo devuelto."""
+
+    def __init__(self, total, refunded):
+        self.total = total
+        self.refunded = refunded
+        super().__init__(f"La devolución es de {total} y se reembolsan {refunded}.")
 
 
 class Customer(NamedModel):
@@ -239,7 +278,8 @@ class Sale(models.Model):
         ValidationError; sin caja abierta, CashSessionClosed; una segunda vez,
         SaleAlreadyVoided. Si algún servicio ya se liquidó al mecánico lanza
         SaleHasSettledServices: ese dinero ya salió y se maneja con una
-        devolución. Si algo falla no queda nada.
+        devolución. Si ya tiene devoluciones lanza SaleHasReturns. Si algo falla
+        no queda nada.
         """
         reason = " ".join(reason.split())
         if not reason:
@@ -249,6 +289,8 @@ class Sale(models.Model):
         with transaction.atomic():
             if self.services.filter(settlement__isnull=False).exists():
                 raise SaleHasSettledServices()
+            if self.returns.exists():
+                raise SaleHasReturns()
             voided = Sale.objects.filter(pk=self.pk, voided_at__isnull=True).update(
                 voided_at=timezone.now(), voided_by=user, void_reason=reason,
             )
@@ -281,6 +323,8 @@ class SaleItem(models.Model):
     list_price = models.PositiveBigIntegerField("precio de catálogo")
     unit_price = models.PositiveBigIntegerField("precio de venta")
     unit_cost = models.PositiveBigIntegerField("costo unitario")
+    # Unidades ya devueltas. Solo cambia con SaleReturn.objects.register().
+    returned_quantity = models.PositiveIntegerField("cantidad devuelta", default=0)
 
     class Meta:
         verbose_name = "producto de la venta"
@@ -290,6 +334,10 @@ class SaleItem(models.Model):
             models.CheckConstraint(
                 condition=Q(quantity__gt=0), name="sale_item_quantity_positive",
                 violation_error_message="La cantidad debe ser mayor que cero.",
+            ),
+            models.CheckConstraint(
+                condition=Q(returned_quantity__lte=F("quantity")), name="sale_item_returned_within_quantity",
+                violation_error_message="No se puede devolver más de lo vendido.",
             ),
             models.UniqueConstraint(
                 "sale", "product", name="sale_item_product_unique",
@@ -358,8 +406,6 @@ class SaleService(models.Model):
             errors["service_type"] = "Este tipo de servicio está desactivado."
         if self.mechanic_id and not self.mechanic.is_active:
             errors["mechanic"] = "Este mecánico está desactivado."
-        if self.service_type_id and self.service_type.needs_description and not self.details:
-            errors["details"] = "Escribe qué servicio se hizo."
         if errors:
             raise ValidationError(errors)
 
@@ -394,3 +440,250 @@ class SalePayment(models.Model):
 
     def __str__(self):
         return f"{self.get_method_display()} {self.amount} · venta {self.sale_id}"
+
+
+class ReturnCause(models.TextChoices):
+    BAD_SERVICE = "bad_service", "Mal servicio del mecánico"
+    OTHER = "other", "Otra causa"
+
+
+class ReturnCondition(models.TextChoices):
+    RESELLABLE = "resellable", "Vuelve al inventario"
+    DAMAGED = "damaged", "No puede volver"
+
+
+class SaleReturnManager(models.Manager):
+    def register(self, sale, cause, reason, user, idempotency_key, items=(), services=(), refunds=()):
+        """Registra una devolución: reingresa lo que sirve, reembolsa y, si aplica, descuenta al mecánico.
+
+        items es una lista como [{"sale_item": línea, "quantity": 1, "condition":
+        "resellable"}]. Las unidades "resellable" vuelven al inventario; las
+        "damaged" ya habían salido con la venta, así que la existencia no cambia
+        y solo quedan anotadas. services es una lista de líneas SaleService: se
+        devuelven completas y una sola vez. refunds es el reembolso, uno por
+        medio: [{"method": "cash", "amount": 15000}], y debe sumar exactamente el
+        valor de lo devuelto (RefundMismatch).
+
+        Con causa "bad_service" solo la registra el dueño (BadServiceOwnerOnly) y
+        debe incluir servicios de un solo mecánico. A ese mecánico se le
+        descuenta la mano de obra devuelta completa más los repuestos "damaged",
+        al precio cobrado. Con otra causa, el local asume todo y el mecánico
+        conserva su parte.
+
+        idempotency_key evita repetir la devolución con un doble clic: si llega
+        otra vez se devuelve la ya hecha. Devuelve (devolución, creada). Sin caja
+        abierta lanza CashSessionClosed; sobre una venta anulada,
+        SaleAlreadyVoided; por encima de lo vendido, ReturnExceedsSold; con un
+        servicio ya devuelto, ServiceAlreadyReturned. Si algo falla no queda nada.
+        """
+        existing = self.filter(idempotency_key=idempotency_key).first()
+        if existing:
+            return existing, False
+        if cause == ReturnCause.BAD_SERVICE and not user.is_owner:
+            raise BadServiceOwnerOnly()
+        if CashSession.objects.current() is None:
+            raise CashSessionClosed()
+        if sale.is_voided:
+            raise SaleAlreadyVoided()
+        if not items and not services:
+            raise EmptyReturn()
+
+        lines = [
+            SaleReturnItem(
+                sale_item=item["sale_item"], quantity=item["quantity"],
+                condition=item.get("condition", ReturnCondition.RESELLABLE),
+            )
+            for item in items
+        ]
+        sold = [line.sale_item for line in lines]
+        if len({item.pk for item in sold}) != len(sold):
+            raise ValidationError({"items": "Un producto está repetido en la devolución: cambia su cantidad."})
+        if any(item.sale_id != sale.pk for item in sold):
+            raise ValidationError({"items": "Este producto no es de esta venta."})
+        if len({service.pk for service in services}) != len(services):
+            raise ValidationError({"services": "Un servicio está repetido en la devolución."})
+        if any(service.sale_id != sale.pk for service in services):
+            raise ValidationError({"services": "Este servicio no es de esta venta."})
+
+        deduction = 0
+        mechanic = None
+        if cause == ReturnCause.BAD_SERVICE:
+            mechanics = {service.mechanic_id for service in services}
+            if len(mechanics) != 1:
+                raise ValidationError({"services": "Indica los servicios de un solo mecánico."})
+            mechanic = services[0].mechanic
+            deduction = sum(service.labor_price for service in services) + sum(
+                line.subtotal for line in lines if line.condition == ReturnCondition.DAMAGED
+            )
+
+        total = sum(line.subtotal for line in lines) + sum(service.labor_price for service in services)
+        refunded = sum(refund["amount"] for refund in refunds)
+        if refunded != total:
+            raise RefundMismatch(total, refunded)
+
+        try:
+            with transaction.atomic():
+                number = (self.aggregate(last=Max("number"))["last"] or 0) + 1
+                sale_return = self.model(
+                    number=number, sale=sale, cause=cause, reason=" ".join(reason.split()), total=total,
+                    idempotency_key=idempotency_key, created_by=user,
+                )
+                sale_return.full_clean()
+                sale_return.save()
+                note = f"Devolución {number} venta {sale.number} · {sale_return.reason}"
+                for line in lines:
+                    line.sale_return = sale_return
+                    line.full_clean(exclude=["sale_return"])
+                    line.save()
+                    # Cambio condicional: dos devoluciones al tiempo no superan lo vendido.
+                    item = line.sale_item
+                    updated = SaleItem.objects.filter(
+                        pk=item.pk, returned_quantity__lte=F("quantity") - line.quantity,
+                    ).update(returned_quantity=F("returned_quantity") + line.quantity)
+                    if not updated:
+                        item.refresh_from_db()
+                        raise ReturnExceedsSold(item, item.quantity - item.returned_quantity, line.quantity)
+                    if line.condition == ReturnCondition.RESELLABLE:
+                        InventoryMovement.objects.record(
+                            item.product, MovementKind.RETURN, line.quantity, user, unit_cost=item.unit_cost,
+                            reason=note,
+                        )
+                for service in services:
+                    if SaleReturnService.objects.filter(sale_service=service).exists():
+                        raise ServiceAlreadyReturned(service)
+                    SaleReturnService.objects.create(sale_return=sale_return, sale_service=service)
+                for refund in refunds:
+                    line = SaleReturnRefund(sale_return=sale_return, **refund)
+                    line.full_clean(exclude=["sale_return"])
+                    line.save()
+                    CashMovement.objects.record(
+                        CashMovementKind.SALE_REFUND, -line.amount, line.method, user, reason=note, sale=sale,
+                        sale_return=sale_return,
+                    )
+                if deduction:
+                    MechanicDeduction.objects.create(mechanic=mechanic, sale_return=sale_return, amount=deduction)
+        except IntegrityError:
+            # Dos peticiones con la misma clave al tiempo: la otra ganó, se devuelve la suya.
+            existing = self.filter(idempotency_key=idempotency_key).first()
+            if existing:
+                return existing, False
+            raise
+        return sale_return, True
+
+
+class SaleReturn(models.Model):
+    """Devolución parcial o total de una venta.
+
+    La venta original no cambia: esta devolución deja su propio documento y las
+    operaciones contrarias. Nace completa con SaleReturn.objects.register() y no
+    se edita ni se borra.
+    """
+
+    # Número visible, consecutivo y separado del de las ventas.
+    number = models.PositiveIntegerField("número", unique=True)
+    sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="returns", verbose_name="venta")
+    cause = models.CharField("causa", max_length=15, choices=ReturnCause.choices)
+    # Corto para que quepa en el motivo de los movimientos de caja e inventario, con su prefijo.
+    reason = models.CharField("motivo", max_length=150)
+    # Pesos enteros.
+    total = models.PositiveBigIntegerField("total devuelto")
+    idempotency_key = models.UUIDField("clave de reintento", unique=True, editable=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="sale_returns", verbose_name="registrada por",
+    )
+    created_at = models.DateTimeField("fecha", auto_now_add=True)
+
+    objects = SaleReturnManager()
+
+    class Meta:
+        verbose_name = "devolución"
+        verbose_name_plural = "devoluciones"
+        ordering = ["-number"]
+        constraints = [
+            models.CheckConstraint(
+                condition=~Q(reason=""), name="sale_return_has_reason",
+                violation_error_message="Indica el motivo de la devolución.",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Devolución {self.number} · venta {self.sale.number}"
+
+    def delete(self, *args, **kwargs):
+        raise SaleIsFinal()
+
+
+class SaleReturnItem(models.Model):
+    """Unidades devueltas de un producto de la venta y en qué estado llegaron."""
+
+    sale_return = models.ForeignKey(SaleReturn, on_delete=models.PROTECT, related_name="items", verbose_name="devolución")
+    sale_item = models.ForeignKey(SaleItem, on_delete=models.PROTECT, related_name="return_lines", verbose_name="producto de la venta")
+    quantity = models.PositiveIntegerField("cantidad")
+    condition = models.CharField("estado", max_length=10, choices=ReturnCondition.choices)
+
+    class Meta:
+        verbose_name = "producto devuelto"
+        verbose_name_plural = "productos devueltos"
+        ordering = ["id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(quantity__gt=0), name="sale_return_item_quantity_positive",
+                violation_error_message="La cantidad debe ser mayor que cero.",
+            ),
+            models.UniqueConstraint(
+                "sale_return", "sale_item", name="sale_return_item_unique",
+                violation_error_message="Este producto ya está en la devolución: cambia su cantidad.",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.quantity} × {self.sale_item.description}"
+
+    @property
+    def subtotal(self):
+        """Se reembolsa al precio cobrado en la venta, no al del catálogo de hoy."""
+        return self.quantity * self.sale_item.unit_price
+
+
+class SaleReturnService(models.Model):
+    """Servicio devuelto. Es completo y único: la base no deja devolver dos veces el mismo."""
+
+    sale_return = models.ForeignKey(SaleReturn, on_delete=models.PROTECT, related_name="services", verbose_name="devolución")
+    sale_service = models.OneToOneField(
+        SaleService, on_delete=models.PROTECT, related_name="return_line", verbose_name="servicio de la venta",
+    )
+
+    class Meta:
+        verbose_name = "servicio devuelto"
+        verbose_name_plural = "servicios devueltos"
+        ordering = ["id"]
+
+    def __str__(self):
+        return str(self.sale_service)
+
+
+class SaleReturnRefund(models.Model):
+    """Parte del reembolso en un medio de pago."""
+
+    sale_return = models.ForeignKey(SaleReturn, on_delete=models.PROTECT, related_name="refunds", verbose_name="devolución")
+    method = models.CharField("medio de pago", max_length=10, choices=PaymentMethod.choices)
+    # Pesos enteros.
+    amount = models.PositiveBigIntegerField("valor")
+
+    class Meta:
+        verbose_name = "reembolso de la devolución"
+        verbose_name_plural = "reembolsos de la devolución"
+        ordering = ["id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=0), name="sale_return_refund_amount_positive",
+                violation_error_message="El valor debe ser mayor que cero.",
+            ),
+            models.UniqueConstraint(
+                "sale_return", "method", name="sale_return_refund_method_unique",
+                violation_error_message="Este medio ya está en el reembolso: suma los valores.",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_method_display()} {self.amount} · devolución {self.sale_return_id}"

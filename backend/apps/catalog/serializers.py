@@ -13,6 +13,7 @@ from .models import (
     code_validator,
     normalize_code,
 )
+from .text import plain_text
 
 # --- Tipo, marca y moto ----------------------------------------------------
 
@@ -185,7 +186,38 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("El precio de venta debe ser mayor que cero.")
         return value
 
+    def _reject_duplicate(self, attrs):
+        """Rechaza otro producto con el mismo nombre, marca y moto.
+
+        El código no sirve para detectarlo: el generador le agrega un número
+        (FRE-PUL-PAS2). La regla va aquí y no en la base porque puede haber
+        duplicados de antes. Por eso, al editar solo se revisa si cambia lo que
+        identifica al producto o si se reactiva: así un duplicado viejo se puede
+        corregir o desactivar.
+        """
+        product = self.instance
+        name = plain_text(attrs.get("name", getattr(product, "name", "")))
+        brand = attrs.get("brand", getattr(product, "brand", None))
+        moto = attrs.get("moto", getattr(product, "moto", None))
+        same = Product.objects.filter(search_text=name, brand=brand, moto=moto)
+        if product is not None:
+            same = same.exclude(pk=product.pk)
+            if (name, brand, moto) == (product.search_text, product.brand, product.moto):
+                if product.is_active or not attrs.get("is_active"):
+                    return
+                # Reactivarlo solo choca con otro activo: dos desactivados no estorban.
+                same = same.filter(is_active=True)
+        other = same.order_by("-is_active").first()
+        if other is None:
+            return
+        if other.is_active:
+            message = f"Este producto ya existe con la misma marca y moto: {other.code}."
+        else:
+            message = f"Este producto ya existe desactivado: {other.code}. Actívalo en lugar de crearlo otra vez."
+        raise serializers.ValidationError({"name": [message]})
+
     def validate(self, attrs):
+        self._reject_duplicate(attrs)
         moto = attrs.get("moto", getattr(self.instance, "moto", None))
         if "compatible_motos" in attrs and moto is not None:
             # La moto principal no se repite como compatible.

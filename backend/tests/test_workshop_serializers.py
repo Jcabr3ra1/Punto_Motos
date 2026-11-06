@@ -25,7 +25,6 @@ class ServiceTypeSerializerTests(TestCase):
         service_type = serializer.save()
 
         self.assertEqual(service_type.name, "Cambio de aceite")
-        self.assertFalse(service_type.needs_description)
 
     def test_repeated_code_or_name_is_rejected(self):
         oil = make_service_type()
@@ -95,7 +94,7 @@ class SaleWithServicesSerializerTests(SaleSerializerTestCase):
     def setUp(self):
         super().setUp()
         self.oil = make_service_type()
-        self.other = make_service_type(code=999, name="Otro", suggested_price=0, needs_description=True)
+        self.other = make_service_type(code=999, name="Otro", suggested_price=0)
         self.carlos = Mechanic.objects.create(name="Carlos Ruiz")
 
     def service(self, **extra):
@@ -152,14 +151,13 @@ class SaleWithServicesSerializerTests(SaleSerializerTestCase):
         service = self.confirm(data, user=self.owner).data["services"][0]
         self.assertEqual((service["suggested_price"], service["labor_price"], service["price_changed"]), (15000, 20000, True))
 
-    def test_other_needs_details_on_its_line(self):
-        errors = self.errors(self.data(
+    def test_other_can_be_sold_without_details(self):
+        services = self.confirm(self.data(
             items=[], services=[self.service(), self.service(service_type=self.other.pk, labor_price=0)],
             payments=[{"method": "cash", "amount": 15000}],
-        ), user=self.owner)
+        ), user=self.owner).data["services"]
 
-        self.assertEqual(errors["services"][0], {})
-        self.assertIn("Otro", errors["services"][1]["details"][0])
+        self.assertEqual(services[1]["details"], "")
 
     def test_inactive_mechanic_is_rejected(self):
         self.carlos.is_active = False

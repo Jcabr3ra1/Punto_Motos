@@ -80,7 +80,6 @@ export function TiposDeServicio() {
                     <td className="tabla__codigo">{tipo.code}</td>
                     <th scope="row">
                       {tipo.name}
-                      {tipo.needs_description && <span className="tabla__detalle">Pide descripción en la venta</span>}
                     </th>
                     <td className="tabla__numero">{formatearPesos(tipo.suggested_price)}</td>
                     <td>{tipo.is_active ? 'Activo' : 'Inactivo'}</td>
@@ -113,7 +112,6 @@ function FormularioDeTipo({
   const [codigo, setCodigo] = useState(servicio ? String(servicio.code) : '')
   const [nombre, setNombre] = useState(servicio?.name ?? '')
   const [precio, setPrecio] = useState(servicio ? String(servicio.suggested_price) : '')
-  const [pideDescripcion, setPideDescripcion] = useState(servicio?.needs_description ?? false)
   const [activo, setActivo] = useState(servicio?.is_active ?? true)
 
   const guardar = useMutation({
@@ -122,7 +120,6 @@ function FormularioDeTipo({
         ...(codigo !== '' ? { code: Number(codigo) } : {}),
         name: nombre,
         ...(precio !== '' ? { suggested_price: Number(precio) } : {}),
-        needs_description: pideDescripcion,
       }
       return editando ? editarTipoDeServicio(servicio.id, { ...datos, is_active: activo }) : crearTipoDeServicio(datos)
     },
@@ -171,12 +168,6 @@ function FormularioDeTipo({
         />
       </div>
       <Campo etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} errores={error?.campos.name} maxLength={80} autoComplete="off" required />
-      <Casilla
-        etiqueta="Pide descripción en la venta"
-        checked={pideDescripcion}
-        onChange={(e) => setPideDescripcion(e.target.checked)}
-        ayuda="Para el tipo «Otro»: la venta debe decir qué se hizo."
-      />
       {editando && <Casilla etiqueta="Activo" checked={activo} onChange={(e) => setActivo(e.target.checked)} />}
       <div className="acciones">
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>

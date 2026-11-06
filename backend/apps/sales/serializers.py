@@ -13,13 +13,16 @@ from apps.purchases.serializers import clean_text, pesos
 from apps.workshop.models import Mechanic, ServiceType
 from apps.workshop.serializers import MechanicSummarySerializer, ServiceTypeSummarySerializer
 
-from .exceptions import SaleSettled, SaleVoided
+from .exceptions import SaleSettled, SaleVoided, SaleWithReturns
 from .models import (
-    Customer, EmptySale, InitialCountOpen, LaborPriceChangeNotAllowed, PaymentMismatch, PriceChangeNotAllowed, Sale,
-    SaleAlreadyVoided, SaleHasSettledServices, SaleItem, SalePayment, SaleService, normalize_plate,
+    BadServiceOwnerOnly, Customer, EmptyReturn, EmptySale, InitialCountOpen, LaborPriceChangeNotAllowed,
+    PaymentMismatch, PriceChangeNotAllowed, RefundMismatch, ReturnCause, ReturnCondition, ReturnExceedsSold, Sale,
+    SaleAlreadyVoided, SaleHasReturns, SaleHasSettledServices, SaleItem, SalePayment, SaleReturn, SaleReturnItem,
+    SaleReturnRefund, SaleReturnService, SaleService, ServiceAlreadyReturned, normalize_plate,
 )
 
 EMPTY_SALE_MESSAGE = "Agrega al menos un producto o un servicio."
+EMPTY_RETURN_MESSAGE = "Indica al menos un producto o un servicio para devolver."
 
 
 def line_error(lines, index, field, message):
@@ -37,6 +40,12 @@ def stock_message(error):
 
 def payment_mismatch_message(total, paid):
     return f"La venta es de {pesos(total)} y el pago suma {pesos(paid)}: deben ser iguales."
+
+
+def return_exceeds_message(error):
+    if error.available == 0:
+        return f"Ya se devolvieron todas las unidades de {error.item.description}."
+    return f"Solo quedan {error.available} por devolver de {error.item.description}."
 
 
 # --- Cliente -----------------------------------------------------------------
@@ -87,8 +96,8 @@ class SaleItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaleItem
         fields = [
-            "id", "product", "description", "quantity", "list_price", "unit_price", "price_changed", "subtotal",
-            "unit_cost",
+            "id", "product", "description", "quantity", "returned_quantity", "list_price", "unit_price",
+            "price_changed", "subtotal", "unit_cost",
         ]
         read_only_fields = fields
 
@@ -105,13 +114,18 @@ class SaleServiceSerializer(serializers.ModelSerializer):
     service_type = ServiceTypeSummarySerializer(read_only=True)
     mechanic = MechanicSummarySerializer(read_only=True)
     price_changed = serializers.BooleanField(read_only=True)
+    is_returned = serializers.SerializerMethodField()
 
     class Meta:
         model = SaleService
         fields = [
             "id", "service_type", "mechanic", "plate", "details", "suggested_price", "labor_price", "price_changed",
+            "is_returned",
         ]
         read_only_fields = fields
+
+    def get_is_returned(self, instance):
+        return hasattr(instance, "return_line")
 
 
 class SalePaymentSerializer(serializers.ModelSerializer):
@@ -245,10 +259,6 @@ class SaleWriteSerializer(serializers.Serializer):
     def validate_services(self, services):
         for index, service in enumerate(services):
             service_type = service["service_type"]
-            if service_type.needs_description and not service["details"]:
-                raise serializers.ValidationError(line_error(
-                    services, index, "details", f"Escribe qué se hizo en el servicio «{service_type.name}».",
-                ))
             labor_price = service.get("labor_price", service_type.suggested_price)
             if labor_price != service_type.suggested_price and not _is_owner(self.context):
                 raise serializers.ValidationError(line_error(
@@ -323,7 +333,7 @@ class SaleWriteSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         instance = Sale.objects.select_related("customer", "created_by").prefetch_related(
-            "items__product", "services__service_type", "services__mechanic", "payments",
+            "items__product", "services__service_type", "services__mechanic", "services__return_line", "payments",
         ).get(pk=instance.pk)
         return SaleDetailSerializer(instance, context=self.context).data
 
@@ -349,9 +359,195 @@ class VoidSaleSerializer(serializers.Serializer):
             raise SaleVoided()
         except SaleHasSettledServices:
             raise SaleSettled()
+        except SaleHasReturns:
+            raise SaleWithReturns()
         except CashSessionClosed:
             raise NoOpenCashSession()
         return instance
 
     def to_representation(self, instance):
         return SaleWriteSerializer(context=self.context).to_representation(instance)
+
+
+# --- Devolución: lectura -----------------------------------------------------
+
+
+class SaleReturnItemSerializer(serializers.ModelSerializer):
+    """Producto devuelto. El valor es el que se cobró en la venta."""
+
+    sale_item = serializers.IntegerField(source="sale_item_id", read_only=True)
+    product = SaleProductSerializer(source="sale_item.product", read_only=True)
+    description = serializers.CharField(source="sale_item.description", read_only=True)
+    unit_price = serializers.IntegerField(source="sale_item.unit_price", read_only=True)
+    condition_label = serializers.CharField(source="get_condition_display", read_only=True)
+    subtotal = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = SaleReturnItem
+        fields = [
+            "id", "sale_item", "product", "description", "quantity", "condition", "condition_label", "unit_price",
+            "subtotal",
+        ]
+        read_only_fields = fields
+
+
+class SaleReturnServiceSerializer(serializers.ModelSerializer):
+    """Servicio devuelto, con el mecánico que lo hizo."""
+
+    sale_service = serializers.IntegerField(source="sale_service_id", read_only=True)
+    service_type = ServiceTypeSummarySerializer(source="sale_service.service_type", read_only=True)
+    mechanic = MechanicSummarySerializer(source="sale_service.mechanic", read_only=True)
+    plate = serializers.CharField(source="sale_service.plate", read_only=True)
+    details = serializers.CharField(source="sale_service.details", read_only=True)
+    labor_price = serializers.IntegerField(source="sale_service.labor_price", read_only=True)
+
+    class Meta:
+        model = SaleReturnService
+        fields = ["id", "sale_service", "service_type", "mechanic", "plate", "details", "labor_price"]
+        read_only_fields = fields
+
+
+class SaleReturnRefundSerializer(serializers.ModelSerializer):
+    method_label = serializers.CharField(source="get_method_display", read_only=True)
+
+    class Meta:
+        model = SaleReturnRefund
+        fields = ["method", "method_label", "amount"]
+        read_only_fields = fields
+
+
+class SaleReturnDeductionSerializer(serializers.Serializer):
+    """Lo que se le descuenta al mecánico y cuánto falta por descontar hoy."""
+
+    mechanic = MechanicSummarySerializer()
+    amount = serializers.IntegerField()
+    applied_amount = serializers.IntegerField()
+    pending_amount = serializers.IntegerField()
+
+
+class SaleReturnSerializer(serializers.ModelSerializer):
+    """Devolución en la lista."""
+
+    sale_number = serializers.IntegerField(source="sale.number", read_only=True)
+    customer = CustomerSummarySerializer(source="sale.customer", read_only=True)
+    cause_label = serializers.CharField(source="get_cause_display", read_only=True)
+    created_by = serializers.CharField(source="created_by.username", read_only=True)
+
+    class Meta:
+        model = SaleReturn
+        fields = [
+            "id", "number", "sale", "sale_number", "customer", "cause", "cause_label", "reason", "total",
+            "created_by", "created_at",
+        ]
+        read_only_fields = fields
+
+
+class SaleReturnDetailSerializer(SaleReturnSerializer):
+    """Devolución completa. El descuento al mecánico es dato de pago: solo se envía al dueño."""
+
+    items = SaleReturnItemSerializer(many=True, read_only=True)
+    services = SaleReturnServiceSerializer(many=True, read_only=True)
+    refunds = SaleReturnRefundSerializer(many=True, read_only=True)
+    mechanic_deduction = SaleReturnDeductionSerializer(read_only=True, allow_null=True)
+
+    class Meta(SaleReturnSerializer.Meta):
+        fields = SaleReturnSerializer.Meta.fields + ["items", "services", "refunds", "mechanic_deduction"]
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not _is_owner(self.context):
+            data.pop("mechanic_deduction")
+        return data
+
+
+def sale_return_with_lines():
+    """Consulta con todo lo que lee SaleReturnDetailSerializer."""
+    return SaleReturn.objects.select_related(
+        "sale__customer", "created_by", "mechanic_deduction__mechanic",
+    ).prefetch_related(
+        "items__sale_item__product", "services__sale_service__service_type", "services__sale_service__mechanic",
+        "refunds",
+    )
+
+
+# --- Devolución: registrar ---------------------------------------------------
+
+
+class SaleReturnItemWriteSerializer(serializers.Serializer):
+    sale_item = serializers.PrimaryKeyRelatedField(queryset=SaleItem.objects.select_related("product"))
+    quantity = serializers.IntegerField(min_value=1)
+    # Obligatorio: por omisión una unidad dañada entraría al inventario como vendible.
+    condition = serializers.ChoiceField(choices=ReturnCondition.choices)
+
+
+class SaleReturnRefundWriteSerializer(serializers.Serializer):
+    method = serializers.ChoiceField(choices=PaymentMethod.choices)
+    amount = serializers.IntegerField(min_value=1)
+
+
+class SaleReturnWriteSerializer(serializers.Serializer):
+    """Registra una devolución de la venta que llega en context["sale"].
+
+    Las reglas viven en SaleReturn.objects.register(); aquí se traducen sus
+    errores. Si idempotency_key ya se usó, se devuelve esa devolución sin
+    repetir nada y self.created queda en False.
+    """
+
+    idempotency_key = serializers.UUIDField(help_text="UUID que genera la ventana para cada devolución.")
+    cause = serializers.ChoiceField(choices=ReturnCause.choices)
+    reason = serializers.CharField(max_length=150)
+    items = SaleReturnItemWriteSerializer(many=True, required=False, default=list)
+    services = serializers.PrimaryKeyRelatedField(
+        queryset=SaleService.objects.select_related("service_type", "mechanic"), many=True, required=False,
+        default=list,
+    )
+    refunds = SaleReturnRefundWriteSerializer(many=True)
+
+    def validate_reason(self, value):
+        value = clean_text(value)
+        if not value:
+            raise serializers.ValidationError("Indica el motivo de la devolución.")
+        return value
+
+    def validate_refunds(self, refunds):
+        methods = [refund["method"] for refund in refunds]
+        if len(methods) != len(set(methods)):
+            raise serializers.ValidationError("Cada medio de pago va una sola vez: suma los valores.")
+        return refunds
+
+    def create(self, validated_data):
+        items = validated_data["items"]
+        try:
+            sale_return, self.created = SaleReturn.objects.register(
+                self.context["sale"], validated_data["cause"], validated_data["reason"], self.context["request"].user,
+                validated_data["idempotency_key"], items=items, services=validated_data["services"],
+                refunds=validated_data["refunds"],
+            )
+        except BadServiceOwnerOnly:
+            raise serializers.ValidationError({"cause": ["Solo el dueño puede registrar una devolución por mal servicio."]})
+        except SaleAlreadyVoided:
+            raise SaleVoided()
+        except CashSessionClosed:
+            raise NoOpenCashSession()
+        except EmptyReturn:
+            raise serializers.ValidationError({"items": [EMPTY_RETURN_MESSAGE]})
+        except ReturnExceedsSold as error:
+            index = next(i for i, item in enumerate(items) if item["sale_item"].pk == error.item.pk)
+            raise serializers.ValidationError({"items": line_error(
+                items, index, "quantity", return_exceeds_message(error),
+            )})
+        except ServiceAlreadyReturned as error:
+            raise serializers.ValidationError({"services": [
+                f"El servicio «{error.service.service_type.name}» ya se devolvió.",
+            ]})
+        except RefundMismatch as error:
+            raise serializers.ValidationError({"refunds": [
+                f"La devolución es de {pesos(error.total)} y el reembolso suma {pesos(error.refunded)}: deben ser iguales.",
+            ]})
+        except DjangoValidationError as error:
+            raise serializers.ValidationError(error.message_dict)
+        return sale_return
+
+    def to_representation(self, instance):
+        return SaleReturnDetailSerializer(sale_return_with_lines().get(pk=instance.pk), context=self.context).data

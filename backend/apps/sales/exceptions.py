@@ -16,3 +16,11 @@ class SaleSettled(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_code = "sale_has_settled_services"
     default_detail = "Esta venta tiene servicios ya pagados al mecánico: no se puede anular."
+
+
+class SaleWithReturns(APIException):
+    """La venta ya tiene devoluciones: anularla reembolsaría dos veces ese dinero."""
+
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "sale_has_returns"
+    default_detail = "Esta venta ya tiene devoluciones: no se puede anular."

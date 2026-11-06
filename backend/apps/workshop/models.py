@@ -2,8 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator
 from django.db import models, transaction
-from django.db.models import Q
-from django.db.models.functions import Lower
+from django.db.models import F, Q, Sum
+from django.db.models.functions import Coalesce, Lower
 from django.utils import timezone
 
 from apps.cash.models import CashMovement, CashMovementKind, CashSession, CashSessionClosed
@@ -22,11 +22,6 @@ class ServiceType(NamedModel):
 
     code = models.PositiveIntegerField("código", help_text="Número corto para el buscador de la venta, por ejemplo 101.")
     suggested_price = models.PositiveBigIntegerField("precio sugerido", help_text="Mano de obra en pesos enteros.")
-    # Para el tipo «Otro»: obliga a escribir en la venta qué se hizo.
-    needs_description = models.BooleanField(
-        "pide descripción", default=False,
-        help_text="La venta debe decir qué servicio se hizo, por ejemplo en el tipo «Otro».",
-    )
 
     class Meta(NamedModel.Meta):
         verbose_name = "tipo de servicio"
@@ -113,7 +108,9 @@ class MechanicSettlementManager(models.Manager):
         """Lo que se le debe a cada mecánico con servicios sin pagar ese día, para mostrarlo antes de pagar.
 
         Devuelve una lista de diccionarios con mechanic, services_count,
-        labor_total, percentage y amount, ordenada por nombre.
+        labor_total, percentage, share (su parte antes de descuentos),
+        deductions_total (lo que se le descontará) y amount (lo que recibe),
+        ordenada por nombre.
         """
         result = []
         mechanics = Mechanic.objects.filter(
@@ -123,9 +120,13 @@ class MechanicSettlementManager(models.Manager):
         for mechanic in mechanics:
             labor = [service.labor_price for service in self.pending_services(mechanic, day)]
             percentage = mechanic.effective_percentage
+            share = mechanic_share(sum(labor), percentage)
+            pending = sum(deduction.pending_amount for deduction in MechanicDeduction.objects.pending(mechanic))
+            deductions_total = min(share, pending)
             result.append({
                 "mechanic": mechanic, "services_count": len(labor), "labor_total": sum(labor),
-                "percentage": percentage, "amount": mechanic_share(sum(labor), percentage),
+                "percentage": percentage, "share": share, "deductions_total": deductions_total,
+                "amount": share - deductions_total,
             })
         return result
 
@@ -136,6 +137,10 @@ class MechanicSettlementManager(models.Manager):
         la caja abierta de hoy, aunque el día liquidado sea anterior. Cada
         servicio queda marcado con esta liquidación, así nunca se paga dos
         veces. Los repuestos no entran: son 100 % del local.
+
+        Si el mecánico tiene descuentos por mal servicio, se restan de su parte,
+        los más antiguos primero. Lo que no alcance a descontarse queda para la
+        siguiente liquidación; si se descuenta todo, no sale dinero de la caja.
 
         Un día futuro lanza ValidationError; sin servicios pendientes,
         NothingToSettle; con valor a pagar y sin caja abierta,
@@ -149,13 +154,24 @@ class MechanicSettlementManager(models.Manager):
                 raise NothingToSettle()
             labor_total = sum(service.labor_price for service in services)
             percentage = mechanic.effective_percentage
-            amount = mechanic_share(labor_total, percentage)
+            share = mechanic_share(labor_total, percentage)
+            applications = []
+            remaining = share
+            for deduction in MechanicDeduction.objects.pending(mechanic):
+                if not remaining:
+                    break
+                applied = min(remaining, deduction.pending_amount)
+                applications.append((deduction, applied))
+                remaining -= applied
+            amount = remaining
             if amount and CashSession.objects.current() is None:
                 raise CashSessionClosed()
             settlement = self.create(
                 mechanic=mechanic, date=day, labor_total=labor_total, percentage=percentage, amount=amount,
-                method=method, created_by=user,
+                deductions_total=share - amount, method=method, created_by=user,
             )
+            for deduction, applied in applications:
+                DeductionApplication.objects.create(deduction=deduction, settlement=settlement, amount=applied)
             # Cambio condicional: si otra liquidación tomó alguno de estos servicios, se deshace todo.
             marked = mechanic.services.filter(
                 pk__in=[service.pk for service in services], settlement__isnull=True,
@@ -174,9 +190,10 @@ class MechanicSettlement(models.Model):
     """Pago a un mecánico por los servicios de un día: su parte de la mano de obra.
 
     Guarda solo lo que pide el negocio: mecánico, día, total de mano de obra,
-    porcentaje aplicado y valor pagado. Los servicios pagados quedan
-    enlazados (SaleService.settlement). Si después de pagar se venden más
-    servicios ese día, se liquidan aparte. No se edita ni se borra.
+    porcentaje aplicado, descuentos y valor pagado. Los servicios pagados
+    quedan enlazados (SaleService.settlement) y los descuentos, en
+    deduction_applications. Si después de pagar se venden más servicios ese
+    día, se liquidan aparte. No se edita ni se borra.
     """
 
     mechanic = models.ForeignKey(Mechanic, on_delete=models.PROTECT, related_name="settlements", verbose_name="mecánico")
@@ -184,6 +201,8 @@ class MechanicSettlement(models.Model):
     # Pesos enteros.
     labor_total = models.PositiveBigIntegerField("total de mano de obra")
     percentage = models.PositiveSmallIntegerField("porcentaje aplicado", validators=[MaxValueValidator(100)])
+    # Lo que se le descontó en este pago. Su parte antes de descuentos es amount + deductions_total.
+    deductions_total = models.PositiveBigIntegerField("descuentos aplicados", default=0)
     amount = models.PositiveBigIntegerField("valor pagado")
     method = models.CharField("medio de pago", max_length=10, choices=PaymentMethod.choices)
     created_by = models.ForeignKey(
@@ -207,8 +226,103 @@ class MechanicSettlement(models.Model):
                 condition=Q(amount__lte=models.F("labor_total")), name="settlement_amount_within_labor",
                 violation_error_message="El pago no puede superar la mano de obra.",
             ),
+            models.CheckConstraint(
+                condition=Q(deductions_total__lte=models.F("labor_total") - models.F("amount")),
+                name="settlement_share_within_labor",
+                violation_error_message="El pago y los descuentos no pueden superar la mano de obra.",
+            ),
         ]
         indexes = [models.Index(fields=["mechanic", "-date"], name="settlement_mechanic_date_idx")]
 
     def __str__(self):
         return f"Liquidación {self.date:%Y-%m-%d} · {self.mechanic}"
+
+
+class MechanicDeductionManager(models.Manager):
+    def with_applied(self):
+        """Descuentos con lo ya descontado en `applied`, los más antiguos primero.
+
+        El orden va explícito: agrupar por el Sum descarta el de Meta.
+        """
+        return self.annotate(
+            applied=Coalesce(Sum("applications__amount"), 0, output_field=models.BigIntegerField()),
+        ).order_by("id")
+
+    def pending(self, mechanic):
+        """Descuentos del mecánico que aún tienen saldo, los más antiguos primero."""
+        return self.with_applied().filter(mechanic=mechanic, applied__lt=F("amount"))
+
+
+class MechanicDeduction(models.Model):
+    """Lo que se le debe descontar a un mecánico por una devolución con causa de mal servicio.
+
+    Se crea con la devolución y se va pagando en sus liquidaciones: si en una no
+    alcanza, el saldo pasa a la siguiente. El servicio, el cliente, la placa y
+    el motivo se leen de la devolución. No se edita ni se borra.
+    """
+
+    mechanic = models.ForeignKey(Mechanic, on_delete=models.PROTECT, related_name="deductions", verbose_name="mecánico")
+    sale_return = models.OneToOneField(
+        "sales.SaleReturn", on_delete=models.PROTECT, related_name="mechanic_deduction", verbose_name="devolución",
+    )
+    # Pesos enteros: la mano de obra devuelta más los repuestos que no pueden volver.
+    amount = models.PositiveBigIntegerField("valor a descontar")
+    created_at = models.DateTimeField("fecha", auto_now_add=True)
+
+    objects = MechanicDeductionManager()
+
+    class Meta:
+        verbose_name = "descuento a mecánico"
+        verbose_name_plural = "descuentos a mecánicos"
+        ordering = ["id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=0), name="deduction_amount_positive",
+                violation_error_message="El valor debe ser mayor que cero.",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Descuento {self.amount} · {self.mechanic}"
+
+    @property
+    def applied_amount(self):
+        """Lo ya descontado en liquidaciones."""
+        return self.applications.aggregate(total=Sum("amount"))["total"] or 0
+
+    @property
+    def pending_amount(self):
+        """Lo que falta por descontar."""
+        return self.amount - self.applied_amount
+
+
+class DeductionApplication(models.Model):
+    """Parte de un descuento aplicada en una liquidación, para mostrarla en el recibo del mecánico."""
+
+    deduction = models.ForeignKey(
+        MechanicDeduction, on_delete=models.PROTECT, related_name="applications", verbose_name="descuento",
+    )
+    settlement = models.ForeignKey(
+        MechanicSettlement, on_delete=models.PROTECT, related_name="deduction_applications",
+        verbose_name="liquidación",
+    )
+    # Pesos enteros.
+    amount = models.PositiveBigIntegerField("valor descontado")
+
+    class Meta:
+        verbose_name = "descuento aplicado"
+        verbose_name_plural = "descuentos aplicados"
+        ordering = ["id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=0), name="deduction_application_positive",
+                violation_error_message="El valor debe ser mayor que cero.",
+            ),
+            models.UniqueConstraint(
+                "deduction", "settlement", name="deduction_application_unique",
+                violation_error_message="Este descuento ya está en la liquidación.",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.amount} · liquidación {self.settlement_id}"

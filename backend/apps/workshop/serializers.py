@@ -9,7 +9,15 @@ from apps.core.models import PaymentMethod
 from apps.purchases.serializers import clean_text
 
 from .exceptions import NothingPending
-from .models import Mechanic, MechanicSettlement, NothingToSettle, ServiceType
+from .models import Mechanic, MechanicDeduction, MechanicSettlement, NothingToSettle, ServiceType
+
+# Lo que lee MechanicSettlementDetailSerializer.
+SETTLEMENT_DETAIL_PREFETCH = [
+    "services__service_type",
+    "services__sale__customer",
+    "deduction_applications__deduction__sale_return__sale__customer",
+    "deduction_applications__deduction__sale_return__services__sale_service__service_type",
+]
 
 
 class ServiceTypeSerializer(NamedModelSerializer):
@@ -22,7 +30,7 @@ class ServiceTypeSerializer(NamedModelSerializer):
 
     class Meta:
         model = ServiceType
-        fields = ["id", "code", "name", "suggested_price", "needs_description", "is_active"]
+        fields = ["id", "code", "name", "suggested_price", "is_active"]
         # La unicidad se valida a mano para dar un mensaje claro.
         validators = []
 
@@ -85,7 +93,9 @@ class SettlementPreviewSerializer(serializers.Serializer):
     services_count = serializers.IntegerField()
     labor_total = serializers.IntegerField()
     percentage = serializers.IntegerField()
-    amount = serializers.IntegerField()
+    share = serializers.IntegerField(help_text="Su parte de la mano de obra, antes de descuentos.")
+    deductions_total = serializers.IntegerField(help_text="Lo que se le descontará en este pago.")
+    amount = serializers.IntegerField(help_text="Lo que recibe: share menos deductions_total.")
 
 
 class SettledServiceSerializer(serializers.Serializer):
@@ -101,6 +111,49 @@ class SettledServiceSerializer(serializers.Serializer):
     labor_price = serializers.IntegerField()
 
 
+class DeductedServiceSerializer(serializers.Serializer):
+    """Servicio devuelto que originó un descuento."""
+
+    service_type = ServiceTypeSummarySerializer(source="sale_service.service_type")
+    plate = serializers.CharField(source="sale_service.plate")
+    details = serializers.CharField(source="sale_service.details")
+    labor_price = serializers.IntegerField(source="sale_service.labor_price")
+
+
+class AppliedDeductionSerializer(serializers.Serializer):
+    """Descuento aplicado en la liquidación, con lo que el mecánico debe ver en su hoja."""
+
+    amount = serializers.IntegerField(help_text="Lo descontado en esta liquidación.")
+    deduction_total = serializers.IntegerField(source="deduction.amount")
+    pending_amount = serializers.IntegerField(source="deduction.pending_amount", help_text="Lo que falta por descontar hoy.")
+    sale_return_number = serializers.IntegerField(source="deduction.sale_return.number")
+    sale_number = serializers.IntegerField(source="deduction.sale_return.sale.number")
+    customer = serializers.CharField(source="deduction.sale_return.sale.customer.name")
+    reason = serializers.CharField(source="deduction.sale_return.reason")
+    services = DeductedServiceSerializer(source="deduction.sale_return.services", many=True)
+
+
+class MechanicDeductionSerializer(serializers.ModelSerializer):
+    """Descuento a un mecánico por mal servicio, con su saldo de hoy."""
+
+    mechanic = MechanicSummarySerializer(read_only=True)
+    applied_amount = serializers.IntegerField(read_only=True)
+    pending_amount = serializers.IntegerField(read_only=True)
+    sale_return_number = serializers.IntegerField(source="sale_return.number", read_only=True)
+    sale_number = serializers.IntegerField(source="sale_return.sale.number", read_only=True)
+    customer = serializers.CharField(source="sale_return.sale.customer.name", read_only=True)
+    reason = serializers.CharField(source="sale_return.reason", read_only=True)
+    services = DeductedServiceSerializer(source="sale_return.services", many=True, read_only=True)
+
+    class Meta:
+        model = MechanicDeduction
+        fields = [
+            "id", "mechanic", "amount", "applied_amount", "pending_amount", "sale_return", "sale_return_number",
+            "sale_number", "customer", "reason", "services", "created_at",
+        ]
+        read_only_fields = fields
+
+
 class MechanicSettlementSerializer(serializers.ModelSerializer):
     """Liquidación en la lista."""
 
@@ -112,8 +165,8 @@ class MechanicSettlementSerializer(serializers.ModelSerializer):
     class Meta:
         model = MechanicSettlement
         fields = [
-            "id", "mechanic", "date", "labor_total", "percentage", "amount", "method", "method_label",
-            "services_count", "created_by", "created_at",
+            "id", "mechanic", "date", "labor_total", "percentage", "deductions_total", "amount", "method",
+            "method_label", "services_count", "created_by", "created_at",
         ]
         read_only_fields = fields
 
@@ -125,9 +178,10 @@ class MechanicSettlementDetailSerializer(MechanicSettlementSerializer):
     """Liquidación completa, como se imprime para el mecánico."""
 
     services = SettledServiceSerializer(many=True, read_only=True)
+    deductions = AppliedDeductionSerializer(source="deduction_applications", many=True, read_only=True)
 
     class Meta(MechanicSettlementSerializer.Meta):
-        fields = MechanicSettlementSerializer.Meta.fields + ["services"]
+        fields = MechanicSettlementSerializer.Meta.fields + ["services", "deductions"]
         read_only_fields = fields
 
 
@@ -165,5 +219,5 @@ class SettleSerializer(serializers.Serializer):
 
 def settlement_with_services(pk):
     return MechanicSettlement.objects.select_related("mechanic", "created_by").prefetch_related(
-        "services__service_type", "services__sale__customer",
+        *SETTLEMENT_DETAIL_PREFETCH,
     ).get(pk=pk)
