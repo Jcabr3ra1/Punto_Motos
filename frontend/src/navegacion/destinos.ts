@@ -1,3 +1,31 @@
+import {
+  ArrowLeftRight,
+  Banknote,
+  Building,
+  Building2,
+  Calculator,
+  ClipboardCheck,
+  ClipboardList,
+  FileText,
+  HandCoins,
+  HardHat,
+  History,
+  House,
+  ListChecks,
+  Package,
+  PackageOpen,
+  ReceiptText,
+  Settings,
+  ShoppingCart,
+  Store,
+  Tags,
+  Truck,
+  Undo2,
+  Users,
+  Wallet,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react'
 import type { Role } from '../api/types'
 
 // Única fuente de verdad de qué pantallas existen y quién puede verlas.
@@ -8,6 +36,10 @@ export interface Destino {
   ruta: string
   etiqueta: string
   roles: readonly Role[]
+  /** Icono del menú, el buscador y los accesos rápidos. */
+  icono: LucideIcon
+  /** Para qué sirve, en pocas palabras: se muestra bajo el nombre en el panel y el buscador. */
+  descripcion: string
   /** Solo se muestra en el menú mientras el inventario inicial siga abierto. */
   soloConConteoAbierto?: boolean
 }
@@ -16,40 +48,40 @@ const TODOS: readonly Role[] = ['owner', 'seller']
 const SOLO_DUENO: readonly Role[] = ['owner']
 
 export const DESTINOS = {
-  inicio: { ruta: '/', etiqueta: 'Inicio', roles: TODOS },
-  venta: { ruta: '/venta', etiqueta: 'Venta', roles: TODOS },
-  vender: { ruta: '/venta/vender', etiqueta: 'Vender', roles: TODOS },
-  ventas: { ruta: '/venta/historial', etiqueta: 'Ventas', roles: TODOS },
-  devoluciones: { ruta: '/venta/devoluciones', etiqueta: 'Devoluciones', roles: TODOS },
-  productos: { ruta: '/productos', etiqueta: 'Productos', roles: TODOS },
-  movimientos: { ruta: '/inventario/movimientos', etiqueta: 'Movimientos', roles: TODOS },
-  inventarioInicial: {
+  inicio: { icono: House, descripcion: 'Resumen del día y accesos rápidos', ruta: '/', etiqueta: 'Inicio', roles: TODOS },
+  venta: { icono: ShoppingCart, descripcion: 'Cobrar en el mostrador y revisar lo vendido', ruta: '/venta', etiqueta: 'Venta', roles: TODOS },
+  vender: { icono: ShoppingCart, descripcion: 'Carrito y cobro', ruta: '/venta/vender', etiqueta: 'Vender', roles: TODOS },
+  ventas: { icono: ReceiptText, descripcion: 'Historial y anulación', ruta: '/venta/historial', etiqueta: 'Ventas', roles: TODOS },
+  devoluciones: { icono: Undo2, descripcion: 'Lo que los clientes devolvieron', ruta: '/venta/devoluciones', etiqueta: 'Devoluciones', roles: TODOS },
+  productos: { icono: Package, descripcion: 'Existencias, precios y códigos', ruta: '/productos', etiqueta: 'Productos', roles: TODOS },
+  movimientos: { icono: ArrowLeftRight, descripcion: 'Entradas, salidas y ajustes', ruta: '/inventario/movimientos', etiqueta: 'Movimientos', roles: TODOS },
+  inventarioInicial: { icono: ClipboardList, descripcion: 'Conteo de lo que hay al empezar',
     ruta: '/inventario-inicial',
     etiqueta: 'Inventario inicial',
     roles: SOLO_DUENO,
     soloConConteoAbierto: true,
   },
-  compras: { ruta: '/compras', etiqueta: 'Compras', roles: SOLO_DUENO },
-  comprasLista: { ruta: '/compras/lista', etiqueta: 'Compras', roles: SOLO_DUENO },
-  proveedores: { ruta: '/compras/proveedores', etiqueta: 'Proveedores', roles: SOLO_DUENO },
-  abonos: { ruta: '/compras/abonos', etiqueta: 'Abonos', roles: SOLO_DUENO },
-  caja: { ruta: '/caja', etiqueta: 'Caja', roles: SOLO_DUENO },
-  cajaActual: { ruta: '/caja/actual', etiqueta: 'Caja de hoy', roles: SOLO_DUENO },
-  cajaHistorial: { ruta: '/caja/historial', etiqueta: 'Cajas anteriores', roles: SOLO_DUENO },
-  consignacion: { ruta: '/consignacion', etiqueta: 'Consignación', roles: SOLO_DUENO },
-  locales: { ruta: '/consignacion/locales', etiqueta: 'Locales', roles: SOLO_DUENO },
-  entregas: { ruta: '/consignacion/entregas', etiqueta: 'Entregas', roles: SOLO_DUENO },
-  reportes: { ruta: '/consignacion/reportes', etiqueta: 'Reportes', roles: SOLO_DUENO },
-  pagosDeLocales: { ruta: '/consignacion/pagos', etiqueta: 'Pagos', roles: SOLO_DUENO },
-  taller: { ruta: '/taller', etiqueta: 'Taller', roles: SOLO_DUENO },
-  liquidacion: { ruta: '/taller/liquidacion', etiqueta: 'Liquidación del día', roles: SOLO_DUENO },
-  historialDeLiquidaciones: { ruta: '/taller/historial', etiqueta: 'Historial de liquidaciones', roles: SOLO_DUENO },
-  configuracion: { ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
-  negocio: { ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
-  catalogo: { ruta: '/configuracion/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
-  usuarios: { ruta: '/configuracion/usuarios', etiqueta: 'Usuarios', roles: SOLO_DUENO },
-  tiposDeServicio: { ruta: '/configuracion/servicios', etiqueta: 'Tipos de servicio', roles: SOLO_DUENO },
-  mecanicos: { ruta: '/configuracion/mecanicos', etiqueta: 'Mecánicos', roles: SOLO_DUENO },
+  compras: { icono: Truck, descripcion: 'Mercancía que llega de los proveedores', ruta: '/compras', etiqueta: 'Compras', roles: SOLO_DUENO },
+  comprasLista: { icono: FileText, descripcion: 'Borradores y compras recibidas', ruta: '/compras/lista', etiqueta: 'Compras', roles: SOLO_DUENO },
+  proveedores: { icono: Building2, descripcion: 'Datos y estado de cuenta', ruta: '/compras/proveedores', etiqueta: 'Proveedores', roles: SOLO_DUENO },
+  abonos: { icono: HandCoins, descripcion: 'Pagos a los proveedores', ruta: '/compras/abonos', etiqueta: 'Abonos', roles: SOLO_DUENO },
+  caja: { icono: Wallet, descripcion: 'Efectivo del día, gastos y cierres', ruta: '/caja', etiqueta: 'Caja', roles: SOLO_DUENO },
+  cajaActual: { icono: Banknote, descripcion: 'Apertura, gastos y cierre', ruta: '/caja/actual', etiqueta: 'Caja de hoy', roles: SOLO_DUENO },
+  cajaHistorial: { icono: History, descripcion: 'Cierres de días anteriores', ruta: '/caja/historial', etiqueta: 'Cajas anteriores', roles: SOLO_DUENO },
+  consignacion: { icono: Store, descripcion: 'Mercancía en otros locales', ruta: '/consignacion', etiqueta: 'Consignación', roles: SOLO_DUENO },
+  locales: { icono: Store, descripcion: 'Locales y lo que tienen', ruta: '/consignacion/locales', etiqueta: 'Locales', roles: SOLO_DUENO },
+  entregas: { icono: PackageOpen, descripcion: 'Mercancía que sale a un local', ruta: '/consignacion/entregas', etiqueta: 'Entregas', roles: SOLO_DUENO },
+  reportes: { icono: ClipboardCheck, descripcion: 'Lo que vendió o devolvió cada local', ruta: '/consignacion/reportes', etiqueta: 'Reportes', roles: SOLO_DUENO },
+  pagosDeLocales: { icono: HandCoins, descripcion: 'Lo que pagan los locales', ruta: '/consignacion/pagos', etiqueta: 'Pagos', roles: SOLO_DUENO },
+  taller: { icono: Wrench, descripcion: 'Lo que se le paga a cada mecánico', ruta: '/taller', etiqueta: 'Taller', roles: SOLO_DUENO },
+  liquidacion: { icono: Calculator, descripcion: 'Servicios por pagar hoy', ruta: '/taller/liquidacion', etiqueta: 'Liquidación del día', roles: SOLO_DUENO },
+  historialDeLiquidaciones: { icono: History, descripcion: 'Liquidaciones anteriores', ruta: '/taller/historial', etiqueta: 'Historial de liquidaciones', roles: SOLO_DUENO },
+  configuracion: { icono: Settings, descripcion: 'Negocio, catálogo y usuarios', ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
+  negocio: { icono: Building, descripcion: 'Nombre y datos del negocio', ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
+  catalogo: { icono: Tags, descripcion: 'Clasificación de los productos', ruta: '/configuracion/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
+  usuarios: { icono: Users, descripcion: 'Quién entra al programa', ruta: '/configuracion/usuarios', etiqueta: 'Usuarios', roles: SOLO_DUENO },
+  tiposDeServicio: { icono: ListChecks, descripcion: 'Servicios que ofrece el taller', ruta: '/configuracion/servicios', etiqueta: 'Tipos de servicio', roles: SOLO_DUENO },
+  mecanicos: { icono: HardHat, descripcion: 'Mecánicos y su porcentaje', ruta: '/configuracion/mecanicos', etiqueta: 'Mecánicos', roles: SOLO_DUENO },
 } as const satisfies Record<string, Destino>
 
 export const MENU_PRINCIPAL: readonly Destino[] = [
@@ -91,3 +123,18 @@ export const MENU_CONSIGNACION: readonly Destino[] = [
 ]
 
 export const MENU_TALLER: readonly Destino[] = [DESTINOS.liquidacion, DESTINOS.historialDeLiquidaciones]
+
+/** Pantallas de cada módulo del menú principal, por la ruta del módulo. */
+export const SUBMENUS: Readonly<Record<string, readonly Destino[]>> = {
+  [DESTINOS.venta.ruta]: MENU_VENTA,
+  [DESTINOS.compras.ruta]: MENU_COMPRAS,
+  [DESTINOS.caja.ruta]: MENU_CAJA,
+  [DESTINOS.consignacion.ruta]: MENU_CONSIGNACION,
+  [DESTINOS.taller.ruta]: MENU_TALLER,
+  [DESTINOS.configuracion.ruta]: MENU_CONFIGURACION,
+}
+
+/** Las pantallas de un módulo que el rol puede ver; un módulo sin submenú es su propia pantalla. */
+export function pantallasDe(modulo: Destino, rol: Role): readonly Destino[] {
+  return (SUBMENUS[modulo.ruta] ?? [modulo]).filter((destino) => puedeVer(destino, rol))
+}

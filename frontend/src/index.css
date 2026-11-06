@@ -23,6 +23,16 @@
   --color-exito-fondo: #e6f4ea;
   --color-foco: #1a5fb4;
 
+  /* Marco «Tablero»: menú, barras y emergentes en negro, como el tablero de una moto. */
+  --marco: #0b0b0c;
+  --marco-separador: #1f1f20;
+  --marco-seleccion: #1a1c10;
+  --marco-elevado: #161617;
+  --marco-texto: #e8e8e6;
+  --marco-texto-suave: #9c9c99;
+  --fondo-trabajo: #ecebe6;
+  --texto-secundario: #5f636a;
+
   /* App de escritorio para Windows: tipografía del sistema, densidad de aplicación y esquinas discretas. */
   --fuente: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   --radio: 4px;
