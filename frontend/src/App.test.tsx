@@ -74,7 +74,7 @@ describe('asistente del dueño', () => {
     const u = await llenarAsistente('taller-moto-2026', 'taller-moto-2026')
     await u.click(screen.getByRole('button', { name: 'Crear cuenta del dueño' }))
 
-    expect(await screen.findByRole('heading', { name: 'Hola, Carlos Pérez' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /, Carlos Pérez$/ })).toBeInTheDocument()
     expect(api.llamadas.find((l) => l.clave === 'POST /setup/owner')?.cuerpo).toEqual({
       username: 'dueno',
       first_name: 'Carlos',
@@ -126,7 +126,7 @@ describe('inicio de sesión', () => {
     const u = await llenarInicioDeSesion('dueno', 'taller-moto-2026')
     await u.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    expect(await screen.findByRole('heading', { name: 'Hola, Carlos Pérez' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /, Carlos Pérez$/ })).toBeInTheDocument()
     expect(api.llamadas.find((l) => l.clave === 'POST /auth/login')?.cuerpo).toEqual({
       username: 'dueno',
       password: 'taller-moto-2026',
@@ -168,7 +168,7 @@ describe('inicio de sesión', () => {
     expect(screen.getByRole('button', { name: 'Entrando…' })).toBeDisabled()
 
     await act(async () => terminar({ cuerpo: sesion }))
-    expect(await screen.findByRole('heading', { name: 'Hola, Carlos Pérez' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /, Carlos Pérez$/ })).toBeInTheDocument()
   })
 
   it('bloquea el botón un momento tras demasiados intentos', async () => {
@@ -197,7 +197,7 @@ describe('con la sesión abierta', () => {
     render(<App />)
     const u = await llenarInicioDeSesion('dueno', 'taller-moto-2026')
     await u.click(screen.getByRole('button', { name: 'Entrar' }))
-    await screen.findByRole('heading', { name: 'Hola, Carlos Pérez' })
+    await screen.findByRole('heading', { level: 1, name: /, Carlos Pérez$/ })
     return u
   }
 

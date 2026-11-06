@@ -584,7 +584,7 @@ summary {
   line-height: 1.25;
 }
 
-.estructura__contenido a:not(.pestanas__enlace):not(.boton) {
+.estructura__contenido a:where(:not(.pestanas__enlace, .boton)) {
   color: var(--color-acento);
 }
 
@@ -1587,10 +1587,18 @@ kbd {
 }
 
 /* Actualizaciones: solo desde Inicio, con confirmación modal antes de cerrar. */
-.actualizaciones { margin-top: 2rem; padding: 1rem; border: 1px solid #b1afae; border-radius: 4px; }
-.actualizaciones button { margin-right: .75rem; margin-top: .75rem; }
+.actualizaciones {
+  grid-column: span 2;
+  padding: 1rem 1.125rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-top: 3px solid var(--color-marca);
+  border-radius: 0 0 var(--radio) var(--radio);
+}
+.actualizaciones h2 { margin: 0 0 0.5rem; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--texto-secundario); }
+.actualizaciones button { display: inline-block; width: auto; margin-right: .75rem; margin-top: .75rem; }
 .actualizaciones__notas { white-space: pre-wrap; max-height: 12rem; overflow: auto; }
-.actualizaciones__dialogo { max-width: 34rem; padding: 1.5rem; border: 1px solid #b1afae; border-radius: 4px; }
+.actualizaciones__dialogo { max-width: 34rem; padding: 1.5rem; border: 1px solid #b1afae; border-radius: 6px; }
 .actualizaciones__dialogo::backdrop { background: rgb(0 0 0 / 55%); }
 
 /* Buscador de pantallas (Ctrl+K): ventana flotante oscura, como el resto del marco. */
@@ -1718,6 +1726,177 @@ kbd {
   font-size: 0.75rem;
   color: var(--marco-texto-suave);
   border-top: 1px solid var(--marco-separador);
+}
+
+/* Botón con icono y texto (también un enlace con aspecto de botón). */
+.boton--con-icono {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* Inicio: saludo, accesos rápidos y la caja de hoy. */
+.inicio__encabezado {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.inicio__encabezado h1 {
+  margin-bottom: 0.125rem;
+}
+
+.inicio__encabezado p {
+  margin: 0;
+}
+
+.accesos-rapidos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.estructura__contenido a.acceso-rapido {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  height: 100%;
+  min-height: 5rem;
+  padding: 0.875rem 1rem;
+  color: var(--color-texto);
+  text-decoration: none;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-top: 3px solid var(--color-marca);
+  border-radius: 0 0 var(--radio) var(--radio);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.estructura__contenido a.acceso-rapido:hover {
+  border-color: #b9b7b0;
+  border-top-color: var(--color-marca);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
+}
+
+.acceso-rapido__icono {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  color: var(--color-marca);
+  background: var(--marco);
+  border-radius: var(--radio);
+}
+
+.acceso-rapido__texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.acceso-rapido__nombre {
+  font-weight: 700;
+}
+
+.acceso-rapido__descripcion {
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+}
+
+.acceso-rapido__flecha {
+  flex: 0 0 auto;
+  color: var(--texto-secundario);
+  transition: transform 120ms ease;
+}
+
+.acceso-rapido:hover .acceso-rapido__flecha {
+  color: var(--color-acento);
+  transform: translateX(2px);
+}
+
+.inicio__tarjetas {
+  display: grid;
+  /* La misma cuadrícula de los accesos: la caja ocupa dos columnas. */
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+/* La caja de hoy como un instrumento del tablero. */
+.tarjeta-caja {
+  grid-column: span 2;
+  padding: 1rem 1.125rem;
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-top: 3px solid var(--color-marca);
+  border-radius: 0 0 var(--radio) var(--radio);
+}
+
+.tarjeta-caja p {
+  margin: 0;
+}
+
+.tarjeta-caja__titulo {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  margin-bottom: 0.5rem !important;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.tarjeta-caja__cifra {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--color-marca);
+}
+
+.tarjeta-caja__cerrada {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffb74d;
+}
+
+.tarjeta-caja__detalle {
+  font-size: 0.8125rem;
+  color: var(--marco-texto-suave);
+}
+
+.tarjeta-caja__linea {
+  margin-top: 0.75rem !important;
+  padding-top: 0.625rem;
+  font-size: 0.8125rem;
+  border-top: 1px solid var(--marco-separador);
+}
+
+.estructura__contenido a.tarjeta-caja__enlace {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-marca);
+  text-decoration: none;
+}
+
+.tarjeta-caja__boton {
+  margin-top: 0.875rem;
 }
 
 /* Panel lateral: los formularios entran por la derecha, anclados al borde de la ventana. */
