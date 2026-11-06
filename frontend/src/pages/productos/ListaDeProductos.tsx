@@ -1,14 +1,19 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { listarMotos, listarTipos } from '../../api/catalogo'
+import { isApiError } from '../../api/client'
 import { claves } from '../../api/consultas'
-import { listarProductos, type OrdenDeProductos } from '../../api/productos'
+import { desglosarError } from '../../api/errors'
+import { editarProducto, eliminarProducto, listarProductos, type OrdenDeProductos } from '../../api/productos'
 import type { Product } from '../../api/types'
+import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { Titulo } from '../../components/Titulo'
 import { useDebounce } from '../../hooks/useDebounce'
 import type { EstadoDeFiltros } from './filtros'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -28,9 +33,12 @@ interface Props {
   onCambiarFiltros: (filtros: EstadoDeFiltros) => void
   esDueno: boolean
   onEditar: (producto: Product) => void
+  onAviso?: (mensaje: string | null) => void
 }
 
-export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar }: Props) {
+export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar, onAviso }: Props) {
+  const clienteDeConsultas = useQueryClient()
+  const [eliminando, setEliminando] = useState<Product | null>(null)
   // Cualquier cambio de filtro vuelve a la primera página; solo cambiar de página la conserva.
   const cambiar = (parcial: Partial<EstadoDeFiltros>) => onCambiarFiltros({ ...filtros, pagina: 1, ...parcial })
 
@@ -56,6 +64,34 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar 
   })
 
   const hayFiltros = Boolean(busqueda || filtros.tipo || filtros.moto || filtros.insumos)
+
+  const invalidarProducto = async (id: number) => {
+    await Promise.all(
+      [claves.productos, ['buscador'], claves.producto(id)].map((queryKey) => clienteDeConsultas.invalidateQueries({ queryKey })),
+    )
+  }
+
+  const eliminar = useMutation({
+    mutationFn: (producto: Product) => eliminarProducto(producto.id),
+    onSuccess: async (_, borrado) => {
+      setEliminando(null)
+      onAviso?.(`Producto «${borrado.name}» eliminado.`)
+      await invalidarProducto(borrado.id)
+    },
+  })
+
+  const desactivar = useMutation({
+    mutationFn: (producto: Product) => editarProducto(producto.id, { is_active: false }),
+    onSuccess: async (desactivado) => {
+      setEliminando(null)
+      onAviso?.(`Producto «${desactivado.name}» desactivado.`)
+      await invalidarProducto(desactivado.id)
+    },
+  })
+
+  const fallo = desactivar.error ?? eliminar.error
+  const error = fallo ? desglosarError(fallo) : null
+  const tieneHistorial = isApiError(eliminar.error) && eliminar.error.code === 'product_has_history'
 
   return (
     <>
@@ -126,7 +162,63 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar 
             </p>
           ) : (
             <>
-              <TablaDeProductos productos={productos.data.results} esDueno={esDueno} onEditar={onEditar} />
+              {eliminando && (
+                <div role="group" aria-labelledby="titulo-eliminar" className="confirmacion terminar">
+                  <Titulo nivel={2}>
+                    <span id="titulo-eliminar">¿Eliminar «{eliminando.name}»?</span>
+                  </Titulo>
+                  <p>
+                    Solo se puede eliminar un producto que nunca se usó; su código ({eliminando.code}) quedará libre.
+                  </p>
+                  <AvisoDeError mensajes={error?.generales ?? []} />
+                  <div className="acciones">
+                    <button
+                      type="button"
+                      className="boton boton--peligro boton--auto"
+                      disabled={eliminar.isPending || desactivar.isPending}
+                      onClick={() => {
+                        desactivar.reset()
+                        eliminar.mutate(eliminando)
+                      }}
+                    >
+                      {eliminar.isPending ? 'Eliminando…' : 'Sí, eliminar'}
+                    </button>
+                    {tieneHistorial && eliminando.is_active && (
+                      <button
+                        type="button"
+                        className="boton boton--auto"
+                        disabled={desactivar.isPending || eliminar.isPending}
+                        onClick={() => desactivar.mutate(eliminando)}
+                      >
+                        {desactivar.isPending ? 'Desactivando…' : 'Desactivar producto'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="boton boton--secundario boton--auto"
+                      onClick={() => {
+                        eliminar.reset()
+                        desactivar.reset()
+                        setEliminando(null)
+                      }}
+                      autoFocus
+                    >
+                      Volver
+                    </button>
+                  </div>
+                </div>
+              )}
+              <TablaDeProductos
+                productos={productos.data.results}
+                esDueno={esDueno}
+                onEditar={onEditar}
+                onEliminar={(producto) => {
+                  onAviso?.(null)
+                  eliminar.reset()
+                  desactivar.reset()
+                  setEliminando(producto)
+                }}
+              />
               <Paginacion
                 etiqueta="Páginas de productos"
                 pagina={filtros.pagina}
@@ -148,10 +240,12 @@ function TablaDeProductos({
   productos,
   esDueno,
   onEditar,
+  onEliminar,
 }: {
   productos: Product[]
   esDueno: boolean
   onEditar: (producto: Product) => void
+  onEliminar: (producto: Product) => void
 }) {
   return (
     <div className="tabla-contenedor">
@@ -206,14 +300,24 @@ function TablaDeProductos({
                   Movimientos
                 </Link>
                 {esDueno && (
-                  <button
-                    type="button"
-                    className="boton-enlace"
-                    aria-label={`Editar ${producto.name}`}
-                    onClick={() => onEditar(producto)}
-                  >
-                    Editar
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="boton-enlace"
+                      aria-label={`Editar ${producto.name}`}
+                      onClick={() => onEditar(producto)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="boton-enlace"
+                      aria-label={`Eliminar ${producto.name}`}
+                      onClick={() => onEliminar(producto)}
+                    >
+                      Eliminar
+                    </button>
+                  </>
                 )}
               </td>
             </tr>

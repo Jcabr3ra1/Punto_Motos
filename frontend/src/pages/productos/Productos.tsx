@@ -57,6 +57,7 @@ export function Productos() {
         filtros={filtros}
         onCambiarFiltros={setFiltros}
         esDueno={esDueno}
+        onAviso={setAviso}
         onEditar={(producto) => {
           setAviso(null)
           setVista({ tipo: 'editar', producto })

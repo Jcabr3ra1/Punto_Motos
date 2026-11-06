@@ -36,13 +36,13 @@ La descarga se verifica antes de ejecutar el instalador. Sin internet, puedes se
 | Catálogo | Productos, códigos internos, tipos, marcas y motos |
 | Inventario | Existencias, movimientos, ajustes y conteo inicial |
 | Compras | Proveedores, borradores, recepción, costos y abonos |
-| Ventas | Clientes, carrito, pagos y anulación completa |
+| Ventas | Clientes, carrito, pagos, devoluciones y anulación completa |
 | Caja | Apertura, gastos, retiros, cierre e historial |
-| Taller | Servicios, mecánicos, porcentajes y liquidación diaria |
+| Taller | Servicios, mecánicos, porcentajes, descuentos por mal servicio y liquidación diaria |
 | Consignaciones | Entregas, reportes y pagos de otros locales |
 | Escritorio | Django integrado, datos locales e instancia única |
 
-**Pendiente:** devoluciones parciales y de servicios, cierres y reportes mensuales, impresión ESC/POS y respaldos externos. El respaldo previo a migraciones no sustituye la política completa de recuperación del negocio.
+**Pendiente:** cierres y reportes mensuales, impresión ESC/POS y respaldos externos. El respaldo previo a migraciones no sustituye la política completa de recuperación del negocio.
 
 ## Desarrollo
 

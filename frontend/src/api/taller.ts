@@ -3,6 +3,7 @@ import type {
   DailySettlement,
   InventoryMovement,
   Mechanic,
+  MechanicDeduction,
   MechanicInput,
   MechanicSettlement,
   MechanicSettlementDetail,
@@ -64,3 +65,17 @@ export const listarLiquidaciones = (
 
 export const obtenerLiquidacion = (id: number, signal?: AbortSignal) =>
   api<MechanicSettlementDetail>(`/mechanic-settlements/${id}`, { signal })
+
+/** Solo el dueño: descuentos por mal servicio y su saldo por descontar. */
+export const listarDescuentosDeMecanicos = (
+  filtros: { mechanic?: number; pending?: boolean; page?: number } = {},
+  signal?: AbortSignal,
+) =>
+  api<Paginated<MechanicDeduction>>('/mechanic-deductions', {
+    query: {
+      mechanic: filtros.mechanic,
+      pending: filtros.pending ? true : undefined,
+      page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+    },
+    signal,
+  })

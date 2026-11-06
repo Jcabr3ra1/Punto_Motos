@@ -108,4 +108,20 @@ describe('detalle y anulación', () => {
 
     expect(await screen.findByText(/Precio de catálogo \$\s?25\.000/)).toBeInTheDocument()
   })
+
+  it('muestra el mensaje del backend cuando no se puede anular porque ya tiene devoluciones o servicios liquidados', async () => {
+    simularApi({
+      'GET /sales/41': () => ({ cuerpo: venta() }),
+      'POST /sales/41/void': () =>
+        errorDeApi(409, 'sale_has_returns', 'Esta venta ya tiene devoluciones y no se puede anular.'),
+    })
+    mostrarRutas(dueno, '/venta/historial/41')
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
+    await u.type(screen.getByLabelText('Motivo'), 'Error')
+    await u.click(screen.getByRole('button', { name: 'Sí, anular la venta' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esta venta ya tiene devoluciones y no se puede anular.')
+  })
 })

@@ -28,6 +28,7 @@ import { Entregas } from './pages/consignacion/Entregas'
 import { Locales } from './pages/consignacion/Locales'
 import { PagosDeLocales } from './pages/consignacion/PagosDeLocales'
 import { Reportes } from './pages/consignacion/Reportes'
+import { DetalleDeDevolucion, Devoluciones } from './pages/venta/Devoluciones'
 import { DetalleDeVenta } from './pages/venta/DetalleDeVenta'
 import { Vender } from './pages/venta/Vender'
 import { Ventas } from './pages/venta/Ventas'
@@ -43,6 +44,8 @@ export function Rutas() {
           <Route path="vender" element={<Vender />} />
           <Route path="historial" element={<Ventas />} />
           <Route path="historial/:id" element={<DetalleDeVenta />} />
+          <Route path="devoluciones" element={<Devoluciones />} />
+          <Route path="devoluciones/:id" element={<DetalleDeDevolucion />} />
         </Route>
         <Route path="productos" element={<Productos />} />
         <Route path="inventario/movimientos" element={<Movimientos />} />

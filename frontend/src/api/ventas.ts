@@ -1,5 +1,16 @@
 import { api } from './client'
-import type { Customer, CustomerInput, Paginated, Sale, SaleDetail, SaleInput } from './types'
+import type {
+  Customer,
+  CustomerInput,
+  Paginated,
+  ReturnCause,
+  Sale,
+  SaleDetail,
+  SaleInput,
+  SaleReturn,
+  SaleReturnDetail,
+  SaleReturnInput,
+} from './types'
 
 // Clientes y ventas (docs/backend/API.md#clientes-y-ventas). Cualquier usuario con sesión vende.
 
@@ -47,3 +58,34 @@ export const anularVenta = (id: number, motivo: string) =>
 
 /** UUID nuevo para una venta o entrega nueva. Se reutiliza en los reintentos de la misma. */
 export const nuevaClaveDeReintento = () => crypto.randomUUID()
+
+/**
+ * Registra una devolución parcial o total (201, o 200 si se repite la `idempotency_key`).
+ * Cualquier usuario con sesión la registra, salvo la causa `bad_service` (solo el dueño).
+ */
+export const registrarDevolucion = (ventaId: number, datos: SaleReturnInput) =>
+  api<SaleReturnDetail>(`/sales/${ventaId}/returns`, { method: 'POST', body: datos })
+
+export interface FiltrosDeDevoluciones {
+  sale?: number
+  number?: number
+  cause?: ReturnCause
+  date_from?: string
+  date_to?: string
+  page?: number
+}
+
+export const listarDevoluciones = (filtros: FiltrosDeDevoluciones = {}, signal?: AbortSignal) =>
+  api<Paginated<SaleReturn>>('/sale-returns', {
+    query: {
+      sale: filtros.sale,
+      number: filtros.number,
+      cause: filtros.cause,
+      date_from: filtros.date_from,
+      date_to: filtros.date_to,
+      page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+    },
+    signal,
+  })
+
+export const obtenerDevolucion = (id: number, signal?: AbortSignal) => api<SaleReturnDetail>(`/sale-returns/${id}`, { signal })

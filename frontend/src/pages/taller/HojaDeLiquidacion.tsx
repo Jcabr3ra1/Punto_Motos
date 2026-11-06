@@ -45,6 +45,22 @@ export function HojaDeLiquidacion({ liquidacion }: { liquidacion: MechanicSettle
             </th>
             <td className="tabla__numero">{formatearPesos(liquidacion.labor_total)}</td>
           </tr>
+          {liquidacion.deductions_total > 0 && (
+            <>
+              <tr>
+                <th scope="row" colSpan={3}>
+                  Su parte ({liquidacion.percentage} %)
+                </th>
+                <td className="tabla__numero">{formatearPesos(liquidacion.amount + liquidacion.deductions_total)}</td>
+              </tr>
+              <tr>
+                <th scope="row" colSpan={3}>
+                  Descuento por mal servicio
+                </th>
+                <td className="tabla__numero">-{formatearPesos(liquidacion.deductions_total)}</td>
+              </tr>
+            </>
+          )}
           <tr>
             <th scope="row" colSpan={3}>
               Pagado al mecánico ({liquidacion.percentage} %)
@@ -55,6 +71,41 @@ export function HojaDeLiquidacion({ liquidacion }: { liquidacion: MechanicSettle
           </tr>
         </tfoot>
       </table>
+      {liquidacion.deductions.length > 0 && (
+        <table className="tabla">
+          <caption className="solo-lectores">Descuentos aplicados</caption>
+          <thead>
+            <tr>
+              <th scope="col">Devolución</th>
+              <th scope="col">Servicio y motivo</th>
+              <th scope="col">Cliente</th>
+              <th scope="col" className="tabla__numero">
+                Descontado
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {liquidacion.deductions.map((d) => (
+              <tr key={d.sale_return_number}>
+                <td>
+                  Devolución n.º {d.sale_return_number} · Venta n.º {d.sale_number}
+                </td>
+                <th scope="row">
+                  {d.services.map((s) => `${s.service_type.code} · ${s.service_type.name}`).join(', ')}
+                  <span className="tabla__detalle">{d.reason}</span>
+                </th>
+                <td>{d.customer || 'Sin cliente'}</td>
+                <td className="tabla__numero">
+                  -{formatearPesos(d.amount)}
+                  {d.pending_amount > 0 && (
+                    <span className="tabla__detalle">Saldo pendiente {formatearPesos(d.pending_amount)}</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </article>
   )
 }

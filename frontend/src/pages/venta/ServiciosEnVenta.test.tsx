@@ -134,6 +134,7 @@ describe('servicios en la venta', () => {
               suggested_price: 15000,
               labor_price: 15000,
               price_changed: false,
+              is_returned: false,
             },
           ],
         }),

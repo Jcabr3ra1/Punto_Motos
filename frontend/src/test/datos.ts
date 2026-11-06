@@ -10,11 +10,13 @@ import type {
   Supplier,
   SupplierPayment,
   SaleDetail,
+  SaleReturnDetail,
   CashSession,
   Consignee,
   PendingConsignmentItem,
   ServiceType,
   Mechanic,
+  MechanicDeduction,
   MechanicSettlementDetail,
 } from '../api/types'
 
@@ -184,6 +186,7 @@ export function venta(cambios: Partial<SaleDetail> = {}): SaleDetail {
         product: { id: 1, code: 'FRE-PUL-PAS', name: 'Pastillas de freno Pulsar 180' },
         description: 'FRE-PUL-PAS · Pastillas de freno Pulsar 180',
         quantity: 1,
+        returned_quantity: 0,
         list_price: 25000,
         unit_price: 25000,
         price_changed: false,
@@ -259,6 +262,7 @@ export function liquidacion(cambios: Partial<MechanicSettlementDetail> = {}): Me
     date: '2026-11-03',
     labor_total: 30000,
     percentage: 60,
+    deductions_total: 0,
     amount: 18000,
     method: 'cash',
     method_label: 'Efectivo',
@@ -269,6 +273,58 @@ export function liquidacion(cambios: Partial<MechanicSettlementDetail> = {}): Me
       { id: 9, sale_id: 41, sale_number: 41, customer: 'Ana Gómez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, details: '', labor_price: 15000 },
       { id: 10, sale_id: 43, sale_number: 43, customer: 'Juan Pérez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, details: '', labor_price: 15000 },
     ],
+    deductions: [],
+    ...cambios,
+  }
+}
+
+export function devolucion(cambios: Partial<SaleReturnDetail> = {}): SaleReturnDetail {
+  return {
+    id: 3,
+    number: 3,
+    sale: 41,
+    sale_number: 41,
+    customer: { id: 18, name: 'Ana Gómez', phone: '3001234567' },
+    cause: 'other',
+    cause_label: 'Otra causa',
+    reason: 'No le sirvió la referencia',
+    total: 25000,
+    created_by: 'ana',
+    created_at: '2026-11-05T16:20:00-05:00',
+    items: [
+      {
+        id: 5,
+        sale_item: 77,
+        product: { id: 1, code: 'FRE-PUL-PAS', name: 'Pastillas de freno Pulsar 180' },
+        description: 'FRE-PUL-PAS · Pastillas de freno Pulsar 180',
+        quantity: 1,
+        condition: 'resellable',
+        condition_label: 'Vuelve al inventario',
+        unit_price: 25000,
+        subtotal: 25000,
+      },
+    ],
+    services: [],
+    refunds: [{ method: 'cash', method_label: 'Efectivo', amount: 25000 }],
+    mechanic_deduction: null,
+    ...cambios,
+  }
+}
+
+export function descuentoDeMecanico(cambios: Partial<MechanicDeduction> = {}): MechanicDeduction {
+  return {
+    id: 1,
+    mechanic: { id: 1, name: 'Carlos Ruiz' },
+    amount: 40000,
+    applied_amount: 10000,
+    pending_amount: 30000,
+    sale_return: 3,
+    sale_return_number: 3,
+    sale_number: 41,
+    customer: 'Ana Gómez',
+    reason: 'Quedó botando aceite',
+    services: [{ service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, details: '', labor_price: 15000 }],
+    created_at: '2026-11-05T16:20:00-05:00',
     ...cambios,
   }
 }

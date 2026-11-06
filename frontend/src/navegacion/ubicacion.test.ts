@@ -6,6 +6,7 @@ describe('ubicacionDe', () => {
     ['/', { seccion: 'Inicio' }],
     ['/venta/vender', { seccion: 'Venta', pestana: 'Vender' }],
     ['/venta/historial/41', { seccion: 'Venta', pestana: 'Ventas' }],
+    ['/venta/devoluciones/3', { seccion: 'Venta', pestana: 'Devoluciones' }],
     ['/compras/proveedores', { seccion: 'Compras', pestana: 'Proveedores' }],
     ['/compras/lista/15', { seccion: 'Compras' }],
     ['/configuracion/mecanicos', { seccion: 'Configuración', pestana: 'Mecánicos' }],

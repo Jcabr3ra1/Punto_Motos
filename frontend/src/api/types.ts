@@ -1,4 +1,4 @@
-// Tipos del contrato de la API. Fuente: docs/backend/API.md (backend 0.3.0).
+// Tipos del contrato de la API. Fuente: docs/backend/API.md (backend 0.11.0).
 // Si el contrato cambia, actualizar aquí según docs/backend/CAMBIOS.md.
 
 export interface ApiError {
@@ -374,6 +374,8 @@ export interface SaleItem {
   /** Como quedó en el recibo: «FRE-PUL-PAS · Pastillas de freno Pulsar 180». */
   description: string
   quantity: number
+  /** Unidades ya devueltas; se pueden devolver quantity - returned_quantity. */
+  returned_quantity: number
   /** Precio del catálogo al vender. */
   list_price: number
   /** Precio cobrado. */
@@ -471,6 +473,8 @@ export interface CashMovement {
   reason: string
   sale: number | null
   sale_number: number | null
+  /** Id de la devolución, en sus reembolsos. */
+  sale_return: number | null
   supplier_payment: number | null
   consignee_payment: number | null
   /** Id de la liquidación, en los pagos a mecánicos. */
@@ -629,6 +633,8 @@ export interface SaleService {
   /** Mano de obra cobrada. */
   labor_price: number
   price_changed: boolean
+  /** Ya se devolvió: un servicio se devuelve una sola vez. */
+  is_returned: boolean
 }
 
 export interface WorkshopUseInput {
@@ -643,7 +649,11 @@ export interface SettlementPreviewRow {
   /** Mano de obra sin pagar del día. */
   labor_total: number
   percentage: number
-  /** Lo que se le pagaría. */
+  /** Su parte, antes de descuentos. */
+  share: number
+  /** Lo que se le descontaría en este pago. */
+  deductions_total: number
+  /** Lo que se le pagaría: share - deductions_total. */
   amount: number
 }
 
@@ -668,6 +678,8 @@ export interface MechanicSettlement {
   date: string
   labor_total: number
   percentage: number
+  /** Lo descontado en ese pago; su parte era amount + deductions_total. */
+  deductions_total: number
   amount: number
   method: PaymentMethod
   method_label: string
@@ -687,6 +699,110 @@ export interface SettledService {
   labor_price: number
 }
 
+export interface DeductedService {
+  service_type: { id: number; code: number; name: string }
+  details: string
+  labor_price: number
+}
+
+export interface AppliedDeduction {
+  /** Lo descontado en esta liquidación. */
+  amount: number
+  /** El valor completo del descuento. */
+  deduction_total: number
+  /** Lo que falta por descontar HOY (al reimprimir puede ser menor que entonces). */
+  pending_amount: number
+  sale_return_number: number
+  sale_number: number
+  /** Vacío si la venta no tiene cliente. */
+  customer: string
+  reason: string
+  services: DeductedService[]
+}
+
 export interface MechanicSettlementDetail extends MechanicSettlement {
   services: SettledService[]
+  deductions: AppliedDeduction[]
+}
+
+export interface MechanicDeduction {
+  id: number
+  mechanic: { id: number; name: string }
+  /** Valor completo: mano de obra devuelta + repuestos que no vuelven. */
+  amount: number
+  /** Ya descontado en liquidaciones. */
+  applied_amount: number
+  /** Falta por descontar. */
+  pending_amount: number
+  /** Id de la devolución. */
+  sale_return: number
+  sale_return_number: number
+  sale_number: number
+  /** Vacío si la venta no tiene cliente. */
+  customer: string
+  reason: string
+  services: DeductedService[]
+  created_at: string
+}
+
+// --- Devoluciones ---
+
+export type ReturnCause = 'bad_service' | 'other'
+export type ReturnCondition = 'resellable' | 'damaged'
+
+export interface SaleReturn {
+  id: number
+  /** Consecutivo, aparte del de las ventas. */
+  number: number
+  /** Id de la venta. */
+  sale: number
+  sale_number: number
+  /** `null`: la venta no tiene cliente. */
+  customer: { id: number; name: string; phone: string } | null
+  cause: ReturnCause
+  cause_label: string
+  reason: string
+  total: number
+  created_by: string
+  created_at: string
+}
+
+export interface SaleReturnDetail extends SaleReturn {
+  items: {
+    id: number
+    sale_item: number
+    product: { id: number; code: string; name: string }
+    description: string
+    quantity: number
+    condition: ReturnCondition
+    condition_label: string
+    /** El cobrado en la venta. */
+    unit_price: number
+    subtotal: number
+  }[]
+  services: {
+    id: number
+    sale_service: number
+    service_type: { id: number; code: number; name: string }
+    mechanic: { id: number; name: string }
+    details: string
+    labor_price: number
+  }[]
+  refunds: { method: PaymentMethod; method_label: string; amount: number }[]
+  /** Solo el dueño; `null` si no hay descuento. */
+  mechanic_deduction?: {
+    mechanic: { id: number; name: string }
+    amount: number
+    applied_amount: number
+    pending_amount: number
+  } | null
+}
+
+export interface SaleReturnInput {
+  idempotency_key: string
+  cause: ReturnCause
+  reason: string
+  items?: { sale_item: number; quantity: number; condition: ReturnCondition }[]
+  services?: number[]
+  refunds: { method: PaymentMethod; amount: number }[]
 }

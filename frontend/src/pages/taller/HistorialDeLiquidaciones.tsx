@@ -94,6 +94,7 @@ export function HistorialDeLiquidaciones() {
                         {formatearPesos(l.amount)}
                         <span className="tabla__detalle">
                           {l.percentage} % · {l.method_label}
+                          {l.deductions_total > 0 && ` · Descuento ${formatearPesos(l.deductions_total)}`}
                         </span>
                       </td>
                       <td>
