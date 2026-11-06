@@ -41,7 +41,6 @@ interface LineaDeServicio {
   tipo: ServiceType
   /** Id del mecánico; obligatorio. */
   mecanico: string
-  placa: string
   detalles: string
   /** Mano de obra; solo el dueño puede cambiarla. */
   precio: number
@@ -99,7 +98,8 @@ export function Vender() {
       return registrarVenta({
         idempotency_key: clave,
         ...(cliente?.tipo === 'existente' ? { customer: cliente.cliente.id } : {}),
-        ...(cliente?.tipo === 'nuevo'
+        // Un cliente nuevo que quedó en blanco es lo mismo que no tener cliente.
+        ...(cliente?.tipo === 'nuevo' && (cliente.nombre.trim() || cliente.telefono.trim())
           ? { new_customer: { name: cliente.nombre, ...(cliente.telefono.trim() ? { phone: cliente.telefono } : {}) } }
           : {}),
         ...(lineas.length > 0
@@ -116,7 +116,6 @@ export function Vender() {
               services: servicios.map((s) => ({
                 service_type: s.tipo.id,
                 mechanic: Number(s.mecanico),
-                ...(s.placa.trim() ? { plate: s.placa } : {}),
                 ...(s.detalles.trim() ? { details: s.detalles } : {}),
                 ...(esDueno && s.precio !== s.tipo.suggested_price ? { labor_price: s.precio } : {}),
               })),
@@ -171,7 +170,7 @@ export function Vender() {
     // Se puede repetir el mismo tipo (dos cambios de aceite): cada uno es una línea.
     setServicios((actuales) => [
       ...actuales,
-      { clave: nuevaClaveDeReintento(), tipo, mecanico: '', placa: '', detalles: '', precio: tipo.suggested_price },
+      { clave: nuevaClaveDeReintento(), tipo, mecanico: '', detalles: '', precio: tipo.suggested_price },
     ])
   }
 
@@ -251,7 +250,6 @@ export function Vender() {
     !bloqueada &&
     hayAlgo &&
     !faltaMecanico &&
-    cliente !== null &&
     faltaEfectivo === 0 &&
     !transferenciaDeMas &&
     !cobrar.isPending
@@ -402,7 +400,6 @@ export function Vender() {
                     <tr>
                       <th scope="col">Servicio</th>
                       <th scope="col">Mecánico</th>
-                      <th scope="col">Placa</th>
                       <th scope="col">Qué se hizo</th>
                       <th scope="col">Mano de obra</th>
                       <th scope="col">
@@ -412,7 +409,7 @@ export function Vender() {
                   </thead>
                   <tbody>
                     {servicios.map((servicio, indice) => {
-                      const errores = ['service_type', 'mechanic', 'plate', 'details', 'labor_price'].flatMap(
+                      const errores = ['service_type', 'mechanic', 'details', 'labor_price'].flatMap(
                         (campo) => error?.campos[`services.${indice}.${campo}`] ?? [],
                       )
                       const nombre = `${servicio.tipo.name} (${indice + 1})`
@@ -444,16 +441,6 @@ export function Vender() {
                                 </option>
                               ))}
                             </select>
-                          </td>
-                          <td>
-                            <input
-                              className="celda-texto celda-texto--corta"
-                              aria-label={`Placa de ${nombre}`}
-                              value={servicio.placa}
-                              maxLength={10}
-                              onChange={(e) => cambiarServicio(servicio.clave, { placa: e.target.value })}
-                              placeholder="Opcional"
-                            />
                           </td>
                           <td>
                             <input
@@ -575,7 +562,6 @@ export function Vender() {
           <button type="submit" className="boton venta__cobrar" disabled={!puedeCobrar}>
             {cobrar.isPending ? 'Cobrando…' : `Cobrar ${formatearPesos(total)}`}
           </button>
-          {!bloqueada && hayAlgo && cliente === null && <p className="campo__ayuda">Elige o crea el cliente para cobrar.</p>}
           {!bloqueada && faltaMecanico && <p className="campo__ayuda">Elige el mecánico de cada servicio para cobrar.</p>}
           <p className="campo__ayuda">El total es orientativo: el programa confirma los precios al cobrar.</p>
         </section>

@@ -356,7 +356,8 @@ export interface Sale {
   id: number
   /** Consecutivo del recibo. */
   number: number
-  customer: { id: number; name: string; phone: string }
+  /** `null`: la venta no tiene cliente. */
+  customer: { id: number; name: string; phone: string } | null
   /** Productos + mano de obra. */
   total: number
   items_count: number
@@ -404,7 +405,6 @@ export interface SaleInput {
   services?: {
     service_type: number
     mechanic: number
-    plate?: string
     details?: string
     /** Solo el dueño. */
     labor_price?: number
@@ -624,8 +624,6 @@ export interface SaleService {
   id: number
   service_type: { id: number; code: number; name: string }
   mechanic: { id: number; name: string }
-  /** «ABC12D» o vacío. */
-  plate: string
   details: string
   suggested_price: number
   /** Mano de obra cobrada. */
@@ -682,9 +680,9 @@ export interface SettledService {
   id: number
   sale_id: number
   sale_number: number
+  /** Vacío si la venta no tiene cliente. */
   customer: string
   service_type: { id: number; code: number; name: string }
-  plate: string
   details: string
   labor_price: number
 }

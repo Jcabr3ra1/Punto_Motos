@@ -4,6 +4,7 @@ from django.test import TestCase
 from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import Role
+from apps.cash.models import CashMovement
 from apps.inventory.exceptions import InitialCountInProgress
 from apps.inventory.models import InitialCount, InventoryMovement, MovementKind
 from apps.sales.models import Customer, Sale
@@ -96,9 +97,30 @@ class SaleWriteSerializerTests(SaleSerializerTestCase):
         self.assertEqual(data["customer"]["name"], "Ana Gómez")
         self.assertTrue(Customer.objects.filter(name="Ana Gómez", phone="300 1").exists())
 
-    def test_needs_exactly_one_customer(self):
-        self.assertIn("customer", self.errors(self.data(customer=None)))
+    def test_customer_is_optional(self):
+        for absent in ({"customer": None}, {"customer": None, "new_customer": None}):
+            with self.subTest(absent):
+                data = self.confirm(self.data(**absent)).data
+                self.assertIsNone(data["customer"])
+
+        reasons = CashMovement.objects.filter(sale__customer__isnull=True).values_list("reason", flat=True)
+        self.assertTrue(all(reason.startswith("Venta ") and "·" not in reason for reason in reasons))
+
+    def test_customer_can_be_left_out_of_the_request(self):
+        data = self.data()
+        del data["customer"]
+
+        self.assertIsNone(self.confirm(data).data["customer"])
+
+    def test_cannot_send_both_customers(self):
         self.assertIn("customer", self.errors(self.data(new_customer={"name": "Ana"})))
+
+    def test_phone_without_name_is_rejected(self):
+        errors = self.errors(self.data(customer=None, new_customer={"name": " ", "phone": "300"}))
+
+        self.assertEqual(
+            errors["new_customer"]["name"], ["Escribe el nombre del cliente: el teléfono solo no se puede guardar."],
+        )
 
     def test_retry_returns_the_same_sale_without_new_customer(self):
         data = self.data(customer=None, new_customer={"name": "Ana Gómez"})

@@ -84,12 +84,12 @@ class SaleWithServicesTests(WorkshopSalesTestCase):
     def test_service_with_part_charges_both_and_discounts_part_once(self):
         sale, _ = self.sell(
             items=[{"product": self.brakes, "quantity": 1}],
-            services=[{"service_type": self.oil, "mechanic": self.carlos, "plate": "abc-12d"}],
+            services=[{"service_type": self.oil, "mechanic": self.carlos}],
         )
 
         self.assertEqual(sale.total, 25000 + 15000)
         service = sale.services.get()
-        self.assertEqual((service.mechanic, service.plate), (self.carlos, "ABC12D"))
+        self.assertEqual(service.mechanic, self.carlos)
         self.assertEqual((service.suggested_price, service.labor_price), (15000, 15000))
         self.assertFalse(service.price_changed)
         self.assertEqual(stock_of(self.brakes), 4)

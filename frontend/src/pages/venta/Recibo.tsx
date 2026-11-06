@@ -11,10 +11,12 @@ export function Recibo({ venta, vuelto }: { venta: SaleDetail; vuelto?: number }
         <p className="texto-suave">
           {formatearFechaHora(venta.created_at)} · Vendió {venta.created_by}
         </p>
-        <p>
-          Cliente: <strong>{venta.customer.name}</strong>
-          {venta.customer.phone && ` · ${venta.customer.phone}`}
-        </p>
+        {venta.customer && (
+          <p>
+            Cliente: <strong>{venta.customer.name}</strong>
+            {venta.customer.phone && ` · ${venta.customer.phone}`}
+          </p>
+        )}
       </header>
       {venta.is_voided && (
         <p role="status" className="aviso aviso--error">
@@ -58,7 +60,7 @@ export function Recibo({ venta, vuelto }: { venta: SaleDetail; vuelto?: number }
               <th scope="row">
                 {servicio.service_type.code} · {servicio.service_type.name}
                 <span className="tabla__detalle">
-                  {[`Mecánico: ${servicio.mechanic.name}`, servicio.plate && `Placa ${servicio.plate}`, servicio.details].filter(Boolean).join(' · ')}
+                  {[`Mecánico: ${servicio.mechanic.name}`, servicio.details].filter(Boolean).join(' · ')}
                 </span>
                 {servicio.price_changed && (
                   <span className="tabla__detalle">Mano de obra sugerida {formatearPesos(servicio.suggested_price)}</span>

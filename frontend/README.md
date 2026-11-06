@@ -18,7 +18,7 @@ Interfaz de la aplicación en React y TypeScript. Se muestra dentro de la ventan
 ## Responsabilidades
 
 - Navegación y pantallas: inicio, catálogo e inventario, compras, ventas, servicios de taller, empleados, caja, cierres, reportes, configuración y respaldos.
-- Venta rápida de mostrador con búsqueda, navegación con teclado y servicios con tipo, placa y mecánico.
+- Venta rápida de mostrador con búsqueda, navegación con teclado y servicios con tipo y mecánico.
 - Pantalla de carga del inventario inicial y plantilla de conteo.
 - Diseño del recibo de 80 mm y de la liquidación diaria, junto con la prueba física en la impresora.
 - Configuración de respaldos, avisos del último respaldo externo y restauración guiada.
@@ -118,7 +118,7 @@ El backend debe estar corriendo en `127.0.0.1:8765` con `PUNTO_MOTO_DEBUG=1` (ve
   - **Proveedores:** lo que se les debe, búsqueda, alta, edición y desactivación (no se borran), estado de cuenta (compras con saldo y abonos) y «Abonar».
   - **Abonos:** lista con filtros y registro de abonos a una compra o a las más antiguas primero. No se editan ni se borran.
 - **Taller** (backend 0.7.0 y 0.8.0):
-  - **En la venta:** escribir solo números en el buscador (por ejemplo `101`) ofrece el servicio con ese código; también hay un desplegable «Agregar servicio». Cada servicio pide mecánico (obligatorio), placa y descripción si el tipo la exige; solo el dueño cambia la mano de obra (`labor_price` se envía únicamente si cambió). La venta puede ser solo de servicios. El recibo muestra cada servicio con su mecánico y placa, y el historial filtra por mecánico.
+  - **En la venta:** escribir solo números en el buscador (por ejemplo `101`) ofrece el servicio con ese código; también hay un desplegable «Agregar servicio». Cada servicio pide mecánico (obligatorio) y, si se quiere, qué se hizo; solo el dueño cambia la mano de obra (`labor_price` se envía únicamente si cambió). La venta puede ser solo de servicios. El recibo muestra cada servicio con su mecánico, y el historial filtra por mecánico.
   - **Configuración → Tipos de servicio y Mecánicos** (solo el dueño). En mecánicos, el porcentaje vacío se envía como `null` (usa el general de «Datos del negocio»).
   - **Taller → Liquidación del día** (solo el dueño): lo que se le debe a cada mecánico, «Pagar» con confirmación y medio de pago, y la hoja de servicios pagados. **Historial de liquidaciones** con filtros y detalle.
   - **Consumo del taller** (en Movimientos, solo el dueño): salida de insumos de taller sin cobrarlos.

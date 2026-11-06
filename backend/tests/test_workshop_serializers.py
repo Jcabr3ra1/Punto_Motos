@@ -105,7 +105,7 @@ class SaleWithServicesSerializerTests(SaleSerializerTestCase):
     def test_confirms_services_with_parts_and_returns_them(self):
         serializer = self.confirm(self.data(
             items=[{"product": self.brakes.pk, "quantity": 1}],
-            services=[self.service(plate="abc 12d")],
+            services=[self.service()],
             payments=[{"method": "cash", "amount": 40000}],
         ))
 
@@ -114,7 +114,8 @@ class SaleWithServicesSerializerTests(SaleSerializerTestCase):
         service = data["services"][0]
         self.assertEqual(service["service_type"], {"id": self.oil.pk, "code": 101, "name": "Cambio de aceite"})
         self.assertEqual(service["mechanic"], {"id": self.carlos.pk, "name": "Carlos Ruiz"})
-        self.assertEqual((service["plate"], service["labor_price"], service["price_changed"]), ("ABC12D", 15000, False))
+        self.assertNotIn("plate", service)
+        self.assertEqual((service["labor_price"], service["price_changed"]), (15000, False))
         self.assertEqual(stock_of(self.brakes), 4)
 
     def test_sale_can_have_only_services(self):
@@ -166,12 +167,6 @@ class SaleWithServicesSerializerTests(SaleSerializerTestCase):
         errors = self.errors(self.data(items=[], services=[self.service()], payments=[{"method": "cash", "amount": 15000}]))
         self.assertIn("mechanic", errors["services"][0])
 
-    def test_plate_too_long_is_rejected(self):
-        errors = self.errors(self.data(
-            items=[], services=[self.service(plate="ABC-123-DEF-45")], payments=[{"method": "cash", "amount": 15000}],
-        ))
-
-        self.assertEqual(errors["services"][0]["plate"], ["La placa tiene máximo 10 caracteres."])
 
 
 class WorkshopUseSerializerTests(TestCase):

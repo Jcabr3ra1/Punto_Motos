@@ -98,15 +98,54 @@ describe('vender', () => {
     expect(ventasEnviadas(api)[0].notes).toMatch(/^Parte por transferencia bancaria: \$\s?20\.000$/)
   })
 
-  it('no deja cobrar sin cliente, ni si el efectivo no alcanza o la transferencia se pasa', async () => {
+  it('cobra sin cliente y el recibo no muestra esa línea', async () => {
+    const { api, u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta({ customer: null, total: 25000 }) }) })
+
+    await agregar(u, 'pas')
+    await u.click(screen.getByRole('button', { name: /^Cobrar/ }))
+
+    const recibo = await screen.findByRole('article', { name: 'Recibo n.º 41' })
+    expect(recibo).not.toHaveTextContent('Cliente:')
+    const [enviada] = ventasEnviadas(api)
+    expect(enviada).not.toHaveProperty('customer')
+    expect(enviada).not.toHaveProperty('new_customer')
+  })
+
+  it('un cliente nuevo que queda en blanco no se envía', async () => {
+    const { api, u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta({ customer: null, total: 25000 }) }) })
+
+    await agregar(u, 'pas')
+    await u.type(screen.getByRole('combobox', { name: 'Cliente' }), 'Juan')
+    await u.click(await screen.findByRole('option', { name: /Crear cliente nuevo/ }))
+    await u.clear(screen.getByLabelText('Nombre del cliente'))
+    await u.click(screen.getByRole('button', { name: /^Cobrar/ }))
+
+    await screen.findByRole('heading', { name: 'Venta registrada' })
+    expect(ventasEnviadas(api)[0]).not.toHaveProperty('new_customer')
+  })
+
+  it('el teléfono sin nombre muestra el error junto al cliente', async () => {
+    const mensaje = 'Escribe el nombre del cliente: el teléfono solo no se puede guardar.'
+    const { api, u } = abrir(vendedor, {
+      'POST /sales': () => errorDeApi(400, 'validation_error', 'Revisa los datos marcados.', { new_customer: { name: [mensaje] } }),
+    })
+
+    await agregar(u, 'pas')
+    await u.type(screen.getByRole('combobox', { name: 'Cliente' }), 'Juan')
+    await u.click(await screen.findByRole('option', { name: /Crear cliente nuevo/ }))
+    await u.clear(screen.getByLabelText('Nombre del cliente'))
+    await u.type(screen.getByLabelText('Teléfono'), '3001234567')
+    await u.click(screen.getByRole('button', { name: /^Cobrar/ }))
+
+    expect(await screen.findByText(mensaje)).toBeInTheDocument()
+    expect(ventasEnviadas(api)[0]).toMatchObject({ new_customer: { name: '', phone: '3001234567' } })
+  })
+
+  it('no deja cobrar si el efectivo no alcanza o la transferencia se pasa', async () => {
     const { u } = abrir()
 
     await agregar(u, 'pas')
     const cobrar = screen.getByRole('button', { name: /^Cobrar/ })
-    expect(cobrar).toBeDisabled()
-    expect(screen.getByText('Elige o crea el cliente para cobrar.')).toBeInTheDocument()
-
-    await elegirAna(u)
     expect(cobrar).toBeEnabled()
     await u.type(screen.getByLabelText('Efectivo que entrega el cliente'), '20000')
     expect(screen.getByText(/Faltan \$\s?5\.000\./)).toBeInTheDocument()

@@ -11,6 +11,31 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-06 · Venta sin cliente y sin placa (0.11.0)
+
+**Qué cambió**
+
+- **El cliente es opcional en `POST /sales`:** se puede enviar `customer`, `new_customer` o ninguno. Enviar los dos sigue siendo un error. El teléfono solo no se guarda: un cliente nuevo necesita nombre (`fields.new_customer.name`).
+- **Se eliminó la placa:** `plate` sale de las ventas, liquidaciones, descuentos y devoluciones, y de la base de datos con la migración `sales` 0005. **Las placas ya registradas se pierden al aplicarla**, salvo en el respaldo automático previo a las migraciones.
+- El motivo de los movimientos de caja e inventario de una venta sin cliente queda como `Venta 41`, sin el nombre.
+
+**Cambio incompatible**
+
+- `customer` puede llegar en `null` en `Sale`, `SaleDetail`, `SaleReturn` y `SaleReturnDetail`.
+- `customer` llega vacío (`""`) en la hoja de liquidación y en los descuentos si la venta no tiene cliente.
+- `plate` ya no viene en ninguna respuesta y se ignora si se envía. Ya no existe el error `services.N.plate`.
+
+**Qué debe hacer el frontend**
+
+Ya está hecho en este mismo cambio, Juan solo debe revisarlo:
+
+- **Vender:** se puede cobrar sin cliente y salió la columna «Placa». Un cliente nuevo que queda en blanco no se envía.
+- **Recibo:** omite la línea del cliente si no hay, y ya no muestra la placa.
+- **Historial de ventas y hoja de liquidación:** muestran «Sin cliente».
+- **Tipos:** se actualizaron `Sale`, `SaleInput`, `SaleService` y `SettledService` en `frontend/src/api/types.ts`.
+
+Al construir la pantalla de **devoluciones**, tener en cuenta que `customer` puede ser `null`.
+
 ## 2026-11-05 · La descripción del servicio ya no es obligatoria (0.10.0)
 
 **Qué cambió**

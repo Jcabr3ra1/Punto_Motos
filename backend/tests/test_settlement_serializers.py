@@ -23,7 +23,7 @@ class SettleSerializerTests(SettlementTestCase):
 
     def test_pays_today_by_default_and_returns_services_for_the_sheet(self):
         sale = self.service_sale(self.carlos, items=[{"product": self.brakes, "quantity": 1}])
-        self.sell(services=[{"service_type": self.oil, "mechanic": self.carlos, "plate": "xyz98a"}])
+        self.sell(services=[{"service_type": self.oil, "mechanic": self.carlos}])
 
         data = self.settle({"mechanic": self.carlos.pk})
 
@@ -36,7 +36,6 @@ class SettleSerializerTests(SettlementTestCase):
             (first["sale_number"], first["customer"], first["service_type"]["code"], first["labor_price"]),
             (sale.number, "Juan Pérez", 101, 15000),
         )
-        self.assertEqual(data["services"][1]["plate"], "XYZ98A")
 
     def test_pays_past_day_by_transfer(self):
         sale = self.service_sale(self.carlos)
