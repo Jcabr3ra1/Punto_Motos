@@ -96,7 +96,7 @@ class PreviewSerializerTests(SettlementTestCase):
 
         self.assertEqual([dict(row) for row in data], [{
             "mechanic": {"id": self.carlos.pk, "name": "Carlos Ruiz"}, "services_count": 1, "labor_total": 15000,
-            "percentage": 60, "amount": 9000,
+            "percentage": 60, "share": 9000, "deductions_total": 0, "amount": 9000,
         }])
 
 

@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.8.0**.
+Versión del backend: **0.9.0**.
 
 ## Conexión
 
@@ -117,9 +117,10 @@ interface ApiError {
 | 409 | `initial_count_finished` | Se intenta cargar un producto al inventario inicial o terminarlo cuando ya terminó | Mostrar `message`, volver a consultar `GET /inventory/initial-count` y ocultar la pantalla de conteo |
 | 409 | `purchase_received` | Se intenta editar, borrar o recibir otra vez una compra ya recibida | Mostrar `message` y volver a cargar la compra |
 | 409 | `initial_count_open` | Se intenta vender o entregar en consignación mientras el inventario inicial sigue abierto | Mostrar `message`; el dueño debe terminar el conteo |
-| 409 | `cash_session_closed` | No hay caja abierta (o ya se cerró) y se intenta vender, anular, abonar o pagar con fecha de hoy, registrar un gasto o cerrar otra vez | Mostrar `message` y volver a consultar `GET /cash-sessions/current`; el dueño debe abrir la caja |
-| 409 | `sale_voided` | Se intenta anular una venta ya anulada | Mostrar `message` y volver a cargar la venta |
+| 409 | `cash_session_closed` | No hay caja abierta (o ya se cerró) y se intenta vender, anular, devolver, abonar o pagar con fecha de hoy, registrar un gasto o cerrar otra vez | Mostrar `message` y volver a consultar `GET /cash-sessions/current`; el dueño debe abrir la caja |
+| 409 | `sale_voided` | Se intenta anular una venta ya anulada o registrar una devolución sobre ella | Mostrar `message` y volver a cargar la venta |
 | 409 | `sale_has_settled_services` | Se intenta anular una venta con servicios que ya se le pagaron al mecánico | Mostrar `message`; esa venta se corrige con una devolución |
+| 409 | `sale_has_returns` | Se intenta anular una venta que ya tiene devoluciones | Mostrar `message`; lo que falte se corrige con otra devolución |
 | 409 | `nothing_to_settle` | Se intenta pagar a un mecánico que no tiene servicios sin pagar ese día (por ejemplo, un doble clic) | Mostrar `message` y volver a consultar la liquidación del día |
 | 405 | `method_not_allowed` | Método no soportado en la ruta | Error de programación |
 | 429 | `throttled` | Demasiados intentos de inicio de sesión (más de 10 por minuto) | Mostrar `message` y deshabilitar el botón un momento |
@@ -207,12 +208,15 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET /sales` | Sesión | Ventas paginadas con filtros |
 | `GET /sales/{id}` | Sesión | Una venta con sus líneas y pagos (recibo) |
 | `POST /sales/{id}/void` | Dueño | Anula una venta |
+| `POST /sales/{id}/returns` | Sesión (mal servicio: dueño) | Registra una devolución parcial o total |
+| `GET /sale-returns` y `/sale-returns/{id}` | Sesión | Devoluciones; una con sus líneas |
 | `GET /service-types`, `/mechanics` | Sesión | Tipos de servicio y mecánicos activos |
 | `POST /service-types`, `/mechanics` | Dueño | Crea un tipo de servicio o un mecánico |
 | `GET` y `PATCH /service-types/{id}`, `/mechanics/{id}` | Sesión / Dueño | Consulta o edita uno |
 | `GET /mechanic-settlements/daily` | Dueño | Lo que se le debe a cada mecánico en un día |
 | `POST /mechanic-settlements/daily` | Dueño | Le paga a un mecánico su parte del día |
 | `GET /mechanic-settlements` y `/mechanic-settlements/{id}` | Dueño | Liquidaciones pagadas; una con sus servicios |
+| `GET /mechanic-deductions` | Dueño | Descuentos por mal servicio y su saldo |
 | `GET /cash-sessions/current` | Sesión | Si la caja está abierta; el dueño recibe también sus montos |
 | `GET`, `POST /cash-sessions` | Dueño | Historial de cajas; abre la caja |
 | `GET /cash-sessions/{id}` | Dueño | Una caja con su resumen |
@@ -232,7 +236,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.8.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.9.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -1002,7 +1006,11 @@ interface MechanicInput {
 2. El botón **Pagar** de cada mecánico envía `POST /mechanic-settlements/daily`. El dinero **sale de la caja abierta de hoy** (movimiento `mechanic_payment`), aunque el día liquidado sea anterior. Deshabilitar el botón mientras responde.
 3. La respuesta trae los servicios pagados, para imprimir la hoja del mecánico.
 
-**Cada servicio se paga una sola vez.** Si después de pagarle se registran más servicios ese día, el mecánico vuelve a aparecer en la vista previa solo con los nuevos, y se le paga aparte: puede haber más de una liquidación por mecánico y día. Los servicios de ventas anuladas no cuentan. **Una venta con servicios ya pagados no se puede anular** (409 `sale_has_settled_services`).
+**Cada servicio se paga una sola vez.** Si después de pagarle se registran más servicios ese día, el mecánico vuelve a aparecer en la vista previa solo con los nuevos, y se le paga aparte: puede haber más de una liquidación por mecánico y día. Los servicios de ventas anuladas no cuentan. **Una venta con servicios ya pagados no se puede anular** (409 `sale_has_settled_services`): se corrige con una [devolución](#devoluciones).
+
+**Descuentos por mal servicio.** Si el mecánico tiene saldo por descontar (ver [Devoluciones](#devoluciones)), se resta de su parte, los más antiguos primero, y `amount` ya viene neto: `amount = share - deductions_total`. Si el descuento es mayor que su parte, `amount` es 0, no sale dinero de la caja y el saldo pasa a la siguiente liquidación. La hoja impresa debe mostrar `deductions` con el servicio, el cliente, la placa, el valor y el motivo.
+
+La vista previa solo lista mecánicos con servicios sin pagar ese día, así que un saldo pendiente de alguien sin servicios no aparece allí: se consulta en `GET /mechanic-deductions`.
 
 `GET /mechanic-settlements/daily?date=2026-11-03`
 
@@ -1012,11 +1020,13 @@ interface MechanicInput {
   "mechanics": [
     {
       "mechanic": { "id": 1, "name": "Carlos Ruiz" },
-      "services_count": 2, "labor_total": 30000, "percentage": 60, "amount": 18000
+      "services_count": 2, "labor_total": 30000, "percentage": 60,
+      "share": 18000, "deductions_total": 0, "amount": 18000
     },
     {
       "mechanic": { "id": 2, "name": "Pedro Gómez" },
-      "services_count": 1, "labor_total": 15000, "percentage": 50, "amount": 7500
+      "services_count": 1, "labor_total": 15000, "percentage": 50,
+      "share": 7500, "deductions_total": 0, "amount": 7500
     }
   ],
   "total": 25500
@@ -1044,6 +1054,7 @@ interface MechanicInput {
   "date": "2026-11-03",
   "labor_total": 30000,
   "percentage": 60,
+  "deductions_total": 0,
   "amount": 18000,
   "method": "cash",
   "method_label": "Efectivo",
@@ -1061,7 +1072,8 @@ interface MechanicInput {
       "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
       "plate": "", "details": "", "labor_price": 15000
     }
-  ]
+  ],
+  "deductions": []
 }
 ```
 
@@ -1069,13 +1081,17 @@ Errores: `fields.date` con "No se puede liquidar un día que no ha llegado."; `f
 
 **Historial.** `GET /mechanic-settlements` responde `Paginated<MechanicSettlement>` (sin `services`), de la más reciente a la más antigua, con filtros `?mechanic=`, `?date_from=` y `?date_to=` (día liquidado, ambos incluidos). `GET /mechanic-settlements/{id}` responde `MechanicSettlementDetail`, para reimprimir.
 
+**Saldos por descontar.** `GET /mechanic-deductions` responde `Paginated<MechanicDeduction>`, los más antiguos primero, con filtros `?mechanic=` y `?pending=true` (solo los que aún tienen saldo).
+
 ```ts
 interface SettlementPreviewRow {
   mechanic: { id: number; name: string };
   services_count: number;
   labor_total: number;             // mano de obra sin pagar del día
   percentage: number;              // porcentaje vigente del mecánico
-  amount: number;                  // lo que se le pagaría
+  share: number;                   // su parte, antes de descuentos
+  deductions_total: number;        // lo que se le descontaría en este pago
+  amount: number;                  // lo que se le pagaría: share - deductions_total
 }
 
 interface DailySettlement {
@@ -1096,6 +1112,7 @@ interface MechanicSettlement {
   date: string;                    // día liquidado
   labor_total: number;
   percentage: number;              // el aplicado en ese pago
+  deductions_total: number;        // lo descontado en ese pago; su parte era amount + deductions_total
   amount: number;                  // lo pagado
   method: PaymentMethod;
   method_label: string;
@@ -1115,8 +1132,42 @@ interface SettledService {
   labor_price: number;
 }
 
+interface DeductedService {
+  service_type: { id: number; code: number; name: string };
+  plate: string;
+  details: string;
+  labor_price: number;
+}
+
+interface AppliedDeduction {
+  amount: number;                  // lo descontado en esta liquidación
+  deduction_total: number;         // el valor completo del descuento
+  pending_amount: number;          // lo que falta por descontar HOY (al reimprimir puede ser menor que entonces)
+  sale_return_number: number;
+  sale_number: number;
+  customer: string;
+  reason: string;
+  services: DeductedService[];
+}
+
 interface MechanicSettlementDetail extends MechanicSettlement {
   services: SettledService[];
+  deductions: AppliedDeduction[];
+}
+
+interface MechanicDeduction {
+  id: number;
+  mechanic: { id: number; name: string };
+  amount: number;                  // valor completo: mano de obra devuelta + repuestos que no vuelven
+  applied_amount: number;          // ya descontado en liquidaciones
+  pending_amount: number;          // falta por descontar
+  sale_return: number;             // id de la devolución
+  sale_return_number: number;
+  sale_number: number;
+  customer: string;
+  reason: string;
+  services: DeductedService[];
+  created_at: string;
 }
 ```
 
@@ -1135,7 +1186,7 @@ Cualquier usuario con sesión vende y crea clientes. **Las ventas se pagan compl
 
 **El cliente es obligatorio.** Se envía `customer` (id de uno existente) o `new_customer` (se crea con la venta), nunca los dos. Al escribir el nombre, sugerir clientes con `GET /customers?q=texto&page_size=8`. El nombre **puede repetirse** (hay varios "Juan Pérez"); por eso la sugerencia muestra también el teléfono.
 
-**Anular.** Un error se corrige anulando la venta: `POST /sales/{id}/void` con su motivo, **solo el dueño** y con caja abierta. La venta no se borra: queda marcada como anulada, las unidades vuelven al inventario (movimiento `return`) y cada pago se reembolsa por el mismo medio desde la caja abierta de hoy, aunque la venta sea de otro día. Los servicios de una venta anulada quedan en su historial.
+**Anular.** Un error se corrige anulando la venta: `POST /sales/{id}/void` con su motivo, **solo el dueño** y con caja abierta. La venta no se borra: queda marcada como anulada, las unidades vuelven al inventario (movimiento `return`) y cada pago se reembolsa por el mismo medio desde la caja abierta de hoy, aunque la venta sea de otro día. Los servicios de una venta anulada quedan en su historial. Una venta que ya tiene devoluciones no se puede anular.
 
 ```ts
 interface Customer {
@@ -1170,6 +1221,7 @@ interface SaleItem {
   product: { id: number; code: string; name: string };
   description: string;             // "FRE-PUL-PAS · Pastillas de freno Pulsar 180", como quedó en el recibo
   quantity: number;
+  returned_quantity: number;       // unidades ya devueltas; se pueden devolver quantity - returned_quantity
   list_price: number;              // precio del catálogo al vender
   unit_price: number;              // precio cobrado
   price_changed: boolean;          // el dueño cambió el precio en esta venta
@@ -1186,6 +1238,7 @@ interface SaleService {
   suggested_price: number;         // precio del tipo de servicio al vender
   labor_price: number;             // mano de obra cobrada
   price_changed: boolean;          // el dueño cambió el valor
+  is_returned: boolean;            // ya se devolvió: un servicio se devuelve una sola vez
 }
 
 interface SaleDetail extends Sale {
@@ -1246,12 +1299,12 @@ interface SaleInput {
   "items": [
     {
       "id": 77, "product": { "id": 12, "code": "FRE-PUL-PAS", "name": "Pastillas de freno Pulsar 180" },
-      "description": "FRE-PUL-PAS · Pastillas de freno Pulsar 180", "quantity": 2,
+      "description": "FRE-PUL-PAS · Pastillas de freno Pulsar 180", "quantity": 2, "returned_quantity": 0,
       "list_price": 25000, "unit_price": 25000, "price_changed": false, "subtotal": 50000
     },
     {
       "id": 78, "product": { "id": 30, "code": "ELE-UNI-BUJ", "name": "Bujía NGK" },
-      "description": "ELE-UNI-BUJ · Bujía NGK", "quantity": 1,
+      "description": "ELE-UNI-BUJ · Bujía NGK", "quantity": 1, "returned_quantity": 0,
       "list_price": 14000, "unit_price": 14000, "price_changed": false, "subtotal": 14000
     }
   ],
@@ -1285,7 +1338,7 @@ La respuesta trae, además de `items`:
   {
     "id": 9, "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
     "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "plate": "ABC12D", "details": "",
-    "suggested_price": 15000, "labor_price": 15000, "price_changed": false
+    "suggested_price": 15000, "labor_price": 15000, "price_changed": false, "is_returned": false
   }
 ]
 ```
@@ -1320,20 +1373,170 @@ Conflictos: 409 `cash_session_closed` (no hay caja abierta) y 409 `initial_count
 
 **`GET /sales`** responde `Paginated<Sale>`, de la más reciente a la más antigua. Filtros: `?number=`, `?customer=`, `?mechanic=` (ventas con algún servicio de ese mecánico), `?voided=true|false`, `?date_from=` y `?date_to=` (día de la venta, ambos incluidos). **`GET /sales/{id}`** responde `SaleDetail`, para ver o reimprimir el recibo.
 
-**`POST /sales/{id}/void`** (solo el dueño) recibe `{ "reason": "Se cobró al cliente equivocado" }` y responde `SaleDetail` anulada. Errores: `fields.reason` "Indica por qué se anula la venta.", 409 `sale_voided` si ya estaba anulada, 409 `sale_has_settled_services` si alguno de sus servicios ya se le pagó al mecánico y 409 `cash_session_closed`.
+**`POST /sales/{id}/void`** (solo el dueño) recibe `{ "reason": "Se cobró al cliente equivocado" }` y responde `SaleDetail` anulada. Errores: `fields.reason` "Indica por qué se anula la venta.", 409 `sale_voided` si ya estaba anulada, 409 `sale_has_settled_services` si alguno de sus servicios ya se le pagó al mecánico, 409 `sale_has_returns` si ya tiene devoluciones y 409 `cash_session_closed`.
 
 **`/customers`**: `GET` paginado (`?q=` busca todas las palabras en el nombre sin tildes, o en el teléfono; `?include_inactive=true`), `POST`, `GET /customers/{id}` y `PATCH /customers/{id}`. No se borran: se desactivan.
 
+### Devoluciones
+
+Devuelve parte o toda una venta sin tocar el documento original: queda su propio documento, con número consecutivo aparte, que no se edita ni se borra. Cualquier usuario con sesión la registra, salvo la causa **mal servicio**, que es **solo del dueño**. Necesita **caja abierta**: el reembolso sale de la caja de hoy, aunque la venta sea de otro día.
+
+**Qué se devuelve:**
+
+- **Productos:** por unidades, hasta `quantity - returned_quantity` de cada línea de la venta. Se reembolsan **al precio cobrado**, no al del catálogo de hoy. Cada línea indica su estado: `resellable` vuelve al inventario (movimiento `return`) y `damaged` queda anotado pero no entra a las existencias.
+- **Servicios:** completos y una sola vez (`is_returned`).
+
+**Causa (`cause`):**
+
+| Valor | Quién | Efecto |
+| --- | --- | --- |
+| `other` | Cualquiera | El local asume la devolución; el mecánico conserva su parte |
+| `bad_service` | Solo el dueño | Debe incluir servicios de **un solo mecánico**. Se le descuenta la mano de obra devuelta completa más los repuestos `damaged`, al precio cobrado. Los `resellable` no se le descuentan |
+
+El descuento se aplica en sus próximas liquidaciones (ver [Liquidación](#liquidación-diaria-de-mecánicos)), también si el servicio ya se le había pagado.
+
+**Reembolso (`refunds`):** uno por medio y debe **sumar exactamente el total devuelto**. Puede repartirse entre efectivo y transferencia, y no tiene que coincidir con el medio en que se pagó la venta.
+
+**Reintentos:** como en la venta, la ventana genera un `idempotency_key` con `crypto.randomUUID()`. Si se repite, responde 200 con la devolución ya hecha y no reembolsa otra vez. Para evitar errores, calcular el total en la ventana y deshabilitar el botón mientras responde.
+
+**`POST /sales/{id}/returns`** responde **201** con `SaleReturnDetail` si es nueva y **200** si la clave se repite.
+
+```json
+{
+  "idempotency_key": "2f7d1c9a-8e44-4c1b-a6f0-5d3b7e9c1a20",
+  "cause": "bad_service",
+  "reason": "Quedó botando aceite",
+  "items": [{ "sale_item": 77, "quantity": 1, "condition": "damaged" }],
+  "services": [9],
+  "refunds": [{ "method": "cash", "amount": 40000 }]
+}
+```
+
+```json
+{
+  "id": 3,
+  "number": 3,
+  "sale": 41,
+  "sale_number": 41,
+  "customer": { "id": 18, "name": "Ana Gómez", "phone": "3001234567" },
+  "cause": "bad_service",
+  "cause_label": "Mal servicio del mecánico",
+  "reason": "Quedó botando aceite",
+  "total": 40000,
+  "created_by": "dueno",
+  "created_at": "2026-11-05T16:20:00-05:00",
+  "items": [
+    {
+      "id": 5, "sale_item": 77, "product": { "id": 12, "code": "FRE-PUL-PAS", "name": "Pastillas de freno Pulsar 180" },
+      "description": "FRE-PUL-PAS · Pastillas de freno Pulsar 180", "quantity": 1,
+      "condition": "damaged", "condition_label": "No puede volver", "unit_price": 25000, "subtotal": 25000
+    }
+  ],
+  "services": [
+    {
+      "id": 2, "sale_service": 9, "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
+      "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "plate": "ABC12D", "details": "", "labor_price": 15000
+    }
+  ],
+  "refunds": [{ "method": "cash", "method_label": "Efectivo", "amount": 40000 }],
+  "mechanic_deduction": {
+    "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "amount": 40000, "applied_amount": 0, "pending_amount": 40000
+  }
+}
+```
+
+| Campo | Reglas |
+| --- | --- |
+| `idempotency_key` | Obligatorio; UUID |
+| `cause` | Obligatorio; `other` o `bad_service` |
+| `reason` | Obligatorio; máximo 150 |
+| `items` | Opcional; líneas de esta venta, sin repetir. Debe haber al menos un producto o un servicio |
+| `items[].quantity` | Entero mayor que 0, hasta lo que falte por devolver |
+| `items[].condition` | Obligatorio; `resellable` o `damaged`. La ventana debe preguntarlo: no tiene valor por omisión |
+| `services` | Opcional; ids de `services[].id` de esta venta |
+| `refunds` | Un registro por medio; `amount` mayor que 0; la suma debe ser igual al total. Si el total es $0, va `refunds: []` |
+
+Errores en `fields` (los de una línea llegan anidados, como en la venta):
+
+- `cause`: "Solo el dueño puede registrar una devolución por mal servicio."
+- `reason`: "Indica el motivo de la devolución."
+- `items`: "Indica al menos un producto o un servicio para devolver.", "Este producto no es de esta venta." o "Un producto está repetido en la devolución: cambia su cantidad."
+- `items.N.quantity`: "Solo quedan 2 por devolver de FRE-PUL-PAS · Pastillas de freno Pulsar 180." o "Ya se devolvieron todas las unidades de…"
+- `services`: "El servicio «Cambio de aceite» ya se devolvió.", "Este servicio no es de esta venta.", "Un servicio está repetido en la devolución." o "Indica los servicios de un solo mecánico."
+- `refunds`: "La devolución es de $40.000 y el reembolso suma $30.000: deben ser iguales." o "Cada medio de pago va una sola vez: suma los valores."
+
+Conflictos: 409 `sale_voided` (la venta está anulada) y 409 `cash_session_closed`. Una venta que no existe responde 404.
+
+**`GET /sale-returns`** responde `Paginated<SaleReturn>`, de la más reciente a la más antigua. Filtros: `?sale=`, `?number=`, `?cause=`, `?date_from=` y `?date_to=` (día de la devolución, ambos incluidos). **`GET /sale-returns/{id}`** responde `SaleReturnDetail`.
+
+```ts
+type ReturnCause = "bad_service" | "other";
+type ReturnCondition = "resellable" | "damaged";
+
+interface SaleReturn {
+  id: number;
+  number: number;                  // consecutivo, aparte del de las ventas
+  sale: number;                    // id de la venta
+  sale_number: number;
+  customer: { id: number; name: string; phone: string };
+  cause: ReturnCause;
+  cause_label: string;
+  reason: string;
+  total: number;
+  created_by: string;
+  created_at: string;
+}
+
+interface SaleReturnDetail extends SaleReturn {
+  items: {
+    id: number;
+    sale_item: number;
+    product: { id: number; code: string; name: string };
+    description: string;
+    quantity: number;
+    condition: ReturnCondition;
+    condition_label: string;
+    unit_price: number;            // el cobrado en la venta
+    subtotal: number;
+  }[];
+  services: {
+    id: number;
+    sale_service: number;
+    service_type: { id: number; code: number; name: string };
+    mechanic: { id: number; name: string };
+    plate: string;
+    details: string;
+    labor_price: number;
+  }[];
+  refunds: { method: PaymentMethod; method_label: string; amount: number }[];
+  mechanic_deduction?: {           // solo el dueño; null si no hay descuento
+    mechanic: { id: number; name: string };
+    amount: number;
+    applied_amount: number;
+    pending_amount: number;
+  } | null;
+}
+
+interface SaleReturnInput {
+  idempotency_key: string;
+  cause: ReturnCause;
+  reason: string;
+  items?: { sale_item: number; quantity: number; condition: ReturnCondition }[];
+  services?: number[];
+  refunds: { method: PaymentMethod; amount: number }[];
+}
+```
+
 ### Caja
 
-La caja es **la jornada de dinero**: se abre con el efectivo que hay en el cajón y se cierra contándolo. **Abrir, cerrar, ver los montos y registrar gastos es solo del dueño.** Mientras no haya caja abierta **no se vende, no se anula y no se registran abonos ni pagos de hoy**: esas rutas responden 409 `cash_session_closed`.
+La caja es **la jornada de dinero**: se abre con el efectivo que hay en el cajón y se cierra contándolo. **Abrir, cerrar, ver los montos y registrar gastos es solo del dueño.** Mientras no haya caja abierta **no se vende, no se anula, no se devuelve y no se registran abonos ni pagos de hoy**: esas rutas responden 409 `cash_session_closed`.
 
 Lo que entra y sale queda como movimiento de la caja abierta, con signo (positivo entra, negativo sale):
 
 | `kind` | Signo | Lo crea |
 | --- | --- | --- |
 | `sale` | + | Cada pago de una venta, por su medio |
-| `sale_refund` | − | La anulación de una venta |
+| `sale_refund` | − | La anulación de una venta o una devolución (esta última trae `sale_return`) |
 | `consignee_payment` | + | El pago de un local en consignación |
 | `supplier_payment` | − | Un abono a proveedor con fecha de hoy. **Uno con fecha anterior se pagó por fuera y no toca la caja** |
 | `expense` | − | Un gasto, registrado a mano con su motivo |
@@ -1390,6 +1593,7 @@ interface CashMovement {
   reason: string;                  // "Venta 41 · Ana Gómez", "Almuerzo", "Abono a Distribuidora Andina"
   sale: number | null;
   sale_number: number | null;
+  sale_return: number | null;      // id de la devolución, en sus reembolsos
   supplier_payment: number | null;
   consignee_payment: number | null;
   mechanic_settlement: number | null;   // id de la liquidación, en los pagos a mecánicos

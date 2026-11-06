@@ -11,5 +11,6 @@ urlpatterns = [
     path("mechanic-settlements/daily", views.DailySettlementView.as_view(), name="mechanic-settlements-daily"),
     path("mechanic-settlements", views.SettlementListView.as_view(), name="mechanic-settlements"),
     path("mechanic-settlements/<int:pk>", views.SettlementDetailView.as_view(), name="mechanic-settlement-detail"),
+    path("mechanic-deductions", views.DeductionListView.as_view(), name="mechanic-deductions"),
     *router.urls,
 ]

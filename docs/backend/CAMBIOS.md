@@ -11,6 +11,42 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-05 · Devoluciones y descuentos por mal servicio (0.9.0)
+
+**Qué cambió**
+
+- **Devoluciones parciales o totales:** `POST /sales/{id}/returns` registra productos por unidades y servicios completos, con su causa, su motivo y el reembolso. Responde 201, o 200 si se repite la `idempotency_key`.
+  - Los productos `resellable` vuelven al inventario; los `damaged` quedan anotados y no entran a las existencias.
+  - Se reembolsa al precio cobrado en la venta, desde la caja abierta de hoy. El reembolso puede repartirse por medios y debe sumar exactamente el total.
+- **Causas:** `other` la registra cualquiera y la asume el local. `bad_service` es solo del dueño, con servicios de un solo mecánico: se le descuenta la mano de obra devuelta más los repuestos `damaged`.
+- **Liquidación:** los descuentos se restan de la parte del mecánico, los más antiguos primero. Si no alcanza, el saldo pasa a la siguiente liquidación; si se descuenta todo, no sale dinero de la caja.
+  - La vista previa trae `share` y `deductions_total`, y `amount` ya es neto.
+  - Las liquidaciones traen `deductions_total` y el detalle trae `deductions`.
+- **Consultas nuevas:** `GET /sale-returns` y `GET /sale-returns/{id}` (cualquier usuario con sesión; el descuento solo lo ve el dueño) y `GET /mechanic-deductions` con `?mechanic=` y `?pending=true` (solo el dueño).
+- **Campos nuevos:** `returned_quantity` en los productos de la venta, `is_returned` en sus servicios y `sale_return` en los movimientos de caja.
+- **Anulación:** una venta con devoluciones ya no se puede anular y responde el nuevo 409 `sale_has_returns`.
+- **Caja:** `sale_refund` ahora también lo generan las devoluciones.
+- **Base de datos:** esta versión trae migraciones en `sales`, `cash` y `workshop`. Se aplican solas al arrancar, con el respaldo previo.
+
+Ningún cambio incompatible: solo se agregan rutas, campos y casos de error. Sin descuentos, `amount` vale lo mismo que antes.
+
+**Pendiente:** el límite de tiempo para devolver (hasta el cierre del mes siguiente) todavía no se valida. Llegará con los cierres de mes.
+
+**Qué debe hacer el frontend**
+
+- En el **detalle de la venta**, agregar la acción **Devolver**:
+  - Ofrecer hasta `quantity - returned_quantity` por producto y deshabilitar los servicios con `is_returned`.
+  - Preguntar el estado de cada producto (`condition`), que es obligatorio, y pedir causa y motivo.
+  - Mostrar `bad_service` solo al dueño, con servicios de un solo mecánico.
+  - Calcular el total y repartir el reembolso por medios. Generar un `idempotency_key` por devolución y deshabilitar el botón mientras responde.
+  - Manejar 409 `sale_voided` y 409 `cash_session_closed`, y mostrar los errores de `fields` (`items.N.quantity`, `services`, `refunds`).
+- Pantalla o sección **Devoluciones** con `GET /sale-returns` y su detalle.
+- En **Ventas**, al anular: mostrar el `message` del 409 `sale_has_returns`.
+- En **Liquidación del día**: mostrar `share`, `deductions_total` y `amount`; permitir pagar aunque `amount` sea 0, porque registra el descuento; e incluir `deductions` en la hoja del mecánico.
+- Mostrar el saldo pendiente de cada mecánico con `GET /mechanic-deductions?pending=true`, porque la vista previa no lista a quien no tiene servicios ese día.
+- En **Caja**: agregar `sale_return` a `CashMovement` (`frontend/src/api/types.ts`).
+- Usar los tipos de [Devoluciones](API.md#devoluciones) y [Liquidación](API.md#liquidación-diaria-de-mecánicos).
+
 ## 2026-11-05 — Empaquetado y respaldo previo a migraciones
 
 - El backend puede distribuirse congelado con PyInstaller dentro del instalador de Tauri.

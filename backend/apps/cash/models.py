@@ -148,8 +148,9 @@ class CashMovementManager(models.Manager):
     def record(self, kind, amount, method, user, reason="", **source):
         """Registra dinero que entra (amount positivo) o sale (negativo) en la caja abierta.
 
-        source es el documento que lo origina: sale=, supplier_payment= o
-        consignee_payment= o mechanic_settlement=. Sin caja abierta lanza CashSessionClosed. Debe
+        source es el documento que lo origina: sale= (con sale_return= si es una
+        devolución), supplier_payment=, consignee_payment= o mechanic_settlement=.
+        Sin caja abierta lanza CashSessionClosed. Debe
         llamarse dentro de la transacción del documento para que todo se
         deshaga junto si algo falla.
         """
@@ -184,6 +185,11 @@ class CashMovement(models.Model):
     sale = models.ForeignKey(
         "sales.Sale", on_delete=models.PROTECT, null=True, blank=True, related_name="cash_movements",
         verbose_name="venta",
+    )
+    # Solo en reembolsos parciales. La anulación reembolsa con sale y sin esto.
+    sale_return = models.ForeignKey(
+        "sales.SaleReturn", on_delete=models.PROTECT, null=True, blank=True, related_name="cash_movements",
+        verbose_name="devolución",
     )
     supplier_payment = models.ForeignKey(
         "purchases.SupplierPayment", on_delete=models.PROTECT, null=True, blank=True,
