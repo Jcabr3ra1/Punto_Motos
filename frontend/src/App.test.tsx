@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -208,7 +208,10 @@ describe('con la sesión abierta', () => {
     await entrar()
 
     expect(window.location.hash).toBe('')
-    expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page')
+    expect(within(screen.getByRole('navigation', { name: 'Principal' })).getByRole('link', { name: 'Inicio' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   it('cierra la sesión: avisa al backend, borra el token y vuelve al inicio de sesión', async () => {

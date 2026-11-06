@@ -70,7 +70,8 @@ body {
 /* Como en una aplicación de escritorio: el marco (menú, barras, botones) no se selecciona ni se arrastra. */
 button,
 img,
-.estructura__lateral,
+.columna,
+.panel-contextual,
 .navbar,
 .barra-de-estado,
 .pestanas,
@@ -321,26 +322,209 @@ summary {
 
 .estructura {
   display: grid;
-  grid-template-columns: 13rem 1fr;
+  grid-template-columns: 4.75rem 12.5rem minmax(0, 1fr);
   /* Ventana fija: no hay scroll de página, solo se desplaza el contenido. */
   height: 100vh;
-  /* Ancho mínimo de ventana (se configura igual en Tauri): en vez de apilarse como una página web, la aplicación no se encoge más. */
-  min-width: 52rem;
+  /* Ancho mínimo de ventana (el mismo de Tauri): la aplicación no se apila como una página web. */
+  min-width: 56.25rem;
   overflow: hidden;
+  background: var(--fondo-trabajo);
 }
 
-.estructura__lateral {
+.estructura--recogida {
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+}
+
+/* Columna de iconos: los módulos, siempre visible. */
+.columna {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem 0.75rem;
-  overflow-y: auto;
-  color: #e8e8e6;
-  /* Negro puro: es el fondo del logo, así que se funde con él. */
-  background: var(--color-negro);
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 0.75rem 0.375rem 0.5rem;
+  color: var(--marco-texto-suave);
+  background: var(--marco);
+  border-right: 1px solid var(--marco-separador);
 }
 
-.estructura__lateral :focus-visible,
+.columna__logo {
+  display: block;
+  width: 2.75rem;
+  height: auto;
+}
+
+.columna__nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 0;
+}
+
+.columna__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.columna__lista--abajo {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--marco-separador);
+}
+
+.columna__modulo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.45rem 0.125rem 0.4rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--marco-texto-suave);
+  text-decoration: none;
+  border-radius: var(--radio);
+}
+
+.columna__modulo:hover {
+  color: var(--marco-texto);
+  background: var(--marco-elevado);
+}
+
+.columna__modulo[aria-current='page'] {
+  color: var(--color-marca);
+  background: var(--marco-seleccion);
+}
+
+/* Barra lima pegada al borde izquierdo de la ventana: dónde estás, como la aguja de un tablero. */
+.columna__modulo[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  left: -0.375rem;
+  width: 3px;
+  background: var(--color-marca);
+  border-radius: 0 2px 2px 0;
+}
+
+.columna__herramienta {
+  display: grid;
+  width: 100%;
+  height: 2rem;
+  place-items: center;
+  margin-bottom: 0.125rem;
+  padding: 0;
+  color: var(--marco-texto-suave);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio);
+}
+
+.columna__herramienta:hover {
+  color: var(--marco-texto);
+  background: var(--marco-elevado);
+}
+
+/* Panel contextual: las pantallas del módulo abierto. */
+.panel-contextual {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1rem 0.625rem;
+  overflow-y: auto;
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-right: 1px solid var(--marco-separador);
+}
+
+.panel-contextual__modulo {
+  margin: 0 0.375rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.panel-contextual__descripcion {
+  margin: 0.25rem 0.375rem 1rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--marco-texto-suave);
+}
+
+.panel-contextual__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-contextual__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1rem 1fr;
+  column-gap: 0.625rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--radio);
+}
+
+.panel-contextual__item:hover {
+  background: var(--marco-elevado);
+}
+
+.panel-contextual__item:has(.panel-contextual__enlace[aria-current='page']) {
+  background: var(--marco-seleccion);
+}
+
+.panel-contextual__enlace {
+  display: contents;
+  font-weight: 600;
+  color: var(--marco-texto);
+  text-decoration: none;
+}
+
+.panel-contextual__enlace svg {
+  grid-row: 1 / span 2;
+  margin-top: 0.125rem;
+  color: var(--marco-texto-suave);
+}
+
+.panel-contextual__enlace[aria-current='page'] {
+  color: var(--color-marca);
+}
+
+.panel-contextual__enlace[aria-current='page'] svg {
+  color: var(--color-marca);
+}
+
+/* El enlace cubre toda la fila, también la ayuda. */
+.panel-contextual__enlace::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.panel-contextual__ayuda {
+  grid-column: 2;
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--marco-texto-suave);
+  pointer-events: none;
+}
+
+/* Sobre el marco negro, el foco se ve en lima. */
+.columna :focus-visible,
+.panel-contextual :focus-visible,
 .navbar :focus-visible {
   outline-color: var(--color-marca);
 }
@@ -350,13 +534,6 @@ summary {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-}
-
-.estructura__logo {
-  display: block;
-  width: 6rem;
-  height: auto;
-  margin: 0 auto;
 }
 
 .estructura__contenido {
@@ -550,32 +727,10 @@ a.navbar__caja:hover {
   color: var(--color-texto-suave);
 }
 
-.menu,
 .pestanas ul {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.menu__enlace {
-  display: block;
-  padding: 0.4rem 0.75rem;
-  color: #e8e8e6;
-  text-decoration: none;
-  border-radius: var(--radio);
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.menu__enlace:hover {
-  background: #1b1c1e;
-}
-
-.menu__enlace[aria-current='page'] {
-  font-weight: 700;
-  color: var(--color-marca);
-  background: #151618;
-  box-shadow: inset 3px 0 0 var(--color-marca);
 }
 
 .pestanas {
