@@ -322,7 +322,7 @@ summary {
 
 .estructura {
   display: grid;
-  grid-template-columns: 4.75rem 12.5rem minmax(0, 1fr);
+  grid-template-columns: 5rem 12.5rem minmax(0, 1fr);
   /* Ventana fija: no hay scroll de página, solo se desplaza el contenido. */
   height: 100vh;
   /* Ancho mínimo de ventana (el mismo de Tauri): la aplicación no se apila como una página web. */
@@ -332,7 +332,7 @@ summary {
 }
 
 .estructura--recogida {
-  grid-template-columns: 4.75rem minmax(0, 1fr);
+  grid-template-columns: 5rem minmax(0, 1fr);
 }
 
 /* Columna de iconos: los módulos, siempre visible. */
@@ -413,6 +413,30 @@ summary {
   width: 3px;
   background: var(--color-marca);
   border-radius: 0 2px 2px 0;
+}
+
+/* Ventana baja: solo iconos; el nombre sigue disponible para el lector de pantalla y al pasar el mouse. */
+@media (max-height: 720px) {
+  .columna {
+    gap: 0.5rem;
+  }
+
+  .columna__logo {
+    width: 2.25rem;
+  }
+
+  .columna__modulo {
+    padding: 0.5rem 0.125rem;
+  }
+
+  .columna__modulo span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .columna__herramienta {
@@ -571,8 +595,8 @@ summary {
   justify-content: space-between;
   min-height: 3.25rem;
   padding: 0 1rem 0 1.5rem;
-  color: #e8e8e6;
-  background: var(--color-negro);
+  color: var(--marco-texto);
+  background: var(--marco);
   /* Una línea lima muy fina une la barra con la marca sin cargarla. */
   box-shadow: inset 0 -2px 0 var(--color-marca);
 }
@@ -586,8 +610,8 @@ summary {
 
 .navbar__migas {
   display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
+  gap: 0.375rem;
+  align-items: center;
   font-size: 1.05rem;
   color: var(--color-plata);
   white-space: nowrap;
@@ -655,15 +679,18 @@ a.navbar__caja:hover {
 
 .navbar__reloj strong {
   font-size: 0.9375rem;
-  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  /* La hora en lima, como la aguja de un tablero. */
+  color: var(--color-marca);
 }
 
 .navbar__salir {
-  min-height: 2rem;
-  padding: 0.25rem 0.75rem;
-  font: inherit;
-  font-size: 0.8125rem;
-  color: var(--color-plata);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--marco-texto-suave);
   background: transparent;
   border: 1px solid #3a3b3e;
   border-radius: var(--radio);
@@ -673,6 +700,61 @@ a.navbar__caja:hover {
   color: var(--color-sobre-marca);
   background: var(--color-marca);
   border-color: var(--color-marca);
+}
+
+.navbar__buscar {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  width: 14rem;
+  height: 2rem;
+  padding: 0 0.375rem 0 0.625rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--marco-texto-suave);
+  text-align: left;
+  background: var(--marco-elevado);
+  border: 1px solid #2c2c2d;
+  border-radius: var(--radio);
+}
+
+.navbar__buscar span {
+  flex: 1;
+}
+
+.navbar__buscar:hover {
+  color: var(--marco-texto);
+  border-color: #3a3b3e;
+}
+
+kbd {
+  padding: 0.0625rem 0.375rem;
+  font: inherit;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+
+/* Ventana angosta: la barra conserva lo esencial. */
+@media (max-width: 1150px) {
+  .navbar__buscar {
+    width: auto;
+  }
+
+  .navbar__buscar span {
+    display: none;
+  }
+
+  .navbar__datos {
+    display: none;
+  }
+
+  .navbar__usuario {
+    padding-left: 1rem;
+  }
 }
 
 .navbar__negocio {
@@ -1510,3 +1592,146 @@ a.navbar__caja:hover {
 .actualizaciones__notas { white-space: pre-wrap; max-height: 12rem; overflow: auto; }
 .actualizaciones__dialogo { max-width: 34rem; padding: 1.5rem; border: 1px solid #b1afae; border-radius: 4px; }
 .actualizaciones__dialogo::backdrop { background: rgb(0 0 0 / 55%); }
+
+/* Buscador de pantallas (Ctrl+K): ventana flotante oscura, como el resto del marco. */
+.buscador-pantallas__velo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgb(8 8 9 / 0.55);
+}
+
+.buscador-pantallas {
+  display: flex;
+  flex-direction: column;
+  width: min(35rem, 90vw);
+  max-height: 70vh;
+  color: var(--marco-texto);
+  background: var(--marco);
+  border: 1px solid #2a2a2b;
+  border-radius: 6px;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.5);
+  animation: aparecer 140ms ease-out;
+}
+
+.buscador-pantallas__campo {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0 0.875rem;
+  color: var(--marco-texto-suave);
+  border-bottom: 1px solid var(--marco-separador);
+}
+
+.buscador-pantallas__campo input {
+  flex: 1;
+  height: 3rem;
+  padding: 0;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--marco-texto);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.buscador-pantallas__campo input::placeholder {
+  color: var(--marco-texto-suave);
+}
+
+.buscador-pantallas__lista {
+  margin: 0;
+  padding: 0.375rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.buscador-pantallas__opcion {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radio);
+}
+
+.buscador-pantallas__opcion[aria-selected='true'] {
+  background: var(--marco-seleccion);
+  box-shadow: inset 3px 0 0 var(--color-marca);
+}
+
+.buscador-pantallas__icono {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  color: var(--marco-texto-suave);
+  background: var(--marco-elevado);
+  border-radius: var(--radio);
+}
+
+.buscador-pantallas__opcion[aria-selected='true'] .buscador-pantallas__icono {
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+}
+
+.buscador-pantallas__texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.buscador-pantallas__nombre {
+  font-weight: 600;
+}
+
+.buscador-pantallas__modulo {
+  font-weight: 400;
+  color: var(--marco-texto-suave);
+}
+
+.buscador-pantallas__descripcion {
+  font-size: 0.75rem;
+  color: var(--marco-texto-suave);
+}
+
+.buscador-pantallas__enter {
+  color: var(--color-marca);
+}
+
+.buscador-pantallas__vacio {
+  margin: 0;
+  padding: 1.25rem 1rem;
+  color: var(--marco-texto-suave);
+  text-align: center;
+}
+
+.buscador-pantallas__ayuda {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  color: var(--marco-texto-suave);
+  border-top: 1px solid var(--marco-separador);
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { useUsuario } from '../auth/useUsuario'
 import { useSalud } from '../hooks/useSalud'
@@ -6,6 +6,7 @@ import { DESTINOS, MENU_PRINCIPAL, pantallasDe, puedeVer, type Destino } from '.
 import { moduloDe } from '../navegacion/ubicacion'
 import { useConteoInicial } from '../pages/inventario/useConteoInicial'
 import { BarraSuperior } from './BarraSuperior'
+import { Buscador } from './Buscador'
 import { ColumnaDeIconos } from './ColumnaDeIconos'
 import { PanelContextual } from './PanelContextual'
 import { ContextoMenuRecogido, useEstadoDelMenu } from './useMenuRecogido'
@@ -26,6 +27,36 @@ export function Estructura() {
   const modulos = MENU_PRINCIPAL.filter(visible)
   const moduloActual = moduloDe(pathname)
   const pantallas = pantallasDe(moduloActual, usuario.role)
+  const [buscando, setBuscando] = useState(false)
+  // Quién tenía el foco al abrir el buscador, para devolvérselo si se cierra sin elegir.
+  const focoPrevio = useRef<HTMLElement | null>(null)
+
+  function abrirBuscador() {
+    // No se abre encima de otra ventana (un panel o una confirmación).
+    if (document.querySelector('[role="dialog"]')) return
+    focoPrevio.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setBuscando(true)
+  }
+
+  function cerrarBuscador(eligio: boolean) {
+    setBuscando(false)
+    // Al abrir una pantalla, el foco va a su contenido; si no, vuelve a donde estaba.
+    const previo = focoPrevio.current
+    const objetivo = !eligio && previo?.isConnected ? previo : document.getElementById('contenido')
+    objetivo?.focus()
+  }
+
+  // Ctrl+K abre el buscador de pantallas desde cualquier lugar.
+  useEffect(() => {
+    const alPulsar = (evento: KeyboardEvent) => {
+      if (!(evento.ctrlKey || evento.metaKey) || evento.key.toLowerCase() !== 'k' || evento.repeat) return
+      evento.preventDefault()
+      if (buscando) cerrarBuscador(false)
+      else abrirBuscador()
+    }
+    window.addEventListener('keydown', alPulsar, true)
+    return () => window.removeEventListener('keydown', alPulsar, true)
+  }, [buscando])
 
   // Ctrl+B recoge o expande el panel, como en los editores de escritorio.
   useEffect(() => {
@@ -59,7 +90,7 @@ export function Estructura() {
         />
         {!recogido && <PanelContextual modulo={moduloActual} pantallas={pantallas} />}
         <div className="estructura__derecha">
-          <BarraSuperior />
+          <BarraSuperior onBuscar={abrirBuscador} />
           <main id="contenido" className="estructura__contenido" tabIndex={-1}>
             <Outlet />
           </main>
@@ -73,6 +104,7 @@ export function Estructura() {
           </footer>
         </div>
       </div>
+      {buscando && <Buscador conteoAbierto={conteo.data?.is_open === true} onCerrar={cerrarBuscador} />}
     </ContextoMenuRecogido.Provider>
   )
 }

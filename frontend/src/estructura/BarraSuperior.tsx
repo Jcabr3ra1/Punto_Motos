@@ -1,3 +1,4 @@
+import { ChevronRight, LogOut, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useAuth } from '../auth/useAuth'
@@ -35,7 +36,7 @@ function useReloj() {
 // Barra superior, como la de un programa de escritorio: dónde estás, el estado de la caja, la fecha y la
 // persona con la sesión abierta. data-tauri-drag-region: si la ventana se configura sin barra de título nativa,
 // esta barra sirve para arrastrarla.
-export function BarraSuperior() {
+export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
   const usuario = useUsuario()
   const esDueno = usuario.role === 'owner'
   const { cerrarSesion } = useAuth()
@@ -61,9 +62,7 @@ export function BarraSuperior() {
             <span className="navbar__seccion">{seccion}</span>
             {pestana && (
               <>
-                <span className="navbar__separador" aria-hidden="true">
-                  ›
-                </span>
+                <ChevronRight className="navbar__separador" aria-hidden="true" size={14} />
                 <span>{pestana}</span>
               </>
             )}
@@ -72,6 +71,11 @@ export function BarraSuperior() {
       </div>
 
       <div className="navbar__lado">
+        <button type="button" className="navbar__buscar" onClick={onBuscar} aria-keyshortcuts="Control+K">
+          <Search aria-hidden="true" size={15} strokeWidth={1.75} />
+          <span>Buscar pantalla…</span>
+          <kbd aria-hidden="true">Ctrl K</kbd>
+        </button>
         {caja.isSuccess && <EstadoDeLaCaja abierta={caja.data.is_open} esperado={caja.data.session?.expected_cash} esDueno={esDueno} />}
         <p className="navbar__reloj" aria-label="Fecha y hora">
           <span>{conMayuscula(formatoDeFecha.format(ahora))}</span>
@@ -86,8 +90,8 @@ export function BarraSuperior() {
             <p className="navbar__rol">{usuario.role_label}</p>
           </div>
         </div>
-        <button type="button" className="navbar__salir" onClick={alSalir} disabled={saliendo}>
-          Cerrar sesión
+        <button type="button" className="navbar__salir" onClick={alSalir} disabled={saliendo} aria-label="Cerrar sesión" title="Cerrar sesión">
+          <LogOut aria-hidden="true" size={16} strokeWidth={1.75} />
         </button>
       </div>
     </header>

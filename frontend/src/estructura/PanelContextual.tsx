@@ -11,18 +11,22 @@ export function PanelContextual({ modulo, pantallas }: { modulo: Destino; pantal
       <nav aria-label={modulo.etiqueta}>
         <ul className="panel-contextual__lista">
           {pantallas.map((pantalla) => {
+            // En un módulo de una sola pantalla, su descripción ya está arriba: no se repite.
+            const ayuda = pantalla === modulo ? null : pantalla.descripcion
             const Icono = pantalla.icono
             const id = `descripcion-${pantalla.ruta.replace(/\W+/g, '-')}`
             return (
               <li key={pantalla.ruta} className="panel-contextual__item">
-                <NavLink to={pantalla.ruta} end={pantalla.ruta === '/'} className="panel-contextual__enlace" aria-describedby={id}>
+                <NavLink to={pantalla.ruta} end={pantalla.ruta === '/'} className="panel-contextual__enlace" aria-describedby={ayuda ? id : undefined}>
                   <Icono aria-hidden="true" size={16} strokeWidth={1.75} />
                   {pantalla.etiqueta}
                 </NavLink>
                 {/* Fuera del enlace para que su nombre sea solo la etiqueta; el enlace cubre toda la fila. */}
-                <span id={id} className="panel-contextual__ayuda">
-                  {pantalla.descripcion}
-                </span>
+                {ayuda && (
+                  <span id={id} className="panel-contextual__ayuda">
+                    {ayuda}
+                  </span>
+                )}
               </li>
             )
           })}
