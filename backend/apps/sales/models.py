@@ -122,9 +122,10 @@ class SaleManager(models.Manager):
         "method": "transfer"}]. No hay ventas a crédito: los pagos deben sumar
         exactamente el total (PaymentMismatch); el vuelto lo calcula la ventana.
 
+        customer es opcional: con None, la venta queda sin cliente.
+
         services son los servicios del taller, cada uno con su mecánico:
-        [{"service_type": tipo, "mechanic": mecánico, "plate": "ABC12D",
-        "details": "..."}]. El valor de la mano de obra es el sugerido del tipo;
+        [{"service_type": tipo, "mechanic": mecánico, "details": "..."}]. El valor de la mano de obra es el sugerido del tipo;
         solo el dueño puede mandar "labor_price" distinto
         (LaborPriceChangeNotAllowed). Los repuestos usados van en items como
         cualquier producto. Una venta puede ser solo de servicios.
@@ -168,9 +169,8 @@ class SaleManager(models.Manager):
             if labor_price != service_type.suggested_price and not user.is_owner:
                 raise LaborPriceChangeNotAllowed(service_type, service_type.suggested_price, labor_price)
             line = SaleService(
-                service_type=service_type, mechanic=service["mechanic"], plate=service.get("plate", ""),
-                details=service.get("details", ""), suggested_price=service_type.suggested_price,
-                labor_price=labor_price,
+                service_type=service_type, mechanic=service["mechanic"], details=service.get("details", ""),
+                suggested_price=service_type.suggested_price, labor_price=labor_price,
             )
             line.clean()
             line.clean_fields(exclude=["sale"])
@@ -188,7 +188,7 @@ class SaleManager(models.Manager):
                     number=number, customer=customer, total=total, idempotency_key=idempotency_key,
                     notes=" ".join(notes.split()), created_by=user,
                 )
-                reason = f"Venta {number} · {customer.name}"
+                reason = f"Venta {number} · {customer.name}" if customer else f"Venta {number}"
                 for line in lines:
                     line.sale = sale
                     line.full_clean(exclude=["sale"])
@@ -227,7 +227,10 @@ class Sale(models.Model):
 
     # Número visible del recibo, consecutivo. El id es interno.
     number = models.PositiveIntegerField("número", unique=True)
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="sales", verbose_name="cliente")
+    # Opcional: en mostrador no siempre se pide el nombre.
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, null=True, blank=True, related_name="sales", verbose_name="cliente",
+    )
     # Pesos enteros.
     total = models.PositiveBigIntegerField("total")
     # Clave que manda la ventana para que un reintento no cree otra venta.
@@ -261,7 +264,7 @@ class Sale(models.Model):
         ]
 
     def __str__(self):
-        return f"Venta {self.number} · {self.customer}"
+        return f"Venta {self.number} · {self.customer}" if self.customer else f"Venta {self.number}"
 
     @property
     def is_voided(self):
@@ -358,11 +361,6 @@ class SaleItem(models.Model):
         return self.unit_price != self.list_price
 
 
-def normalize_plate(value):
-    """abc-12d, ABC 12D y ABC12D son la misma placa: ABC12D."""
-    return "".join(value.split()).replace("-", "").upper()
-
-
 class SaleService(models.Model):
     """Servicio del taller cobrado en la venta, con el mecánico que lo hizo.
 
@@ -377,8 +375,7 @@ class SaleService(models.Model):
         ServiceType, on_delete=models.PROTECT, related_name="sale_services", verbose_name="tipo de servicio",
     )
     mechanic = models.ForeignKey(Mechanic, on_delete=models.PROTECT, related_name="services", verbose_name="mecánico")
-    plate = models.CharField("placa", max_length=10, blank=True)
-    # Qué se hizo, en pocas palabras. Obligatorio si el tipo lo pide («Otro»).
+    # Qué se hizo, en pocas palabras. Opcional.
     details = models.CharField("descripción", max_length=120, blank=True)
     # Pesos enteros. suggested_price es el del tipo de servicio en ese momento; labor_price, el cobrado.
     suggested_price = models.PositiveBigIntegerField("precio sugerido")
@@ -399,7 +396,6 @@ class SaleService(models.Model):
         return f"{self.service_type.name} · {self.mechanic}"
 
     def clean(self):
-        self.plate = normalize_plate(self.plate)
         self.details = " ".join(self.details.split())
         errors = {}
         if self.service_type_id and not self.service_type.is_active:

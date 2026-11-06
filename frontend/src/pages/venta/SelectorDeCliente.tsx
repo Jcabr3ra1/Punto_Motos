@@ -16,7 +16,7 @@ interface Props {
   errores?: string[]
 }
 
-// El cliente es obligatorio. Se sugiere mientras se escribe (`/customers?q=&page_size=8`); como el nombre
+// El cliente es opcional: se puede cobrar sin elegir ninguno. Se sugiere mientras se escribe (`/customers?q=&page_size=8`); como el nombre
 // puede repetirse, cada sugerencia muestra el teléfono. Si no está, se crea con la venta.
 export function SelectorDeCliente({ valor, onCambiar, errores = [] }: Props) {
   const id = useId()
@@ -59,7 +59,6 @@ export function SelectorDeCliente({ valor, onCambiar, errores = [] }: Props) {
             errores={errores}
             maxLength={80}
             autoComplete="off"
-            required
           />
           <Campo
             etiqueta="Teléfono"
@@ -117,7 +116,7 @@ export function SelectorDeCliente({ valor, onCambiar, errores = [] }: Props) {
           setMarcado(0)
         }}
         onKeyDown={alPulsarTecla}
-        placeholder="Nombre o teléfono"
+        placeholder="Opcional: nombre o teléfono"
         aria-expanded={total > 0}
         aria-controls={`${id}-lista`}
         aria-activedescendant={total > 0 ? `${id}-opcion-${activo}` : undefined}

@@ -104,9 +104,8 @@ class SettledServiceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     sale_id = serializers.IntegerField()
     sale_number = serializers.IntegerField(source="sale.number")
-    customer = serializers.CharField(source="sale.customer.name")
+    customer = serializers.CharField(source="sale.customer.name", default="", help_text="Vacío si la venta no tiene cliente.")
     service_type = ServiceTypeSummarySerializer()
-    plate = serializers.CharField()
     details = serializers.CharField()
     labor_price = serializers.IntegerField()
 
@@ -115,7 +114,6 @@ class DeductedServiceSerializer(serializers.Serializer):
     """Servicio devuelto que originó un descuento."""
 
     service_type = ServiceTypeSummarySerializer(source="sale_service.service_type")
-    plate = serializers.CharField(source="sale_service.plate")
     details = serializers.CharField(source="sale_service.details")
     labor_price = serializers.IntegerField(source="sale_service.labor_price")
 
@@ -128,7 +126,7 @@ class AppliedDeductionSerializer(serializers.Serializer):
     pending_amount = serializers.IntegerField(source="deduction.pending_amount", help_text="Lo que falta por descontar hoy.")
     sale_return_number = serializers.IntegerField(source="deduction.sale_return.number")
     sale_number = serializers.IntegerField(source="deduction.sale_return.sale.number")
-    customer = serializers.CharField(source="deduction.sale_return.sale.customer.name")
+    customer = serializers.CharField(source="deduction.sale_return.sale.customer.name", default="")
     reason = serializers.CharField(source="deduction.sale_return.reason")
     services = DeductedServiceSerializer(source="deduction.sale_return.services", many=True)
 
@@ -141,7 +139,7 @@ class MechanicDeductionSerializer(serializers.ModelSerializer):
     pending_amount = serializers.IntegerField(read_only=True)
     sale_return_number = serializers.IntegerField(source="sale_return.number", read_only=True)
     sale_number = serializers.IntegerField(source="sale_return.sale.number", read_only=True)
-    customer = serializers.CharField(source="sale_return.sale.customer.name", read_only=True)
+    customer = serializers.CharField(source="sale_return.sale.customer.name", read_only=True, default="")
     reason = serializers.CharField(source="sale_return.reason", read_only=True)
     services = DeductedServiceSerializer(source="sale_return.services", many=True, read_only=True)
 

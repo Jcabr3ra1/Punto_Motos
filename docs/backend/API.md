@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.10.0**.
+Versión del backend: **0.11.0**.
 
 ## Conexión
 
@@ -238,7 +238,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.10.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.11.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -1013,7 +1013,7 @@ interface MechanicInput {
 
 **Cada servicio se paga una sola vez.** Si después de pagarle se registran más servicios ese día, el mecánico vuelve a aparecer en la vista previa solo con los nuevos, y se le paga aparte: puede haber más de una liquidación por mecánico y día. Los servicios de ventas anuladas no cuentan. **Una venta con servicios ya pagados no se puede anular** (409 `sale_has_settled_services`): se corrige con una [devolución](#devoluciones).
 
-**Descuentos por mal servicio.** Si el mecánico tiene saldo por descontar (ver [Devoluciones](#devoluciones)), se resta de su parte, los más antiguos primero, y `amount` ya viene neto: `amount = share - deductions_total`. Si el descuento es mayor que su parte, `amount` es 0, no sale dinero de la caja y el saldo pasa a la siguiente liquidación. La hoja impresa debe mostrar `deductions` con el servicio, el cliente, la placa, el valor y el motivo.
+**Descuentos por mal servicio.** Si el mecánico tiene saldo por descontar (ver [Devoluciones](#devoluciones)), se resta de su parte, los más antiguos primero, y `amount` ya viene neto: `amount = share - deductions_total`. Si el descuento es mayor que su parte, `amount` es 0, no sale dinero de la caja y el saldo pasa a la siguiente liquidación. La hoja impresa debe mostrar `deductions` con el servicio, el cliente, el valor y el motivo.
 
 La vista previa solo lista mecánicos con servicios sin pagar ese día, así que un saldo pendiente de alguien sin servicios no aparece allí: se consulta en `GET /mechanic-deductions`.
 
@@ -1070,12 +1070,12 @@ La vista previa solo lista mecánicos con servicios sin pagar ese día, así que
     {
       "id": 9, "sale_id": 41, "sale_number": 41, "customer": "Ana Gómez",
       "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
-      "plate": "ABC12D", "details": "", "labor_price": 15000
+      "details": "", "labor_price": 15000
     },
     {
       "id": 10, "sale_id": 43, "sale_number": 43, "customer": "Juan Pérez",
       "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
-      "plate": "", "details": "", "labor_price": 15000
+      "details": "", "labor_price": 15000
     }
   ],
   "deductions": []
@@ -1130,16 +1130,14 @@ interface SettledService {
   id: number;
   sale_id: number;
   sale_number: number;
-  customer: string;
+  customer: string;                // vacío si la venta no tiene cliente
   service_type: { id: number; code: number; name: string };
-  plate: string;
   details: string;
   labor_price: number;
 }
 
 interface DeductedService {
   service_type: { id: number; code: number; name: string };
-  plate: string;
   details: string;
   labor_price: number;
 }
@@ -1150,7 +1148,7 @@ interface AppliedDeduction {
   pending_amount: number;          // lo que falta por descontar HOY (al reimprimir puede ser menor que entonces)
   sale_return_number: number;
   sale_number: number;
-  customer: string;
+  customer: string;                // vacío si la venta no tiene cliente
   reason: string;
   services: DeductedService[];
 }
@@ -1169,7 +1167,7 @@ interface MechanicDeduction {
   sale_return: number;             // id de la devolución
   sale_return_number: number;
   sale_number: number;
-  customer: string;
+  customer: string;                // vacío si la venta no tiene cliente
   reason: string;
   services: DeductedService[];
   created_at: string;
@@ -1183,13 +1181,13 @@ Cualquier usuario con sesión vende y crea clientes. **Las ventas se pagan compl
 **Flujo de la pantalla de venta:**
 
 1. El carrito vive en la ventana: el backend no guarda borradores.
-2. Al cobrar, la ventana genera un `idempotency_key` con `crypto.randomUUID()` y envía `POST /sales` con cliente, productos y pagos. **Si la petición se repite con la misma clave (doble clic, reintento por red), el backend devuelve la misma venta con 200 y no descuenta nada otra vez.** Generar una clave nueva solo para una venta nueva.
+2. Al cobrar, la ventana genera un `idempotency_key` con `crypto.randomUUID()` y envía `POST /sales` con productos, pagos y, si lo dan, el cliente. **Si la petición se repite con la misma clave (doble clic, reintento por red), el backend devuelve la misma venta con 200 y no descuenta nada otra vez.** Generar una clave nueva solo para una venta nueva.
 3. Los pagos van uno por medio y deben **sumar exactamente el total**. El vuelto lo calcula la ventana: si el cliente entrega $50.000 en efectivo para una venta de $43.000, se envía `{"method": "cash", "amount": 43000}`.
 4. El precio de cada línea es el del catálogo. **Solo el dueño** puede enviar `unit_price` distinto; la línea queda con `price_changed: true`.
-5. Los **servicios del taller** van en `services`, cada uno con su tipo, su mecánico (obligatorio) y la placa si la dan. La mano de obra es el `suggested_price` del tipo; **solo el dueño** puede enviar `labor_price` distinto. Los repuestos usados van en `items` como cualquier producto: se descuentan una sola vez y no entran en el porcentaje del mecánico. Una venta puede tener varios servicios, con mecánicos distintos, y puede ser solo de servicios.
+5. Los **servicios del taller** van en `services`, cada uno con su tipo y su mecánico (obligatorio). La mano de obra es el `suggested_price` del tipo; **solo el dueño** puede enviar `labor_price` distinto. Los repuestos usados van en `items` como cualquier producto: se descuentan una sola vez y no entran en el porcentaje del mecánico. Una venta puede tener varios servicios, con mecánicos distintos, y puede ser solo de servicios.
 6. La respuesta trae todo lo que va en el recibo.
 
-**El cliente es obligatorio.** Se envía `customer` (id de uno existente) o `new_customer` (se crea con la venta), nunca los dos. Al escribir el nombre, sugerir clientes con `GET /customers?q=texto&page_size=8`. El nombre **puede repetirse** (hay varios "Juan Pérez"); por eso la sugerencia muestra también el teléfono.
+**El cliente es opcional.** Se envía `customer` (id de uno existente), `new_customer` (se crea con la venta) o ninguno, nunca los dos. Sin cliente, las respuestas traen `customer: null`. Al escribir el nombre, sugerir clientes con `GET /customers?q=texto&page_size=8`. El nombre **puede repetirse** (hay varios "Juan Pérez"); por eso la sugerencia muestra también el teléfono.
 
 **Anular.** Un error se corrige anulando la venta: `POST /sales/{id}/void` con su motivo, **solo el dueño** y con caja abierta. La venta no se borra: queda marcada como anulada, las unidades vuelven al inventario (movimiento `return`) y cada pago se reembolsa por el mismo medio desde la caja abierta de hoy, aunque la venta sea de otro día. Los servicios de una venta anulada quedan en su historial. Una venta que ya tiene devoluciones no se puede anular.
 
@@ -1212,7 +1210,7 @@ interface CustomerInput {
 interface Sale {
   id: number;
   number: number;                  // consecutivo del recibo: 1, 2, 3...
-  customer: { id: number; name: string; phone: string };
+  customer: { id: number; name: string; phone: string } | null;   // null: la venta no tiene cliente
   total: number;                   // productos + mano de obra
   items_count: number;
   services_count: number;
@@ -1238,7 +1236,6 @@ interface SaleService {
   id: number;
   service_type: { id: number; code: number; name: string };
   mechanic: { id: number; name: string };
-  plate: string;                   // "ABC12D" o vacío
   details: string;                 // qué se hizo; opcional, puede ir vacío
   suggested_price: number;         // precio del tipo de servicio al vender
   labor_price: number;             // mano de obra cobrada
@@ -1264,7 +1261,6 @@ interface SaleInput {
   services?: {
     service_type: number;
     mechanic: number;
-    plate?: string;
     details?: string;
     labor_price?: number;          // solo el dueño
   }[];
@@ -1331,7 +1327,7 @@ Venta de un servicio con su repuesto:
   "idempotency_key": "0b6e9f5c-1d2a-4c3b-8e7f-9a0b1c2d3e4f",
   "customer": 18,
   "items": [{ "product": 12, "quantity": 1 }],
-  "services": [{ "service_type": 1, "mechanic": 1, "plate": "abc-12d" }],
+  "services": [{ "service_type": 1, "mechanic": 1 }],
   "payments": [{ "method": "cash", "amount": 40000 }]
 }
 ```
@@ -1342,7 +1338,7 @@ La respuesta trae, además de `items`:
 "services": [
   {
     "id": 9, "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
-    "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "plate": "ABC12D", "details": "",
+    "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "details": "",
     "suggested_price": 15000, "labor_price": 15000, "price_changed": false, "is_returned": false
   }
 ]
@@ -1351,11 +1347,10 @@ La respuesta trae, además de `items`:
 | Campo | Reglas |
 | --- | --- |
 | `idempotency_key` | Obligatorio; UUID |
-| `customer` / `new_customer` | Exactamente uno de los dos. `customer` debe estar activo |
+| `customer` / `new_customer` | Opcionales; como máximo uno de los dos. `customer` debe estar activo. `new_customer` necesita `name`: el teléfono solo no se guarda |
 | `items` | Opcional; productos activos, sin repetir; `quantity` entero mayor que 0. La venta necesita al menos un producto o un servicio |
 | `items[].unit_price` | Opcional; solo el dueño puede enviarlo distinto del catálogo |
 | `services` | Opcional; `service_type` y `mechanic` activos. Se puede repetir el mismo tipo (dos cambios de aceite) |
-| `services[].plate` | Opcional; se guarda en mayúsculas sin espacios ni guiones (`abc-12d` → `ABC12D`); máximo 10 |
 | `services[].details` | Opcional, máximo 120 |
 | `services[].labor_price` | Opcional; solo el dueño puede enviarlo distinto del `suggested_price` |
 | `payments` | Un registro por medio, sin repetir medio; `amount` mayor que 0; la suma debe ser igual al total. Una venta de $0 (regalo del dueño) va con `payments: []` |
@@ -1363,14 +1358,14 @@ La respuesta trae, además de `items`:
 
 Errores en `fields` (los de una línea llegan anidados: `items.1.quantity`):
 
-- `customer`: "Elige un cliente o escribe el nombre de uno nuevo."
+- `customer`: "Envía un cliente existente o uno nuevo, no los dos."
+- `new_customer.name`: "Escribe el nombre del cliente: el teléfono solo no se puede guardar."
 - `items`: "Agrega al menos un producto o un servicio."
 - `items.N.product`: "FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total."
 - `items.N.quantity`: "Solo hay 2 unidades de ELE-UNI-BUJ." o "No hay unidades de ELE-UNI-BUJ."
 - `items.N.unit_price`: "Solo el dueño puede cambiar el precio." o "El precio de FRE-PUL-PAS ahora es $26.000." (cambió mientras se armaba la venta: refrescar el producto)
 - `services.N.labor_price`: "Solo el dueño puede cambiar el valor del servicio." o "El valor sugerido de «Cambio de aceite» ahora es $18.000."
 - `services.N.mechanic` o `services.N.service_type`: el id no existe o está desactivado
-- `services.N.plate`: "La placa tiene máximo 10 caracteres."
 - `payments`: "La venta es de $64.000 y el pago suma $60.000: deben ser iguales." o "Cada medio de pago va una sola vez: suma los valores."
 
 Conflictos: 409 `cash_session_closed` (no hay caja abierta) y 409 `initial_count_open` (el inventario inicial sigue abierto).
@@ -1439,7 +1434,7 @@ El descuento se aplica en sus próximas liquidaciones (ver [Liquidación](#liqui
   "services": [
     {
       "id": 2, "sale_service": 9, "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
-      "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "plate": "ABC12D", "details": "", "labor_price": 15000
+      "mechanic": { "id": 1, "name": "Carlos Ruiz" }, "details": "", "labor_price": 15000
     }
   ],
   "refunds": [{ "method": "cash", "method_label": "Efectivo", "amount": 40000 }],
@@ -1482,7 +1477,7 @@ interface SaleReturn {
   number: number;                  // consecutivo, aparte del de las ventas
   sale: number;                    // id de la venta
   sale_number: number;
-  customer: { id: number; name: string; phone: string };
+  customer: { id: number; name: string; phone: string } | null;   // null: la venta no tiene cliente
   cause: ReturnCause;
   cause_label: string;
   reason: string;
@@ -1508,7 +1503,6 @@ interface SaleReturnDetail extends SaleReturn {
     sale_service: number;
     service_type: { id: number; code: number; name: string };
     mechanic: { id: number; name: string };
-    plate: string;
     details: string;
     labor_price: number;
   }[];

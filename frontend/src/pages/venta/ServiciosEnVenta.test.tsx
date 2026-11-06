@@ -56,12 +56,12 @@ describe('servicios en la venta', () => {
     expect(screen.getByText('Elige el mecánico de cada servicio para cobrar.')).toBeInTheDocument()
   })
 
-  it('cobra una venta solo de servicios con mecánico y placa, sin enviar items', async () => {
+  it('cobra una venta solo de servicios con su mecánico, sin enviar items', async () => {
     const { api, u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta({ items: [], total: 15000 }) }) })
     await screen.findByRole('option', { name: '101 · Cambio de aceite' })
     await u.selectOptions(screen.getByLabelText('Agregar servicio'), '1')
     await u.selectOptions(screen.getByLabelText('Mecánico de Cambio de aceite (1)'), 'Carlos Ruiz')
-    await u.type(screen.getByLabelText('Placa de Cambio de aceite (1)'), 'abc-12d')
+    expect(screen.queryByLabelText('Placa de Cambio de aceite (1)')).not.toBeInTheDocument()
     await elegirAna(u)
     expect(screen.getByLabelText('Total de la venta')).toHaveTextContent(/\$\s?15\.000/)
 
@@ -69,7 +69,7 @@ describe('servicios en la venta', () => {
 
     await screen.findByRole('heading', { name: 'Venta registrada' })
     const enviada = ventas(api)[0]
-    expect(enviada.services).toEqual([{ service_type: 1, mechanic: 1, plate: 'abc-12d' }])
+    expect(enviada.services).toEqual([{ service_type: 1, mechanic: 1 }])
     expect(enviada).not.toHaveProperty('items')
     expect(enviada.payments).toEqual([{ method: 'cash', amount: 15000 }])
   })
@@ -121,7 +121,7 @@ describe('servicios en la venta', () => {
     expect(await within(fila).findByText('Escribe qué se hizo en el servicio «Otro».')).toBeInTheDocument()
   })
 
-  it('el recibo muestra el servicio con su mecánico y la placa', async () => {
+  it('el recibo muestra el servicio con su mecánico', async () => {
     simularApi({
       'GET /sales/41': () => ({
         cuerpo: venta({
@@ -130,7 +130,6 @@ describe('servicios en la venta', () => {
               id: 9,
               service_type: { id: 1, code: 101, name: 'Cambio de aceite' },
               mechanic: { id: 1, name: 'Carlos Ruiz' },
-              plate: 'ABC12D',
               details: '',
               suggested_price: 15000,
               labor_price: 15000,
@@ -144,7 +143,8 @@ describe('servicios en la venta', () => {
 
     const recibo = await screen.findByRole('article', { name: 'Recibo n.º 41' })
     expect(recibo).toHaveTextContent('101 · Cambio de aceite')
-    expect(recibo).toHaveTextContent('Mecánico: Carlos Ruiz · Placa ABC12D')
+    expect(recibo).toHaveTextContent('Mecánico: Carlos Ruiz')
+    expect(recibo).not.toHaveTextContent('Placa')
   })
 
   it('el historial filtra por mecánico', async () => {

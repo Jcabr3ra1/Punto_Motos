@@ -95,7 +95,7 @@ class SaleWithServicesApiTests(SalesApiTestCase):
 
     def service_sale(self, mechanic, **extra):
         data = self.sale_data(
-            quantity=1, services=[{"service_type": self.oil.pk, "mechanic": mechanic.pk, "plate": "abc12d"}],
+            quantity=1, services=[{"service_type": self.oil.pk, "mechanic": mechanic.pk}],
             payments=[{"method": "cash", "amount": 40000}],
         )
         data.update(extra)
@@ -108,7 +108,6 @@ class SaleWithServicesApiTests(SalesApiTestCase):
         data = response.json()
         self.assertEqual(data["total"], 40000)
         self.assertEqual(data["services"][0]["mechanic"]["name"], "Carlos Ruiz")
-        self.assertEqual(data["services"][0]["plate"], "ABC12D")
         self.assertEqual(stock_of(self.product), 4)
 
         detail = self.client.get(f"/api/v1/sales/{data['id']}").json()

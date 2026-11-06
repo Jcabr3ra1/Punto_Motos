@@ -266,8 +266,8 @@ export function liquidacion(cambios: Partial<MechanicSettlementDetail> = {}): Me
     created_by: 'dueno',
     created_at: '2026-11-03T18:05:00-05:00',
     services: [
-      { id: 9, sale_id: 41, sale_number: 41, customer: 'Ana Gómez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, plate: 'ABC12D', details: '', labor_price: 15000 },
-      { id: 10, sale_id: 43, sale_number: 43, customer: 'Juan Pérez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, plate: '', details: '', labor_price: 15000 },
+      { id: 9, sale_id: 41, sale_number: 41, customer: 'Ana Gómez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, details: '', labor_price: 15000 },
+      { id: 10, sale_id: 43, sale_number: 43, customer: 'Juan Pérez', service_type: { id: 1, code: 101, name: 'Cambio de aceite' }, details: '', labor_price: 15000 },
     ],
     ...cambios,
   }

@@ -31,11 +31,9 @@ export function HojaDeLiquidacion({ liquidacion }: { liquidacion: MechanicSettle
               <td>N.º {servicio.sale_number}</td>
               <th scope="row">
                 {servicio.service_type.code} · {servicio.service_type.name}
-                {(servicio.plate || servicio.details) && (
-                  <span className="tabla__detalle">{[servicio.plate && `Placa ${servicio.plate}`, servicio.details].filter(Boolean).join(' · ')}</span>
-                )}
+                {servicio.details && <span className="tabla__detalle">{servicio.details}</span>}
               </th>
-              <td>{servicio.customer}</td>
+              <td>{servicio.customer || 'Sin cliente'}</td>
               <td className="tabla__numero">{formatearPesos(servicio.labor_price)}</td>
             </tr>
           ))}

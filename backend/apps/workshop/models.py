@@ -257,8 +257,8 @@ class MechanicDeduction(models.Model):
     """Lo que se le debe descontar a un mecánico por una devolución con causa de mal servicio.
 
     Se crea con la devolución y se va pagando en sus liquidaciones: si en una no
-    alcanza, el saldo pasa a la siguiente. El servicio, el cliente, la placa y
-    el motivo se leen de la devolución. No se edita ni se borra.
+    alcanza, el saldo pasa a la siguiente. El servicio, el cliente y el
+    motivo se leen de la devolución. No se edita ni se borra.
     """
 
     mechanic = models.ForeignKey(Mechanic, on_delete=models.PROTECT, related_name="deductions", verbose_name="mecánico")

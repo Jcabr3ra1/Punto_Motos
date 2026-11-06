@@ -131,8 +131,8 @@ export function Ventas() {
                         </th>
                         <td className="tabla__nowrap">{formatearFechaHora(venta.created_at)}</td>
                         <td>
-                          {venta.customer.name}
-                          {venta.customer.phone && <span className="tabla__detalle">{venta.customer.phone}</span>}
+                          {venta.customer?.name ?? 'Sin cliente'}
+                          {venta.customer?.phone && <span className="tabla__detalle">{venta.customer.phone}</span>}
                         </td>
                         <td className="tabla__numero">{formatearPesos(venta.total)}</td>
                         <td>{venta.created_by}</td>
