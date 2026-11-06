@@ -2,7 +2,7 @@
 
 Contrato vigente de la API local de Django. Se actualiza con cada cambio del backend; los cambios se resumen en [CAMBIOS.md](CAMBIOS.md).
 
-Versión del backend: **0.9.0**.
+Versión del backend: **0.10.0**.
 
 ## Conexión
 
@@ -118,6 +118,7 @@ interface ApiError {
 | 409 | `purchase_received` | Se intenta editar, borrar o recibir otra vez una compra ya recibida | Mostrar `message` y volver a cargar la compra |
 | 409 | `initial_count_open` | Se intenta vender o entregar en consignación mientras el inventario inicial sigue abierto | Mostrar `message`; el dueño debe terminar el conteo |
 | 409 | `cash_session_closed` | No hay caja abierta (o ya se cerró) y se intenta vender, anular, devolver, abonar o pagar con fecha de hoy, registrar un gasto o cerrar otra vez | Mostrar `message` y volver a consultar `GET /cash-sessions/current`; el dueño debe abrir la caja |
+| 409 | `product_has_history` | Se intenta eliminar un producto que ya se usó | Mostrar `message` y ofrecer desactivarlo |
 | 409 | `sale_voided` | Se intenta anular una venta ya anulada o registrar una devolución sobre ella | Mostrar `message` y volver a cargar la venta |
 | 409 | `sale_has_settled_services` | Se intenta anular una venta con servicios que ya se le pagaron al mecánico | Mostrar `message`; esa venta se corrige con una devolución |
 | 409 | `sale_has_returns` | Se intenta anular una venta que ya tiene devoluciones | Mostrar `message`; lo que falte se corrige con otra devolución |
@@ -182,6 +183,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `POST /products` | Dueño | Crea un producto |
 | `GET /products/{id}` | Sesión | Un producto |
 | `PATCH /products/{id}` | Dueño | Edita un producto, incluido su precio |
+| `DELETE /products/{id}` | Dueño | Elimina un producto que nunca se usó |
 | `GET /catalog/search` | Sesión | Buscador de la pantalla de venta |
 | `GET /catalog/code-suggestion` | Dueño | Sugiere un código mientras se llena el formulario |
 | `GET /inventory/movements` | Sesión | Movimientos de inventario (kárdex) paginados |
@@ -236,7 +238,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 Tauri lo consulta para saber cuándo mostrar las pantallas. El frontend puede usarlo para mostrar la versión.
 
 ```json
-{ "status": "ok", "version": "0.9.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
+{ "status": "ok", "version": "0.10.0", "server_time": "2026-10-30T18:56:04.472609-05:00" }
 ```
 
 ```ts
@@ -476,6 +478,10 @@ interface ProductInput {
 
 `POST /products` responde el `Product` creado (201). `PATCH /products/{id}` responde el `Product` actualizado.
 
+**No se repiten.** No puede haber dos productos con el mismo **nombre, marca y moto**; no importan mayúsculas, tildes ni espacios de más. Un código distinto no evita la regla. El mismo nombre con otra marca u otra moto sí es válido. También aplica al [inventario inicial](#inventario), al renombrar y al reactivar. Un duplicado creado antes de esta regla se puede seguir editando, renombrar o desactivar.
+
+**`DELETE /products/{id}`** (solo el dueño) responde **204** sin cuerpo y libera el código. Solo elimina productos **sin historial**: sin movimientos de inventario, compras (aunque sean borrador), ventas, consignaciones ni cambios de precio. Con historial responde 409 `product_has_history` y no borra nada: ese producto se desactiva con `is_active: false`. No se pueden eliminar tipos, marcas ni motos.
+
 ```json
 {
   "name": "Pastillas de freno Pulsar 180",
@@ -504,6 +510,7 @@ interface ProductInput {
 Errores frecuentes en `fields`:
 
 - `code`: "Ya existe un producto con ese código.", "Usa solo letras, números y guiones…" o "No se pudo generar el código: escríbelo o revisa el nombre." (por ejemplo, una llanta sin medida en el nombre).
+- `name`: "Este producto ya existe con la misma marca y moto: FRE-PUL-PAS." o "Este producto ya existe desactivado: FRE-PUL-PAS. Actívalo en lugar de crearlo otra vez."
 - `sale_price`: "El precio de venta debe ser mayor que cero."
 - `category`, `brand`, `moto`: el id no existe o está desactivado.
 

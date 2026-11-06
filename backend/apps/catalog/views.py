@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import ProtectedError, Q
 from rest_framework import mixins, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from apps.accounts.permissions import IsOwner, IsOwnerOrReadOnly
 from apps.core.pagination import StandardPagination
 
+from .exceptions import ProductHasHistory
 from .models import Brand, Category, MotoModel, Product, normalize_code
 from .serializers import (
     BrandSerializer,
@@ -74,15 +75,28 @@ class MotoModelViewSet(CatalogViewSet):
     serializer_class = MotoModelSerializer
 
 
-class ProductViewSet(CatalogViewSet):
-    """Listado paginado con filtros: ?q=, ?category=, ?moto=, ?workshop_supply=true, ?ordering=."""
+class ProductViewSet(mixins.DestroyModelMixin, CatalogViewSet):
+    """Listado paginado con filtros: ?q=, ?category=, ?moto=, ?workshop_supply=true, ?ordering=.
+
+    A diferencia del resto del catálogo, un producto sí se puede eliminar si nunca
+    se usó, para corregir uno creado por error. Con historial responde 409 y solo
+    se puede desactivar.
+    """
 
     # balance trae la existencia en la misma consulta.
     queryset = Product.objects.select_related("category", "brand", "moto", "balance").prefetch_related(
         "compatible_motos"
     )
     pagination_class = StandardPagination
+    http_method_names = [*CatalogViewSet.http_method_names, "delete"]
     ORDERING = {"name", "-name", "code", "-code", "updated_at", "-updated_at", "sale_price", "-sale_price"}
+
+    def perform_destroy(self, instance):
+        # Lo decide on_delete=PROTECT: así cubre también las relaciones que se agreguen después.
+        try:
+            instance.delete()
+        except ProtectedError:
+            raise ProductHasHistory()
 
     def get_serializer_class(self):
         if self.action in ("create", "update", "partial_update"):

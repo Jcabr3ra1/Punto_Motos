@@ -11,6 +11,22 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-05 · Eliminar productos sin historial y evitar duplicados (0.10.0)
+
+**Qué cambió**
+
+- **`DELETE /products/{id}`** (solo el dueño): elimina un producto que nunca se usó y libera su código. Responde 204. Si ya tiene movimientos, compras, ventas, consignaciones o cambios de precio, responde el nuevo 409 `product_has_history` y no borra nada.
+- **Productos duplicados:** `POST /products` y `POST /inventory/initial-count/items` rechazan otro producto con el mismo nombre, marca y moto, sin importar mayúsculas, tildes o espacios. Antes se creaba sin aviso, con un código numerado como `FRE-PUL-PAS2`. El error llega en `fields.name`.
+- `PATCH /products/{id}` aplica la misma regla al renombrar o reactivar. Los duplicados que ya existan se pueden seguir editando, renombrar o desactivar. No se borran ni se fusionan solos.
+
+**Cambio incompatible:** una petición que antes creaba un duplicado ahora responde 400. La pantalla ya muestra los errores de `fields`, así que no debería romperse.
+
+**Qué debe hacer el frontend**
+
+- En **Productos** (solo el dueño), agregar **Eliminar** con confirmación, deshabilitado mientras responde.
+- Manejar 409 `product_has_history`: mostrar `message` y ofrecer desactivar el producto.
+- Comprobar que el error de `fields.name` se vea junto al nombre, también en el formulario del inventario inicial.
+
 ## 2026-11-05 · Devoluciones y descuentos por mal servicio (0.9.0)
 
 **Qué cambió**
