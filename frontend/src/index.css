@@ -1720,6 +1720,246 @@ kbd {
   border-top: 1px solid var(--marco-separador);
 }
 
+/* Panel lateral: los formularios entran por la derecha, anclados al borde de la ventana. */
+.panel-lateral__velo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(8 8 9 / 0.5);
+  animation: velo 160ms ease-out;
+}
+
+.panel-lateral {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 26rem;
+  max-width: calc(100vw - 5rem);
+  height: 100%;
+  background: var(--color-superficie);
+  box-shadow: -24px 0 56px rgb(0 0 0 / 0.35);
+  animation: entrar-por-la-derecha 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.panel-lateral--ancho {
+  width: 36rem;
+}
+
+/* Filete lima: el mismo lenguaje del marco. */
+.panel-lateral::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--color-marca);
+}
+
+.panel-lateral:focus {
+  outline: none;
+}
+
+.panel-lateral__cabecera {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1rem 1rem 0.875rem 1.375rem;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.panel-lateral__modulo {
+  margin: 0 0 0.125rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-acento);
+}
+
+.panel-lateral__titulo {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+.panel-lateral__descripcion {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--texto-secundario);
+}
+
+.panel-lateral__cerrar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0;
+  color: var(--texto-secundario);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio);
+}
+
+.panel-lateral__cerrar:hover {
+  color: var(--color-texto);
+  background: var(--fondo-trabajo);
+}
+
+.panel-lateral__cuerpo {
+  flex: 1;
+  min-height: 0;
+  padding: 1rem 1rem 0 1.375rem;
+  overflow-y: auto;
+}
+
+.panel-lateral__cuerpo .formulario {
+  max-width: none;
+}
+
+/* Los botones del formulario quedan siempre a la vista, al pie del panel. */
+.panel-lateral__cuerpo .acciones {
+  position: sticky;
+  bottom: 0;
+  justify-content: flex-end;
+  margin: 1rem -1rem 0 -1.375rem;
+  padding: 0.75rem 1rem 0.75rem 1.375rem;
+  background: var(--color-superficie);
+  border-top: 1px solid var(--color-borde);
+}
+
+.panel-lateral__ayuda {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.375rem 1rem 0.375rem 1.375rem;
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+  background: var(--fondo-trabajo);
+  border-top: 1px solid var(--color-borde);
+}
+
+/* Diálogo de confirmación: pregunta de sí o no, pequeño y centrado. */
+.dialogo__velo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(8 8 9 / 0.55);
+  animation: velo 120ms ease-out;
+}
+
+.dialogo {
+  width: min(26rem, 100%);
+  overflow: hidden;
+  background: var(--color-superficie);
+  border-radius: 6px;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
+  animation: aparecer 140ms ease-out;
+}
+
+.dialogo__cabecera {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0.875rem 1.125rem;
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-bottom: 2px solid var(--color-marca);
+}
+
+.dialogo__icono {
+  flex: 0 0 auto;
+  color: #ffb74d;
+}
+
+.dialogo__titulo {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.dialogo__texto {
+  padding: 1rem 1.125rem 0;
+  line-height: 1.5;
+}
+
+.dialogo__texto p {
+  margin: 0 0 0.5rem;
+}
+
+.dialogo__acciones {
+  display: flex;
+  gap: 0.625rem;
+  justify-content: flex-end;
+  padding: 1rem 1.125rem;
+}
+
+/* Vista previa: cómo queda la cifra si se guarda. */
+.vista-previa {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.875rem;
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-radius: var(--radio);
+}
+
+.vista-previa__linea {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.vista-previa__etiqueta {
+  font-size: 0.8125rem;
+  color: var(--marco-texto-suave);
+}
+
+.vista-previa__cambio {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.vista-previa__antes {
+  color: var(--marco-texto-suave);
+  text-decoration: line-through;
+}
+
+.vista-previa__despues {
+  font-size: 1.25rem;
+  color: var(--color-marca);
+}
+
+.vista-previa__nota {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  text-align: right;
+  color: var(--marco-texto-suave);
+}
+
+@keyframes velo {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes entrar-por-la-derecha {
+  from {
+    transform: translateX(1.5rem);
+    opacity: 0.6;
+  }
+}
+
 @keyframes aparecer {
   from {
     opacity: 0;
