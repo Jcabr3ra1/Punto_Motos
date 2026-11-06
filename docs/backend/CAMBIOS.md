@@ -11,6 +11,23 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-05 · La descripción del servicio ya no es obligatoria (0.10.0)
+
+**Qué cambió**
+
+- En `POST /sales`, `services[].details` siempre es opcional, también en el tipo «Otro», para no demorar la venta. Ya no existe el error `services.N.details` que pedía escribir qué se hizo.
+- Se eliminó `needs_description` de `/service-types` y de la base de datos, con una migración en `workshop`.
+
+**Cambio incompatible:** `needs_description` ya no viene en las respuestas de `/service-types`, y si se envía se ignora.
+
+**Qué debe hacer el frontend**
+
+Ya está hecho en este mismo cambio, Juan solo debe revisarlo:
+
+- En **Vender**, el campo «Qué se hizo» dice siempre «Opcional».
+- En **Configuración → Taller** se quitaron la casilla «Pide descripción en la venta» y su etiqueta en la lista.
+- `needs_description` salió de `ServiceType` en `frontend/src/api/types.ts`.
+
 ## 2026-11-05 · Eliminar productos sin historial y evitar duplicados (0.10.0)
 
 **Qué cambió**

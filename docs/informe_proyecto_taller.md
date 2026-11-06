@@ -119,7 +119,7 @@ El servicio se negocia con el cliente, se realiza y al final se registra como un
 
 Cada servicio será una línea de la venta con estos datos:
 
-- Tipo de servicio, elegido de una lista configurable (por ejemplo cambio de aceite, frenos, mantenimiento general, sistema eléctrico o transmisión), con una opción "otro" y una descripción corta.
+- Tipo de servicio, elegido de una lista configurable (por ejemplo cambio de aceite, frenos, mantenimiento general, sistema eléctrico o transmisión), con una opción "otro" y una descripción corta opcional.
 - Placa de la moto, opcional.
 - Mecánico que realizó el servicio, obligatorio porque con él se lleva el registro diario de servicios y se calcula la liquidación.
 - Valor de mano de obra acordado; se propone el precio del tipo de servicio y solo el dueño puede cambiarlo.

@@ -406,8 +406,6 @@ class SaleService(models.Model):
             errors["service_type"] = "Este tipo de servicio está desactivado."
         if self.mechanic_id and not self.mechanic.is_active:
             errors["mechanic"] = "Este mecánico está desactivado."
-        if self.service_type_id and self.service_type.needs_description and not self.details:
-            errors["details"] = "Escribe qué servicio se hizo."
         if errors:
             raise ValidationError(errors)
 

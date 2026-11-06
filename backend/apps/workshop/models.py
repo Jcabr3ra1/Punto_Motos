@@ -22,11 +22,6 @@ class ServiceType(NamedModel):
 
     code = models.PositiveIntegerField("código", help_text="Número corto para el buscador de la venta, por ejemplo 101.")
     suggested_price = models.PositiveBigIntegerField("precio sugerido", help_text="Mano de obra en pesos enteros.")
-    # Para el tipo «Otro»: obliga a escribir en la venta qué se hizo.
-    needs_description = models.BooleanField(
-        "pide descripción", default=False,
-        help_text="La venta debe decir qué servicio se hizo, por ejemplo en el tipo «Otro».",
-    )
 
     class Meta(NamedModel.Meta):
         verbose_name = "tipo de servicio"

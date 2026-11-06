@@ -597,8 +597,6 @@ export interface ServiceType {
   name: string
   /** Mano de obra que se propone en la venta. */
   suggested_price: number
-  /** `true` (el tipo «Otro»): la venta debe decir qué se hizo. */
-  needs_description: boolean
   is_active: boolean
 }
 

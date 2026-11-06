@@ -245,7 +245,7 @@ export function pendiente(cambios: Partial<PendingConsignmentItem> = {}): Pendin
 }
 
 export function tipoDeServicio(cambios: Partial<ServiceType> = {}): ServiceType {
-  return { id: 1, code: 101, name: 'Cambio de aceite', suggested_price: 15000, needs_description: false, is_active: true, ...cambios }
+  return { id: 1, code: 101, name: 'Cambio de aceite', suggested_price: 15000, is_active: true, ...cambios }
 }
 
 export function mecanico(cambios: Partial<Mechanic> = {}): Mechanic {

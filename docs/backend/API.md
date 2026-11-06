@@ -939,7 +939,7 @@ Los servicios del taller **se cobran como líneas de la venta** (ver [Clientes y
 ```
 
 ```json
-{ "id": 1, "code": 101, "name": "Cambio de aceite", "suggested_price": 15000, "needs_description": false, "is_active": true }
+{ "id": 1, "code": 101, "name": "Cambio de aceite", "suggested_price": 15000, "is_active": true }
 ```
 
 | Campo | Reglas |
@@ -947,7 +947,6 @@ Los servicios del taller **se cobran como líneas de la venta** (ver [Clientes y
 | `code` | Obligatorio; entero de 1 a 99999; único |
 | `name` | Obligatorio; máximo 80; único sin distinguir mayúsculas; se limpian los espacios |
 | `suggested_price` | Obligatorio; pesos enteros, mayor o igual a 0. Es la mano de obra que se propone en la venta |
-| `needs_description` | Opcional, por defecto `false`. Con `true` (el tipo «Otro»), la venta debe decir qué se hizo |
 | `is_active` | Opcional |
 
 Errores: `fields.code` con "Ya existe un tipo de servicio con ese código."; `fields.name` con "Ya existe un tipo de servicio con ese nombre.".
@@ -980,7 +979,6 @@ interface ServiceType {
   code: number;                    // 101
   name: string;
   suggested_price: number;
-  needs_description: boolean;      // true: la venta debe llevar details
   is_active: boolean;
 }
 
@@ -1241,7 +1239,7 @@ interface SaleService {
   service_type: { id: number; code: number; name: string };
   mechanic: { id: number; name: string };
   plate: string;                   // "ABC12D" o vacío
-  details: string;                 // qué se hizo; obligatorio si el tipo pide descripción
+  details: string;                 // qué se hizo; opcional, puede ir vacío
   suggested_price: number;         // precio del tipo de servicio al vender
   labor_price: number;             // mano de obra cobrada
   price_changed: boolean;          // el dueño cambió el valor
@@ -1358,7 +1356,7 @@ La respuesta trae, además de `items`:
 | `items[].unit_price` | Opcional; solo el dueño puede enviarlo distinto del catálogo |
 | `services` | Opcional; `service_type` y `mechanic` activos. Se puede repetir el mismo tipo (dos cambios de aceite) |
 | `services[].plate` | Opcional; se guarda en mayúsculas sin espacios ni guiones (`abc-12d` → `ABC12D`); máximo 10 |
-| `services[].details` | Opcional, máximo 120; obligatorio si el tipo tiene `needs_description` |
+| `services[].details` | Opcional, máximo 120 |
 | `services[].labor_price` | Opcional; solo el dueño puede enviarlo distinto del `suggested_price` |
 | `payments` | Un registro por medio, sin repetir medio; `amount` mayor que 0; la suma debe ser igual al total. Una venta de $0 (regalo del dueño) va con `payments: []` |
 | `notes` | Opcional; máximo 200 |
@@ -1370,7 +1368,6 @@ Errores en `fields` (los de una línea llegan anidados: `items.1.quantity`):
 - `items.N.product`: "FRE-PUL-PAS está repetido: deja una sola línea con la cantidad total."
 - `items.N.quantity`: "Solo hay 2 unidades de ELE-UNI-BUJ." o "No hay unidades de ELE-UNI-BUJ."
 - `items.N.unit_price`: "Solo el dueño puede cambiar el precio." o "El precio de FRE-PUL-PAS ahora es $26.000." (cambió mientras se armaba la venta: refrescar el producto)
-- `services.N.details`: "Escribe qué se hizo en el servicio «Otro»."
 - `services.N.labor_price`: "Solo el dueño puede cambiar el valor del servicio." o "El valor sugerido de «Cambio de aceite» ahora es $18.000."
 - `services.N.mechanic` o `services.N.service_type`: el id no existe o está desactivado
 - `services.N.plate`: "La placa tiene máximo 10 caracteres."

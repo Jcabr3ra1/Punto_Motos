@@ -259,10 +259,6 @@ class SaleWriteSerializer(serializers.Serializer):
     def validate_services(self, services):
         for index, service in enumerate(services):
             service_type = service["service_type"]
-            if service_type.needs_description and not service["details"]:
-                raise serializers.ValidationError(line_error(
-                    services, index, "details", f"Escribe qué se hizo en el servicio «{service_type.name}».",
-                ))
             labor_price = service.get("labor_price", service_type.suggested_price)
             if labor_price != service_type.suggested_price and not _is_owner(self.context):
                 raise serializers.ValidationError(line_error(

@@ -30,7 +30,7 @@ class ServiceTypeSerializer(NamedModelSerializer):
 
     class Meta:
         model = ServiceType
-        fields = ["id", "code", "name", "suggested_price", "needs_description", "is_active"]
+        fields = ["id", "code", "name", "suggested_price", "is_active"]
         # La unicidad se valida a mano para dar un mensaje claro.
         validators = []
 

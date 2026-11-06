@@ -462,8 +462,7 @@ export function Vender() {
                               value={servicio.detalles}
                               maxLength={120}
                               onChange={(e) => cambiarServicio(servicio.clave, { detalles: e.target.value })}
-                              placeholder={servicio.tipo.needs_description ? 'Obligatorio' : 'Opcional'}
-                              aria-required={servicio.tipo.needs_description || undefined}
+                              placeholder="Opcional"
                             />
                           </td>
                           <td>
