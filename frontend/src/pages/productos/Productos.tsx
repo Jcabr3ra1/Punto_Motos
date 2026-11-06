@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { Product } from '../../api/types'
 import { useUsuario } from '../../auth/useUsuario'
+import { Plus } from 'lucide-react'
+import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
 import { FormularioDeProducto } from './FormularioDeProducto'
 import { FILTROS_INICIALES, type EstadoDeFiltros } from './filtros'
@@ -21,15 +23,7 @@ export function Productos() {
     setVista({ tipo: 'lista' })
   }
 
-  if (vista.tipo === 'crear' || vista.tipo === 'editar') {
-    const producto = vista.tipo === 'editar' ? vista.producto : undefined
-    return (
-      <section>
-        <Titulo>{producto ? `Editar ${producto.name}` : 'Nuevo producto'}</Titulo>
-        <FormularioDeProducto producto={producto} onTerminar={volver} onCancelar={() => volver()} />
-      </section>
-    )
-  }
+  const producto = vista.tipo === 'editar' ? vista.producto : undefined
 
   return (
     <section>
@@ -44,6 +38,7 @@ export function Productos() {
               setVista({ tipo: 'crear' })
             }}
           >
+            <Plus aria-hidden="true" size={16} />
             Nuevo producto
           </button>
         )}
@@ -63,6 +58,17 @@ export function Productos() {
           setVista({ tipo: 'editar', producto })
         }}
       />
+      {vista.tipo !== 'lista' && (
+        <PanelLateral
+          titulo={producto ? `Editar ${producto.name}` : 'Nuevo producto'}
+          modulo="Productos"
+          descripcion={producto ? `Código ${producto.code}` : 'El código se sugiere a partir del nombre.'}
+          ancho="ancho"
+          onCerrar={() => volver()}
+        >
+          <FormularioDeProducto producto={producto} onTerminar={volver} onCancelar={() => volver()} />
+        </PanelLateral>
+      )}
     </section>
   )
 }

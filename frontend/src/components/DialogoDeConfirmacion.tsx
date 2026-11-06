@@ -1,7 +1,7 @@
 import { TriangleAlert } from 'lucide-react'
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useDevolverFoco, useFocoAtrapado } from './useFocoAtrapado'
+import { useDevolverFoco, useFocoAtrapado, useFondoInerte } from './useFocoAtrapado'
 
 interface Props {
   titulo: string
@@ -11,6 +11,8 @@ interface Props {
   accion: string
   /** Texto del botón que no hace nada; «Cancelar» si no se indica. */
   cancelar?: string
+  /** Otro botón entre los dos, para una salida distinta (por ejemplo, desactivar en lugar de eliminar). */
+  otrasAcciones?: ReactNode
   /** Acción que borra o anula algo: el botón va en rojo. */
   peligro?: boolean
   /** Mientras se hace la acción: los botones quedan desactivados. */
@@ -21,11 +23,12 @@ interface Props {
 
 // Pregunta de sí o no antes de algo que no se puede deshacer. Ventana pequeña centrada; el foco empieza en
 // Cancelar para que un Enter distraído no borre nada.
-export function DialogoDeConfirmacion({ titulo, children, accion, cancelar: textoCancelar = 'Cancelar', peligro = false, ocupado = false, onConfirmar, onCancelar }: Props) {
+export function DialogoDeConfirmacion({ titulo, children, accion, cancelar: textoCancelar = 'Cancelar', otrasAcciones, peligro = false, ocupado = false, onConfirmar, onCancelar }: Props) {
   const ventana = useRef<HTMLDivElement>(null)
   const cancelar = useRef<HTMLButtonElement>(null)
   const idTitulo = useId()
   const idTexto = useId()
+  useFondoInerte()
   useDevolverFoco()
   useFocoAtrapado(ventana, true)
 
@@ -65,6 +68,7 @@ export function DialogoDeConfirmacion({ titulo, children, accion, cancelar: text
           <button ref={cancelar} type="button" className="boton boton--secundario boton--auto" onClick={onCancelar} disabled={ocupado}>
             {textoCancelar}
           </button>
+          {otrasAcciones}
           <button
             type="button"
             className={`boton boton--auto${peligro ? ' boton--peligro' : ''}`}

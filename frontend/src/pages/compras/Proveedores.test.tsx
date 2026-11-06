@@ -59,6 +59,20 @@ describe('lista de proveedores', () => {
   })
 })
 
+describe('panel lateral', () => {
+  it('Nuevo proveedor y Abonar se abren en un panel con la lista detrás', async () => {
+    const { u } = await abrir()
+
+    await u.click(screen.getByRole('button', { name: 'Nuevo proveedor' }))
+    expect(screen.getByRole('dialog', { name: 'Nuevo proveedor' })).toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    await u.keyboard('{Escape}')
+
+    await u.click(screen.getByRole('button', { name: /Abonar a Distribuidora Andina/ }))
+    expect(screen.getByRole('dialog', { name: 'Abonar a «Distribuidora Andina»' })).toBeInTheDocument()
+  })
+})
+
 describe('crear y editar', () => {
   it('crea un proveedor y vuelve a la lista', async () => {
     const { api, u } = await abrir({

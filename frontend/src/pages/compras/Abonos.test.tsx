@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dueno, errorDeApi, simularApi } from '../../test/apiSimulada'
@@ -47,20 +47,28 @@ describe('lista de abonos', () => {
 })
 
 describe('registrar abono', () => {
+  it('se abre en un panel con la lista de abonos detrás', async () => {
+    const { u } = abrir()
+    await u.click(await screen.findByRole('button', { name: 'Registrar abono' }))
+
+    expect(screen.getByRole('dialog', { name: 'Registrar abono' })).toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+  })
+
   it('se puede elegir una compra concreta, y a un proveedor desactivado también se le abona', async () => {
     const { api, u } = abrir({
       'POST /supplier-payments': () => ({ estado: 201, cuerpo: abono({ amount: 20000, method: 'cash', method_label: 'Efectivo' }) }),
     })
     await u.click(await screen.findByRole('button', { name: 'Registrar abono' }))
 
-    const selector = await screen.findByLabelText('Proveedor')
+    const selector = await within(screen.getByRole('dialog')).findByLabelText('Proveedor')
     expect(screen.getByRole('option', { name: 'Motopartes Viejo (desactivado)' })).toBeInTheDocument()
     await u.selectOptions(selector, 'Distribuidora Andina')
     expect(screen.getByText(/Se le debe en total:/)).toHaveTextContent(/\$\s?105\.000/)
     await screen.findByRole('option', { name: /FV-1020/ })
     await u.selectOptions(screen.getByLabelText('Aplicar a'), '15')
     await u.type(screen.getByLabelText('Valor'), '20000')
-    await u.click(screen.getByRole('button', { name: 'Registrar abono' }))
+    await u.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Registrar abono' }))
 
     expect(await screen.findByText(/Abono de \$\s?20\.000 registrado/)).toBeInTheDocument()
     expect(api.llamadas.find((l) => l.clave === 'POST /supplier-payments')?.cuerpo).toMatchObject({
@@ -80,8 +88,8 @@ describe('registrar abono', () => {
         }),
     })
     await u.click(await screen.findByRole('button', { name: 'Registrar abono' }))
-    await u.selectOptions(await screen.findByLabelText('Proveedor'), 'Distribuidora Andina')
-    await u.click(screen.getByRole('button', { name: 'Registrar abono' }))
+    await u.selectOptions(await within(screen.getByRole('dialog')).findByLabelText('Proveedor'), 'Distribuidora Andina')
+    await u.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Registrar abono' }))
 
     expect(await screen.findByText('Este campo es requerido.')).toBeInTheDocument()
     expect(screen.getByLabelText('Fecha de pago')).toHaveAccessibleDescription(/no puede ser futura/)
@@ -104,9 +112,9 @@ describe('caja cerrada', () => {
       'POST /supplier-payments': () => errorDeApi(409, 'cash_session_closed', 'La caja está cerrada: ábrela para registrar dinero.'),
     })
     await u.click(await screen.findByRole('button', { name: 'Registrar abono' }))
-    await u.selectOptions(await screen.findByLabelText('Proveedor'), 'Distribuidora Andina')
+    await u.selectOptions(await within(screen.getByRole('dialog')).findByLabelText('Proveedor'), 'Distribuidora Andina')
     await u.type(screen.getByLabelText('Valor'), '10000')
-    await u.click(screen.getByRole('button', { name: 'Registrar abono' }))
+    await u.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Registrar abono' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('La caja está cerrada: ábrela para registrar dinero.')
   })

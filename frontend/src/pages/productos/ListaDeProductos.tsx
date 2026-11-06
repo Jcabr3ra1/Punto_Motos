@@ -7,13 +7,13 @@ import { claves } from '../../api/consultas'
 import { desglosarError } from '../../api/errors'
 import { editarProducto, eliminarProducto, listarProductos, type OrdenDeProductos } from '../../api/productos'
 import type { Product } from '../../api/types'
+import { DialogoDeConfirmacion } from '../../components/DialogoDeConfirmacion'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
-import { Titulo } from '../../components/Titulo'
 import { useDebounce } from '../../hooks/useDebounce'
 import type { EstadoDeFiltros } from './filtros'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -163,50 +163,40 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
           ) : (
             <>
               {eliminando && (
-                <div role="group" aria-labelledby="titulo-eliminar" className="confirmacion terminar">
-                  <Titulo nivel={2}>
-                    <span id="titulo-eliminar">¿Eliminar «{eliminando.name}»?</span>
-                  </Titulo>
-                  <p>
-                    Solo se puede eliminar un producto que nunca se usó; su código ({eliminando.code}) quedará libre.
-                  </p>
-                  <AvisoDeError mensajes={error?.generales ?? []} />
-                  <div className="acciones">
-                    <button
-                      type="button"
-                      className="boton boton--peligro boton--auto"
-                      disabled={eliminar.isPending || desactivar.isPending}
-                      onClick={() => {
-                        desactivar.reset()
-                        eliminar.mutate(eliminando)
-                      }}
-                    >
-                      {eliminar.isPending ? 'Eliminando…' : 'Sí, eliminar'}
-                    </button>
-                    {tieneHistorial && eliminando.is_active && (
+                <DialogoDeConfirmacion
+                  titulo={`¿Eliminar «${eliminando.name}»?`}
+                  accion={eliminar.isPending ? 'Eliminando…' : 'Sí, eliminar'}
+                  cancelar="Volver"
+                  peligro
+                  ocupado={eliminar.isPending || desactivar.isPending}
+                  onConfirmar={() => {
+                    desactivar.reset()
+                    eliminar.mutate(eliminando)
+                  }}
+                  onCancelar={() => {
+                    eliminar.reset()
+                    desactivar.reset()
+                    setEliminando(null)
+                  }}
+                  otrasAcciones={
+                    tieneHistorial &&
+                    eliminando.is_active && (
                       <button
                         type="button"
-                        className="boton boton--auto"
+                        className="boton boton--secundario boton--auto"
                         disabled={desactivar.isPending || eliminar.isPending}
                         onClick={() => desactivar.mutate(eliminando)}
                       >
                         {desactivar.isPending ? 'Desactivando…' : 'Desactivar producto'}
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      className="boton boton--secundario boton--auto"
-                      onClick={() => {
-                        eliminar.reset()
-                        desactivar.reset()
-                        setEliminando(null)
-                      }}
-                      autoFocus
-                    >
-                      Volver
-                    </button>
-                  </div>
-                </div>
+                    )
+                  }
+                >
+                  <p>
+                    Solo se puede eliminar un producto que nunca se usó; su código ({eliminando.code}) quedará libre.
+                  </p>
+                  <AvisoDeError mensajes={error?.generales ?? []} />
+                </DialogoDeConfirmacion>
               )}
               <TablaDeProductos
                 productos={productos.data.results}

@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { DialogoDeConfirmacion } from './DialogoDeConfirmacion'
-import { enfocablesDe, useDevolverFoco, useFocoAtrapado } from './useFocoAtrapado'
+import { enfocablesDe, useDevolverFoco, useFocoAtrapado, useFondoInerte } from './useFocoAtrapado'
 
 interface Props {
   titulo: string
@@ -23,6 +23,7 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
   const idTitulo = useId()
   const [conCambios, setConCambios] = useState(false)
   const [preguntando, setPreguntando] = useState(false)
+  useFondoInerte()
   useDevolverFoco()
   useFocoAtrapado(panel, !preguntando)
 

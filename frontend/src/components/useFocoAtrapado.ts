@@ -55,3 +55,22 @@ export function useDevolverFoco(): void {
     }
   }, [])
 }
+
+// Cuántas ventanas modales hay abiertas: la pantalla de atrás sigue inerte hasta que se cierre la última.
+let modalesAbiertas = 0
+
+/**
+ * Mientras la ventana está montada, la aplicación de atrás (#root) queda inerte: no recibe clics, foco ni lectura.
+ * Las ventanas se montan fuera de #root, así que siguen activas.
+ */
+export function useFondoInerte(): void {
+  useEffect(() => {
+    const raiz = document.getElementById('root')
+    modalesAbiertas += 1
+    raiz?.setAttribute('inert', '')
+    return () => {
+      modalesAbiertas -= 1
+      if (modalesAbiertas === 0) raiz?.removeAttribute('inert')
+    }
+  }, [])
+}

@@ -6,6 +6,7 @@ import type { Supplier } from '../../api/types'
 import { Campo } from '../../components/Campo'
 import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
 import { useDebounce } from '../../hooks/useDebounce'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -39,36 +40,31 @@ export function Proveedores() {
     setVista(siguiente)
   }
 
-  if (vista.tipo === 'crear' || vista.tipo === 'editar') {
-    const proveedor = vista.tipo === 'editar' ? vista.proveedor : undefined
-    return (
-      <>
-        <Titulo nivel={2}>{proveedor ? `Editar «${proveedor.name}»` : 'Nuevo proveedor'}</Titulo>
+  // Los formularios se abren en un panel sobre la pantalla en la que se estaba (la lista o el estado de cuenta).
+  const panel =
+    vista.tipo === 'crear' || vista.tipo === 'editar' ? (
+      <PanelLateral
+        titulo={vista.tipo === 'editar' ? `Editar «${vista.proveedor.name}»` : 'Nuevo proveedor'}
+        modulo="Compras"
+        descripcion="Datos para pedirle mercancía y llevar lo que se le debe."
+        onCerrar={() => ir({ tipo: 'lista' })}
+      >
         <FormularioDeProveedor
-          proveedor={proveedor}
+          proveedor={vista.tipo === 'editar' ? vista.proveedor : undefined}
           onTerminar={(mensaje) => ir({ tipo: 'lista' }, mensaje)}
           onCancelar={() => ir({ tipo: 'lista' })}
         />
-      </>
-    )
-  }
+      </PanelLateral>
+    ) : vista.tipo === 'abonar' ? (
+      <PanelAbono vista={vista} onVolver={(siguiente, mensaje) => ir(siguiente, mensaje)} />
+    ) : null
+  const fondo: Vista = vista.tipo === 'abonar' && vista.desde === 'cuenta' ? { tipo: 'cuenta', proveedor: vista.proveedor } : vista
 
-  if (vista.tipo === 'abonar') {
-    const volver = (mensaje: string | null = null) =>
-      ir(vista.desde === 'cuenta' ? { tipo: 'cuenta', proveedor: vista.proveedor } : { tipo: 'lista' }, mensaje)
-    return (
-      <>
-        <Titulo nivel={2}>Abonar a «{vista.proveedor.name}»</Titulo>
-        <FormularioDeAbono proveedorId={vista.proveedor.id} onTerminar={volver} onCancelar={() => volver()} />
-      </>
-    )
-  }
-
-  if (vista.tipo === 'cuenta') {
+  if (fondo.tipo === 'cuenta') {
     return (
       <>
         <div className="barra-de-acciones">
-          <Titulo nivel={2}>Estado de cuenta de «{vista.proveedor.name}»</Titulo>
+          <Titulo nivel={2}>Estado de cuenta de «{fondo.proveedor.name}»</Titulo>
           <button type="button" className="boton boton--secundario boton--auto" onClick={() => ir({ tipo: 'lista' })}>
             Volver a proveedores
           </button>
@@ -79,9 +75,10 @@ export function Proveedores() {
           </p>
         )}
         <EstadoDeCuenta
-          proveedorId={vista.proveedor.id}
-          onAbonar={() => ir({ tipo: 'abonar', proveedor: vista.proveedor, desde: 'cuenta' })}
+          proveedorId={fondo.proveedor.id}
+          onAbonar={() => ir({ tipo: 'abonar', proveedor: fondo.proveedor, desde: 'cuenta' })}
         />
+        {panel}
       </>
     )
   }
@@ -184,6 +181,29 @@ export function Proveedores() {
             </table>
           </div>
         ))}
+      {panel}
     </>
+  )
+}
+
+/** El abono va en su propio panel: al terminar vuelve a donde se abrió (la lista o el estado de cuenta). */
+function PanelAbono({
+  vista,
+  onVolver,
+}: {
+  vista: Extract<Vista, { tipo: 'abonar' }>
+  onVolver: (siguiente: Vista, mensaje?: string | null) => void
+}) {
+  const volver = (mensaje: string | null = null) =>
+    onVolver(vista.desde === 'cuenta' ? { tipo: 'cuenta', proveedor: vista.proveedor } : { tipo: 'lista' }, mensaje)
+  return (
+    <PanelLateral
+      titulo={`Abonar a «${vista.proveedor.name}»`}
+      modulo="Compras"
+      descripcion="El abono se reparte entre las compras más antiguas, salvo que elijas una."
+      onCerrar={() => volver()}
+    >
+      <FormularioDeAbono proveedorId={vista.proveedor.id} onTerminar={volver} onCancelar={() => volver()} />
+    </PanelLateral>
   )
 }

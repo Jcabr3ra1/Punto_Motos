@@ -3,6 +3,7 @@ import { useId, useMemo, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router'
 import { useUsuario } from '../auth/useUsuario'
+import { useFondoInerte } from '../components/useFocoAtrapado'
 import { buscarPantallas } from '../navegacion/buscar'
 
 interface Props {
@@ -19,6 +20,7 @@ export function Buscador({ conteoAbierto, onCerrar }: Props) {
   const [activa, setActiva] = useState(0)
   const resultados = useMemo(() => buscarPantallas(texto, usuario.role, conteoAbierto), [texto, usuario.role, conteoAbierto])
   const idLista = useId()
+  useFondoInerte()
   const idOpcion = (indice: number) => `${idLista}-opcion-${indice}`
 
   function abrir(indice: number) {

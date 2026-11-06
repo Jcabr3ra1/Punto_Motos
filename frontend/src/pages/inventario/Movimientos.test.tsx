@@ -208,6 +208,29 @@ describe('ajustar existencia', () => {
     expect(screen.getByRole('table')).toBeInTheDocument()
   })
 
+  it('se abre en un panel con la lista visible detrás', async () => {
+    await abrirAjuste()
+
+    expect(screen.getByRole('dialog', { name: 'Ajustar existencia' })).toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+  })
+
+  it('muestra cómo quedan las existencias antes de guardar', async () => {
+    const { u } = await abrirAjuste()
+
+    await u.type(screen.getByRole('combobox', { name: 'Producto' }), 'pas')
+    await u.click(await screen.findByRole('option', { name: /FRE-PUL-PAS/ }))
+    await u.type(screen.getByLabelText('Cantidad'), '3')
+    expect(screen.getByText('Existencias').closest('.vista-previa')).toHaveTextContent('Existencias de 8 a 11')
+
+    await u.click(screen.getByLabelText('Salen unidades (resta)'))
+    await u.clear(screen.getByLabelText('Cantidad'))
+    await u.type(screen.getByLabelText('Cantidad'), '10')
+    const vista = screen.getByText('Existencias').closest('.vista-previa')
+    expect(vista).toHaveTextContent('Existencias de 8 a -2')
+    expect(vista).toHaveTextContent('No alcanza: solo hay 8 unidades.')
+  })
+
   it('suma unidades con cantidad positiva', async () => {
     const { api, u } = await abrirAjuste({
       'POST /inventory/adjustments': () => ({ estado: 201, cuerpo: movimiento({ quantity: 4, balance_after: 12 }) }),

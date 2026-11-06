@@ -147,6 +147,21 @@ describe('panel lateral', () => {
     expect(onGuardar).toHaveBeenCalledTimes(1)
   })
 
+  it('mientras está abierto, la pantalla de atrás queda inerte', async () => {
+    const raiz = document.createElement('div')
+    raiz.id = 'root'
+    document.body.append(raiz)
+    const u = userEvent.setup()
+    render(<PantallaDePrueba />, { container: raiz })
+
+    await u.click(screen.getByRole('button', { name: 'Nuevo' }))
+    expect(raiz).toHaveAttribute('inert')
+
+    await u.keyboard('{Escape}')
+    expect(raiz).not.toHaveAttribute('inert')
+    raiz.remove()
+  })
+
   it('el panel ancho se distingue del normal', async () => {
     await abrir({ ancho: 'ancho' })
 
@@ -187,6 +202,12 @@ describe('vista previa', () => {
     render(<VistaPrevia etiqueta="Existencias" antes="12" despues="15" />)
 
     expect(screen.getByText('Existencias').closest('.vista-previa')).toHaveTextContent('Existencias de 12 a 15')
+  })
+
+  it('un resultado imposible se marca como alerta', () => {
+    render(<VistaPrevia etiqueta="Existencias" antes="0" despues="-5" alerta />)
+
+    expect(screen.getByText('-5')).toHaveClass('vista-previa__despues--alerta')
   })
 
   it('puede llevar una nota', () => {
