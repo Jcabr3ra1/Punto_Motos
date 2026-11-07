@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { claves } from '../../../api/consultas'
@@ -41,6 +42,7 @@ export function TiposDeServicio() {
       <div className="barra-de-acciones">
         <Titulo nivel={2}>Tipos de servicio</Titulo>
         <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
+          <Plus aria-hidden="true" size={16} />
           Nuevo tipo de servicio
         </button>
       </div>

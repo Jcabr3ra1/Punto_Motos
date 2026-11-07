@@ -1,3 +1,4 @@
+import { UserPlus } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { claves } from '../../../api/consultas'
@@ -56,6 +57,7 @@ export function Usuarios() {
                 setVista({ tipo: 'crear' })
               }}
             >
+              <UserPlus aria-hidden="true" size={16} />
               Nuevo usuario
             </button>
           </div>

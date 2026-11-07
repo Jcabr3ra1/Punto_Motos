@@ -1,3 +1,4 @@
+import { HandCoins } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
@@ -66,6 +67,7 @@ export function Abonos() {
             setRegistrando(true)
           }}
         >
+          <HandCoins aria-hidden="true" size={16} />
           Registrar abono
         </button>
       </div>

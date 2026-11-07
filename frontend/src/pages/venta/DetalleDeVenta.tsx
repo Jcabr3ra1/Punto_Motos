@@ -1,3 +1,4 @@
+import { Ban, Undo2 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
@@ -91,6 +92,7 @@ export function DetalleDeVenta() {
                   setDevolviendo(true)
                 }}
               >
+                <Undo2 aria-hidden="true" size={16} />
                 Devolver…
               </button>
             )}
@@ -103,6 +105,7 @@ export function DetalleDeVenta() {
                   setAnulando(true)
                 }}
               >
+                <Ban aria-hidden="true" size={16} />
                 Anular venta…
               </button>
             )}

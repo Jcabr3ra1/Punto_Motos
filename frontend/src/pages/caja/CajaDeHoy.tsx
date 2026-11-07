@@ -1,3 +1,4 @@
+import { Lock, Minus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { abrirCaja, cerrarCaja, registrarSalida } from '../../api/caja'
@@ -61,6 +62,7 @@ export function CajaDeHoy() {
                 setVista('salida')
               }}
             >
+              <Minus aria-hidden="true" size={16} />
               Registrar gasto o retiro
             </button>
             <button
@@ -71,6 +73,7 @@ export function CajaDeHoy() {
                 setVista('cerrar')
               }}
             >
+              <Lock aria-hidden="true" size={16} />
               Cerrar caja…
             </button>
           </div>

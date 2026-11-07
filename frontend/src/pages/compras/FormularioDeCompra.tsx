@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
@@ -288,6 +289,7 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
           </button>
           {editando && (
             <button type="button" className="boton boton--secundario boton--auto" onClick={() => setConfirmandoBorrado(true)}>
+              <Trash2 aria-hidden="true" size={16} />
               Borrar borrador
             </button>
           )}

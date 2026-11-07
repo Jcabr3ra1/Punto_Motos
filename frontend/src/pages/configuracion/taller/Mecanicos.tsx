@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { claves } from '../../../api/consultas'
@@ -40,6 +41,7 @@ export function Mecanicos() {
       <div className="barra-de-acciones">
         <Titulo nivel={2}>Mecánicos</Titulo>
         <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
+          <Plus aria-hidden="true" size={16} />
           Nuevo mecánico
         </button>
       </div>

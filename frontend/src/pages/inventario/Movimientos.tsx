@@ -1,3 +1,4 @@
+import { SlidersHorizontal, Wrench } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -91,6 +92,7 @@ export function Movimientos() {
                 setConsumiendo(true)
               }}
             >
+              <Wrench aria-hidden="true" size={16} />
               Consumo del taller
             </button>
             <button
@@ -101,6 +103,7 @@ export function Movimientos() {
                 setAjustando(true)
               }}
             >
+              <SlidersHorizontal aria-hidden="true" size={16} />
               Ajustar existencia
             </button>
           </div>

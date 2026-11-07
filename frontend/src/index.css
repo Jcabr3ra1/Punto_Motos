@@ -167,7 +167,7 @@ summary {
 .campo select {
   display: block;
   width: 100%;
-  min-height: 2.25rem;
+  min-height: 2rem;
   padding: 0.25rem 0.625rem;
   font: inherit;
   color: inherit;
@@ -204,8 +204,9 @@ summary {
 
 .aviso {
   margin: 0 0 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radio);
+  padding: 0.5rem 0.75rem 0.5rem 0.875rem;
+  border-left: 3px solid currentColor;
+  border-radius: 0 var(--radio) var(--radio) 0;
 }
 
 .aviso p {
@@ -218,6 +219,7 @@ summary {
 }
 
 .aviso--info {
+  color: #1d4a7a;
   background: var(--color-info-fondo);
 }
 
@@ -234,10 +236,14 @@ summary {
 /* Botones */
 
 .boton {
-  display: block;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  min-height: 2.25rem;
+  min-height: 2rem;
   padding: 0.25rem 0.875rem;
+  text-decoration: none;
   font: inherit;
   font-weight: 600;
   color: var(--color-sobre-marca);
@@ -257,8 +263,12 @@ summary {
 }
 
 .boton--auto {
-  display: inline-block;
+  display: inline-flex;
   width: auto;
+}
+
+.boton svg {
+  flex: 0 0 auto;
 }
 
 .boton--peligro {
@@ -933,17 +943,31 @@ kbd {
 
 .tabla th,
 .tabla td {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--color-borde);
+  padding: 0.4375rem 0.75rem;
+  border-bottom: 1px solid #e6e4de;
 }
 
 .tabla thead th {
-  font-size: 0.875rem;
-  color: var(--color-texto-suave);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+  background: #f6f5f2;
+  border-bottom-color: var(--color-borde);
 }
 
 .tabla tbody tr:hover {
-  background: var(--color-fondo);
+  background: #f9f8f4;
+}
+
+.tabla__numero {
+  font-variant-numeric: tabular-nums;
 }
 
 .tabla tbody tr:last-child th,
@@ -1897,6 +1921,23 @@ kbd {
 
 .tarjeta-caja__boton {
   margin-top: 0.875rem;
+}
+
+/* Cargando: una rueda discreta junto al texto. */
+.cargando {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cargando__icono {
+  animation: girar 900ms linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Panel lateral: los formularios entran por la derecha, anclados al borde de la ventana. */

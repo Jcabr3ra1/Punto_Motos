@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { listarCompras, listarProveedores, type FiltrosDeCompras } from '../../api/compras'
@@ -73,6 +74,7 @@ export function ListaDeCompras() {
       <div className="barra-de-acciones">
         <Titulo nivel={2}>Compras</Titulo>
         <Link to="/compras/lista/nueva" className="boton boton--auto boton--enlace-de-accion">
+          <Plus aria-hidden="true" size={16} />
           Nueva compra
         </Link>
       </div>

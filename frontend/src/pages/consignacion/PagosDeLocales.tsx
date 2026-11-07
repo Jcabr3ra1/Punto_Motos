@@ -1,3 +1,4 @@
+import { HandCoins } from 'lucide-react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { isApiError } from '../../api/client'
@@ -41,6 +42,7 @@ export function PagosDeLocales() {
             setNuevo(true)
           }}
         >
+          <HandCoins aria-hidden="true" size={16} />
           Registrar pago
         </button>
       </div>

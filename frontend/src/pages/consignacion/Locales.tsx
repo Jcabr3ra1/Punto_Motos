@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { crearLocal, editarLocal, listarLocales, pendientesDeLocal } from '../../api/consignacion'
@@ -65,6 +66,7 @@ export function Locales() {
       <div className="barra-de-acciones">
         <Titulo nivel={2}>Locales</Titulo>
         <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
+          <Plus aria-hidden="true" size={16} />
           Nuevo local
         </button>
       </div>

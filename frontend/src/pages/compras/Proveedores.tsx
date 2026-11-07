@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { listarProveedores } from '../../api/compras'
@@ -88,6 +89,7 @@ export function Proveedores() {
       <div className="barra-de-acciones">
         <Titulo nivel={2}>Proveedores</Titulo>
         <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
+          <Plus aria-hidden="true" size={16} />
           Nuevo proveedor
         </button>
       </div>

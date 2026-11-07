@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { listarCatalogo, type ElementoDeCatalogo, type TipoDeCatalogo } from '../../../api/catalogo'
@@ -65,6 +66,7 @@ export function ListaDeCatalogo({ seccion }: { seccion: SeccionDeCatalogo }) {
             setVista({ tipo: 'crear' })
           }}
         >
+          <Plus aria-hidden="true" size={16} />
           {seccion.nuevo}
         </button>
       </div>
