@@ -1,3 +1,4 @@
+import { Lock, Minus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { abrirCaja, cerrarCaja, registrarSalida } from '../../api/caja'
@@ -8,7 +9,9 @@ import type { CashSession, PaymentMethod, SpendInput } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
+import { VistaPrevia } from '../../components/VistaPrevia'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
@@ -44,27 +47,6 @@ export function CajaDeHoy() {
             setAviso(`Caja abierta con ${formatearPesos(abierta.opening_cash)} en efectivo.`)
           }}
         />
-      ) : vista === 'salida' ? (
-        <RegistrarSalida
-          onTerminar={(mensaje) => {
-            setAviso(mensaje)
-            setVista('resumen')
-          }}
-          onCancelar={() => setVista('resumen')}
-        />
-      ) : vista === 'cerrar' ? (
-        <CerrarCaja
-          caja={caja}
-          onCerrada={(cerrada) => {
-            setVista('resumen')
-            setAviso(
-              `Caja cerrada. Contado: ${formatearPesos(cerrada.counted_cash ?? 0)}. ${
-                !cerrada.difference ? 'Cuadró.' : cerrada.difference > 0 ? `Sobraron ${formatearPesos(cerrada.difference)}.` : `Faltaron ${formatearPesos(-cerrada.difference)}.`
-              }`,
-            )
-          }}
-          onCancelar={() => setVista('resumen')}
-        />
       ) : (
         <>
           <p className="texto-suave">
@@ -80,6 +62,7 @@ export function CajaDeHoy() {
                 setVista('salida')
               }}
             >
+              <Minus aria-hidden="true" size={16} />
               Registrar gasto o retiro
             </button>
             <button
@@ -90,6 +73,7 @@ export function CajaDeHoy() {
                 setVista('cerrar')
               }}
             >
+              <Lock aria-hidden="true" size={16} />
               Cerrar caja…
             </button>
           </div>
@@ -97,6 +81,43 @@ export function CajaDeHoy() {
           <ResumenPorTipo caja={caja} />
           <MovimientosDeCaja cajaId={caja.id} />
         </>
+      )}
+      {caja && vista === 'salida' && (
+        <PanelLateral
+          titulo="Registrar gasto o retiro"
+          modulo="Caja"
+          descripcion="Sale efectivo del cajón: queda en el resumen del día."
+          onCerrar={() => setVista('resumen')}
+        >
+          <RegistrarSalida
+            onTerminar={(mensaje) => {
+              setAviso(mensaje)
+              setVista('resumen')
+            }}
+            onCancelar={() => setVista('resumen')}
+          />
+        </PanelLateral>
+      )}
+      {caja && vista === 'cerrar' && (
+        <PanelLateral
+          titulo="Cerrar la caja"
+          modulo="Caja"
+          descripcion={`Efectivo esperado en el cajón: ${formatearPesos(caja.expected_cash)}. Cuenta el efectivo y escribe cuánto hay.`}
+          onCerrar={() => setVista('resumen')}
+        >
+          <CerrarCaja
+            caja={caja}
+            onCerrada={(cerrada) => {
+              setVista('resumen')
+              setAviso(
+                `Caja cerrada. Contado: ${formatearPesos(cerrada.counted_cash ?? 0)}. ${
+                  !cerrada.difference ? 'Cuadró.' : cerrada.difference > 0 ? `Sobraron ${formatearPesos(cerrada.difference)}.` : `Faltaron ${formatearPesos(-cerrada.difference)}.`
+                }`,
+              )
+            }}
+            onCancelar={() => setVista('resumen')}
+          />
+        </PanelLateral>
       )}
     </>
   )
@@ -174,7 +195,6 @@ function RegistrarSalida({ onTerminar, onCancelar }: { onTerminar: (aviso: strin
 
   return (
     <form onSubmit={alEnviar} noValidate className="formulario">
-      <Titulo nivel={3}>Registrar gasto o retiro</Titulo>
       <AvisoDeError mensajes={error?.generales ?? []} />
       <fieldset className="conjunto">
         <legend>¿Qué es?</legend>
@@ -256,11 +276,6 @@ function CerrarCaja({
 
   return (
     <form onSubmit={alEnviar} noValidate className="formulario">
-      <Titulo nivel={3}>Cerrar la caja</Titulo>
-      <p>
-        Efectivo esperado en el cajón: <strong>{formatearPesos(caja.expected_cash)}</strong>. Cuenta el efectivo y escribe
-        cuánto hay.
-      </p>
       <AvisoDeError mensajes={error?.generales ?? []} />
       <Campo
         etiqueta="Efectivo contado"
@@ -275,13 +290,19 @@ function CerrarCaja({
         required
       />
       {diferencia !== null && (
-        <p role="status" className={diferencia === 0 ? 'aviso aviso--exito' : 'aviso aviso--advertencia'}>
-          {diferencia === 0
-            ? 'Cuadra con lo esperado.'
-            : diferencia > 0
-              ? `Sobran ${formatearPesos(diferencia)}: explica la diferencia.`
-              : `Faltan ${formatearPesos(-diferencia)}: explica la diferencia.`}
-        </p>
+        <VistaPrevia
+          etiqueta="Efectivo en el cajón"
+          antes={formatearPesos(caja.expected_cash)}
+          despues={formatearPesos(Number(contado))}
+          alerta={diferencia !== 0}
+          nota={
+            diferencia === 0
+              ? 'Cuadra con lo esperado.'
+              : diferencia > 0
+                ? `Sobran ${formatearPesos(diferencia)}: explica la diferencia.`
+                : `Faltan ${formatearPesos(-diferencia)}: explica la diferencia.`
+          }
+        />
       )}
       <Campo
         etiqueta="Explicación"

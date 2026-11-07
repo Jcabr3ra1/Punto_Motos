@@ -1,3 +1,4 @@
+import { ClipboardCheck } from 'lucide-react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { listarReportes, pendientesDeLocal, registrarReporte } from '../../api/consignacion'
@@ -54,6 +55,7 @@ export function Reportes() {
             setNuevo(true)
           }}
         >
+          <ClipboardCheck aria-hidden="true" size={16} />
           Nuevo reporte
         </button>
       </div>

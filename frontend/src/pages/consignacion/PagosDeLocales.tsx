@@ -1,3 +1,4 @@
+import { HandCoins } from 'lucide-react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { isApiError } from '../../api/client'
@@ -14,6 +15,7 @@ import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
 import { SelectorDeLocal } from './SelectorDeLocal'
+import { PanelLateral } from '../../components/PanelLateral'
 
 // Pagos de los locales (solo el dueño): pagan por partes, cada pago baja su saldo y entra a la caja abierta.
 export function PagosDeLocales() {
@@ -28,21 +30,6 @@ export function PagosDeLocales() {
     placeholderData: keepPreviousData,
   })
 
-  if (nuevo) {
-    return (
-      <>
-        <Titulo nivel={2}>Registrar pago de un local</Titulo>
-        <FormularioDePago
-          onTerminar={(m) => {
-            setAviso(m)
-            setNuevo(false)
-          }}
-          onCancelar={() => setNuevo(false)}
-        />
-      </>
-    )
-  }
-
   return (
     <>
       <div className="barra-de-acciones">
@@ -55,6 +42,7 @@ export function PagosDeLocales() {
             setNuevo(true)
           }}
         >
+          <HandCoins aria-hidden="true" size={16} />
           Registrar pago
         </button>
       </div>
@@ -118,6 +106,22 @@ export function PagosDeLocales() {
             />
           </>
         ))}
+      {nuevo && (
+        <PanelLateral
+          titulo="Registrar pago de un local"
+          modulo="Consignación"
+          descripcion="Lo que un local paga por la mercancía que vendió."
+          onCerrar={() => setNuevo(false)}
+        >
+          <FormularioDePago
+            onTerminar={(m) => {
+              setAviso(m)
+              setNuevo(false)
+            }}
+            onCancelar={() => setNuevo(false)}
+          />
+        </PanelLateral>
+      )}
     </>
   )
 }

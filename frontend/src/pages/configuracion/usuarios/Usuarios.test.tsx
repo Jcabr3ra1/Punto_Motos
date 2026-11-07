@@ -57,6 +57,17 @@ describe('lista de usuarios', () => {
 })
 
 describe('crear usuario', () => {
+  it('Nuevo usuario se abre en un panel con la lista detrás', async () => {
+    const u = userEvent.setup()
+    simularApi({ 'GET /users': () => ({ cuerpo: [dueno, vendedor] }) })
+    mostrarRutas(dueno, '/configuracion/usuarios')
+
+    await u.click(await screen.findByRole('button', { name: 'Nuevo usuario' }))
+
+    expect(screen.getByRole('dialog', { name: 'Nuevo usuario' })).toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+  })
+
   it('crea al usuario, vuelve a la lista y la muestra actualizada', async () => {
     let usuarios = [vendedor, dueno]
     const creado: User = { ...vendedor, id: 4, username: 'maria', first_name: 'María', last_name: 'Díaz', display_name: 'María Díaz' }
@@ -116,7 +127,7 @@ describe('crear usuario', () => {
     expect(await screen.findByText('Ya existe un usuario con ese nombre.')).toBeInTheDocument()
     expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(/demasiado común/)
     expect(screen.getByLabelText('Usuario')).toHaveValue('ana')
-    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Nuevo usuario' })).toBeInTheDocument()
   })
 
   it('cancelar vuelve a la lista sin enviar nada', async () => {

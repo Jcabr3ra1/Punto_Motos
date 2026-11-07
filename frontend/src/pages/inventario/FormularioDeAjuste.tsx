@@ -7,9 +7,12 @@ import type { AdjustmentInput, Product } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { BuscadorDeProductos } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
+import { VistaPrevia } from '../../components/VistaPrevia'
 import { formatearNumero } from '../../utilidades/numeros'
 
 type Sentido = 'entran' | 'salen'
+
+const unidades = (cantidad: number) => `${formatearNumero(cantidad)} ${cantidad === 1 ? 'unidad' : 'unidades'}`
 
 interface Props {
   /** Producto ya elegido (por ejemplo, el del kárdex que se está viendo). */
@@ -45,12 +48,14 @@ export function FormularioDeAjuste({ productoInicial, onTerminar, onCancelar }: 
         clienteDeConsultas.invalidateQueries({ queryKey: ['producto'] }),
         clienteDeConsultas.invalidateQueries({ queryKey: ['buscador'] }),
       ])
-      const unidades = `${formatearNumero(movimiento.balance_after)} ${movimiento.balance_after === 1 ? 'unidad' : 'unidades'}`
-      onTerminar(`Ajuste guardado: «${movimiento.product.name}» ahora tiene ${unidades}.`)
+      onTerminar(`Ajuste guardado: «${movimiento.product.name}» ahora tiene ${unidades(movimiento.balance_after)}.`)
     },
   })
 
   const error = guardar.isError ? desglosarError(guardar.error) : null
+  // Cómo quedarían las existencias, para verlo antes de guardar.
+  const cantidadValida = Number.isInteger(Number(cantidad)) ? Math.abs(Number(cantidad)) : 0
+  const despues = producto ? producto.stock + (sentido === 'salen' ? -cantidadValida : cantidadValida) : 0
 
   function alEnviar(evento: FormEvent) {
     evento.preventDefault()
@@ -126,6 +131,16 @@ export function FormularioDeAjuste({ productoInicial, onTerminar, onCancelar }: 
         autoComplete="off"
         required
       />
+
+      {producto && cantidadValida > 0 && (
+        <VistaPrevia
+          etiqueta="Existencias"
+          antes={formatearNumero(producto.stock)}
+          despues={formatearNumero(despues)}
+          alerta={despues < 0}
+          nota={despues < 0 ? `No alcanza: solo hay ${unidades(producto.stock)}.` : undefined}
+        />
+      )}
 
       <div className="acciones">
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>

@@ -1,3 +1,4 @@
+import { HandCoins } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
@@ -7,6 +8,7 @@ import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearDia } from '../../utilidades/fechas'
@@ -51,22 +53,6 @@ export function Abonos() {
     placeholderData: keepPreviousData,
   })
 
-  if (registrando) {
-    return (
-      <>
-        <Titulo nivel={2}>Registrar abono</Titulo>
-        <FormularioDeAbono
-          proveedorId={filtros.supplier}
-          onTerminar={(mensaje) => {
-            setAviso(mensaje)
-            setRegistrando(false)
-          }}
-          onCancelar={() => setRegistrando(false)}
-        />
-      </>
-    )
-  }
-
   const hayFiltros = Boolean(filtros.supplier || filtros.date_from || filtros.date_to)
 
   return (
@@ -81,6 +67,7 @@ export function Abonos() {
             setRegistrando(true)
           }}
         >
+          <HandCoins aria-hidden="true" size={16} />
           Registrar abono
         </button>
       </div>
@@ -177,6 +164,23 @@ export function Abonos() {
             </>
           )}
         </>
+      )}
+      {registrando && (
+        <PanelLateral
+          titulo="Registrar abono"
+          modulo="Compras"
+          descripcion="Pago a un proveedor; se reparte entre sus compras con saldo."
+          onCerrar={() => setRegistrando(false)}
+        >
+          <FormularioDeAbono
+            proveedorId={filtros.supplier}
+            onTerminar={(mensaje) => {
+              setAviso(mensaje)
+              setRegistrando(false)
+            }}
+            onCancelar={() => setRegistrando(false)}
+          />
+        </PanelLateral>
       )}
     </>
   )

@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { claves } from '../../../api/consultas'
@@ -10,6 +11,7 @@ import { Casilla } from '../../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
 import { Titulo } from '../../../components/Titulo'
 import { formatearPesos } from '../../../utilidades/dinero'
+import { PanelLateral } from '../../../components/PanelLateral'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; servicio: ServiceType }
 
@@ -28,21 +30,19 @@ export function TiposDeServicio() {
     setVista(siguiente)
   }
 
-  if (vista.tipo !== 'lista') {
-    const servicio = vista.tipo === 'editar' ? vista.servicio : undefined
-    return (
-      <>
-        <Titulo nivel={2}>{servicio ? `Editar «${servicio.name}»` : 'Nuevo tipo de servicio'}</Titulo>
-        <FormularioDeTipo servicio={servicio} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
-      </>
-    )
-  }
+  const servicio = vista.tipo === 'editar' ? vista.servicio : undefined
+  const panel = vista.tipo !== 'lista' && (
+    <PanelLateral titulo={servicio ? `Editar «${servicio.name}»` : 'Nuevo tipo de servicio'} modulo="Configuración" descripcion="Un servicio que ofrece el taller, con su código para cobrarlo rápido." onCerrar={() => ir({ tipo: 'lista' })}>
+      <FormularioDeTipo servicio={servicio} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
+    </PanelLateral>
+  )
 
   return (
     <>
       <div className="barra-de-acciones">
         <Titulo nivel={2}>Tipos de servicio</Titulo>
         <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
+          <Plus aria-hidden="true" size={16} />
           Nuevo tipo de servicio
         </button>
       </div>
@@ -94,6 +94,7 @@ export function TiposDeServicio() {
             </table>
           </div>
         ))}
+      {panel}
     </>
   )
 }

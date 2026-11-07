@@ -1,3 +1,4 @@
+import { SlidersHorizontal, Wrench } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -11,6 +12,7 @@ import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -74,37 +76,6 @@ export function Movimientos() {
     enabled: filtros.product !== undefined,
   })
 
-  if (consumiendo) {
-    return (
-      <section>
-        <Titulo>Consumo del taller</Titulo>
-        <ConsumoDelTaller
-          onTerminar={(mensaje) => {
-            setAviso(mensaje)
-            setConsumiendo(false)
-          }}
-          onCancelar={() => setConsumiendo(false)}
-        />
-      </section>
-    )
-  }
-
-  if (ajustando) {
-    return (
-      <section>
-        <Titulo>Ajustar existencia</Titulo>
-        <FormularioDeAjuste
-          productoInicial={producto.data}
-          onTerminar={(mensaje) => {
-            setAviso(mensaje)
-            setAjustando(false)
-          }}
-          onCancelar={() => setAjustando(false)}
-        />
-      </section>
-    )
-  }
-
   const hayFiltros = Boolean(filtros.product || filtros.kind || filtros.date_from || filtros.date_to)
 
   return (
@@ -121,6 +92,7 @@ export function Movimientos() {
                 setConsumiendo(true)
               }}
             >
+              <Wrench aria-hidden="true" size={16} />
               Consumo del taller
             </button>
             <button
@@ -131,6 +103,7 @@ export function Movimientos() {
                 setAjustando(true)
               }}
             >
+              <SlidersHorizontal aria-hidden="true" size={16} />
               Ajustar existencia
             </button>
           </div>
@@ -209,6 +182,39 @@ export function Movimientos() {
             </>
           )}
         </>
+      )}
+      {consumiendo && (
+        <PanelLateral
+          titulo="Consumo del taller"
+          modulo="Inventario"
+          descripcion="Insumos que el taller gasta: salen del inventario sin venderse."
+          onCerrar={() => setConsumiendo(false)}
+        >
+          <ConsumoDelTaller
+            onTerminar={(mensaje) => {
+              setAviso(mensaje)
+              setConsumiendo(false)
+            }}
+            onCancelar={() => setConsumiendo(false)}
+          />
+        </PanelLateral>
+      )}
+      {ajustando && (
+        <PanelLateral
+          titulo="Ajustar existencia"
+          modulo="Inventario"
+          descripcion="El movimiento queda en el kárdex y no se puede editar."
+          onCerrar={() => setAjustando(false)}
+        >
+          <FormularioDeAjuste
+            productoInicial={producto.data}
+            onTerminar={(mensaje) => {
+              setAviso(mensaje)
+              setAjustando(false)
+            }}
+            onCancelar={() => setAjustando(false)}
+          />
+        </PanelLateral>
       )}
     </section>
   )

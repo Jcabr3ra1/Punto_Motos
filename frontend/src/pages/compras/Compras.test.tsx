@@ -185,12 +185,26 @@ describe('borrador guardado', () => {
     expect(screen.getByText('Agrega productos y guarda el borrador antes de recibir.')).toBeInTheDocument()
   })
 
+  it('si no se puede borrar, el motivo se ve dentro de la confirmación', async () => {
+    const { u } = abrirBorrador({
+      'DELETE /purchases/20': () => errorDeApi(409, 'purchase_not_draft', 'La compra ya fue recibida: no se puede borrar.'),
+    })
+
+    await u.click(await screen.findByRole('button', { name: 'Borrar borrador' }))
+    const confirmacion = screen.getByRole('alertdialog', { name: '¿Borrar este borrador?' })
+    await u.click(within(confirmacion).getByRole('button', { name: 'Sí, borrar' }))
+
+    expect(await within(confirmacion).findByRole('alert')).toHaveTextContent('La compra ya fue recibida: no se puede borrar.')
+  })
+
   it('se borra con confirmación y vuelve a la lista', async () => {
     const { api, u } = abrirBorrador({ 'DELETE /purchases/20': () => ({ estado: 204 }) })
 
     await u.click(await screen.findByRole('button', { name: 'Borrar borrador' }))
     expect(api.cuantas('DELETE /purchases/20')).toBe(0)
-    await u.click(screen.getByRole('button', { name: 'Sí, borrar' }))
+    const confirmacion = screen.getByRole('alertdialog', { name: '¿Borrar este borrador?' })
+    expect(within(confirmacion).getByRole('button', { name: 'Volver' })).toHaveFocus()
+    await u.click(within(confirmacion).getByRole('button', { name: 'Sí, borrar' }))
 
     expect(await screen.findByText('Borrador borrado.')).toBeInTheDocument()
     expect(api.cuantas('DELETE /purchases/20')).toBe(1)

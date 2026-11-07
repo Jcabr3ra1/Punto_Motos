@@ -5,6 +5,7 @@ import { obtenerCompra } from '../../api/compras'
 import { claves } from '../../api/consultas'
 import type { PriceChange, PurchaseDetail } from '../../api/types'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearDia, formatearFechaHora } from '../../utilidades/fechas'
@@ -82,24 +83,6 @@ function CompraRecibida({
 }) {
   const clienteDeConsultas = useQueryClient()
   const [abonando, setAbonando] = useState(false)
-
-  if (abonando) {
-    return (
-      <>
-        <Titulo nivel={3}>Abonar a esta compra</Titulo>
-        <FormularioDeAbono
-          proveedorId={compra.supplier.id}
-          compraId={compra.id}
-          onTerminar={(mensaje) => {
-            onAviso(mensaje)
-            setAbonando(false)
-            void clienteDeConsultas.invalidateQueries({ queryKey: [...claves.compras, 'detalle', compra.id] })
-          }}
-          onCancelar={() => setAbonando(false)}
-        />
-      </>
-    )
-  }
 
   return (
     <>
@@ -215,6 +198,25 @@ function CompraRecibida({
             </tbody>
           </table>
         </div>
+      )}
+      {abonando && (
+        <PanelLateral
+          titulo="Abonar a esta compra"
+          modulo="Compras"
+          descripcion={`Compra de «${compra.supplier.name}»: saldo ${formatearPesos(compra.balance_due)}.`}
+          onCerrar={() => setAbonando(false)}
+        >
+          <FormularioDeAbono
+            proveedorId={compra.supplier.id}
+            compraId={compra.id}
+            onTerminar={(mensaje) => {
+              onAviso(mensaje)
+              setAbonando(false)
+              void clienteDeConsultas.invalidateQueries({ queryKey: [...claves.compras, 'detalle', compra.id] })
+            }}
+            onCancelar={() => setAbonando(false)}
+          />
+        </PanelLateral>
       )}
     </>
   )

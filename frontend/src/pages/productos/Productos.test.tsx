@@ -45,6 +45,9 @@ async function abrir(usuario: User, rutas: Parameters<typeof simularApi>[0] = {}
   return { api, u: userEvent.setup() }
 }
 
+/** El formulario abierto en el panel lateral: la lista de atrás tiene filtros con los mismos nombres. */
+const enPanel = () => within(screen.getByRole('dialog'))
+
 const llamadasA = (api: { llamadas: { clave: string }[] }, texto: string) =>
   api.llamadas.filter((l) => l.clave.startsWith('GET /products') && l.clave.includes(texto))
 
@@ -195,6 +198,18 @@ describe('filtros y paginación', () => {
   })
 })
 
+describe('panel lateral', () => {
+  it('Nuevo producto abre un panel y la lista sigue detrás', async () => {
+    const { u } = await abrir(dueno)
+
+    await u.click(screen.getByRole('button', { name: 'Nuevo producto' }))
+
+    const panel = screen.getByRole('dialog', { name: 'Nuevo producto' })
+    expect(within(panel).getByLabelText('Nombre')).toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+  })
+})
+
 describe('crear producto', () => {
   async function abrirFormulario(rutas: Parameters<typeof simularApi>[0] = {}) {
     const resultado = await abrir(dueno, rutas)
@@ -209,11 +224,11 @@ describe('crear producto', () => {
       'POST /products': () => ({ estado: 201, cuerpo: pastillas }),
     })
 
-    await u.selectOptions(screen.getByLabelText('Tipo'), 'Frenos')
-    await u.selectOptions(screen.getByLabelText('Moto'), 'Pulsar 180')
+    await u.selectOptions(enPanel().getByLabelText('Tipo'), 'Frenos')
+    await u.selectOptions(enPanel().getByLabelText('Moto'), 'Pulsar 180')
     await u.type(screen.getByLabelText('Nombre'), 'Pastillas de freno')
 
-    expect(await screen.findByText('FRE-PUL-PAS')).toBeInTheDocument()
+    expect(await enPanel().findByText('FRE-PUL-PAS')).toBeInTheDocument()
     // La pausa evita pedir la sugerencia con cada tecla.
     expect(api.llamadas.filter((l) => l.clave.startsWith('GET /catalog/code-suggestion'))).toHaveLength(1)
     expect(api.llamadas.some((l) => l.clave === 'GET /catalog/code-suggestion?category=1&name=Pastillas+de+freno&moto=1')).toBe(true)
@@ -228,9 +243,9 @@ describe('crear producto', () => {
     })
 
     await u.type(screen.getByLabelText('Nombre'), 'Pastillas de freno Pulsar 180')
-    await u.selectOptions(screen.getByLabelText('Tipo'), 'Frenos')
+    await u.selectOptions(enPanel().getByLabelText('Tipo'), 'Frenos')
     await u.selectOptions(screen.getByLabelText('Marca'), 'Bosch')
-    await u.selectOptions(screen.getByLabelText('Moto'), 'Pulsar 180')
+    await u.selectOptions(enPanel().getByLabelText('Moto'), 'Pulsar 180')
     await u.click(screen.getByLabelText('Boxer CT 100'))
     await u.type(screen.getByLabelText('Costo'), '18000')
     await u.type(screen.getByLabelText('Precio de venta'), '25000')
@@ -259,7 +274,7 @@ describe('crear producto', () => {
     const { u } = await abrirFormulario()
 
     expect(screen.getByLabelText('Pulsar 180', { selector: 'input[type=checkbox]' })).toBeInTheDocument()
-    await u.selectOptions(screen.getByLabelText('Moto'), 'Pulsar 180')
+    await u.selectOptions(enPanel().getByLabelText('Moto'), 'Pulsar 180')
 
     expect(screen.queryByLabelText('Pulsar 180', { selector: 'input[type=checkbox]' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Boxer CT 100')).toBeInTheDocument()
@@ -279,7 +294,7 @@ describe('crear producto', () => {
     const { u } = await abrirFormulario({ 'POST /products': () => ({ estado: 201, cuerpo: bujia }) })
 
     await u.type(screen.getByLabelText('Nombre'), 'Bujía NGK C7HSA')
-    await u.selectOptions(screen.getByLabelText('Tipo'), 'Eléctrico')
+    await u.selectOptions(enPanel().getByLabelText('Tipo'), 'Eléctrico')
     await u.type(screen.getByLabelText('Costo'), '6000')
     await u.type(screen.getByLabelText('Precio de venta'), '5000')
     await u.click(screen.getByRole('button', { name: 'Crear producto' }))
@@ -297,7 +312,7 @@ describe('crear producto', () => {
     })
 
     await u.type(screen.getByLabelText('Nombre'), 'Pastillas de freno')
-    await u.selectOptions(screen.getByLabelText('Tipo'), 'Frenos')
+    await u.selectOptions(enPanel().getByLabelText('Tipo'), 'Frenos')
     await u.type(screen.getByLabelText('Código interno'), 'FRE-PUL-PAS')
     await u.type(screen.getByLabelText('Costo'), '1000')
     await u.type(screen.getByLabelText('Precio de venta'), '0')
@@ -403,8 +418,10 @@ describe('eliminar producto', () => {
     })
 
     await u.click(screen.getByRole('button', { name: 'Eliminar Pastillas de freno Pulsar 180' }))
-    const confirmacion = screen.getByRole('group', { name: '¿Eliminar «Pastillas de freno Pulsar 180»?' })
+    const confirmacion = screen.getByRole('alertdialog', { name: '¿Eliminar «Pastillas de freno Pulsar 180»?' })
     expect(confirmacion).toHaveTextContent(/FRE-PUL-PAS/)
+    // Un Enter distraído no borra nada: el foco empieza en la opción que no hace nada.
+    expect(within(confirmacion).getByRole('button', { name: 'Volver' })).toHaveFocus()
 
     await u.dblClick(within(confirmacion).getByRole('button', { name: 'Sí, eliminar' }))
 

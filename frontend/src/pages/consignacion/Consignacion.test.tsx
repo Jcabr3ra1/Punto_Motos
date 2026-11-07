@@ -37,6 +37,14 @@ describe('locales', () => {
     expect(await screen.findByRole('row', { name: /Zapatas traseras Boxer/ })).toHaveTextContent('4 de 4')
   })
 
+  it('Nuevo local se abre en un panel con la lista detrás', async () => {
+    const { u } = abrir('/consignacion/locales')
+
+    await u.click(await screen.findByRole('button', { name: 'Nuevo local' }))
+
+    expect(screen.getByRole('dialog', { name: 'Nuevo local' })).toBeInTheDocument()
+  })
+
   it('crea un local y muestra el error de nombre repetido', async () => {
     let intento = 0
     const { u } = abrir('/consignacion/locales', {
@@ -139,7 +147,7 @@ describe('pagos', () => {
     expect(await screen.findByRole('option', { name: /Motos del Centro · debe \$\s?9\.000/ })).toBeInTheDocument()
     await u.selectOptions(screen.getByLabelText('Local'), '1')
     await u.type(screen.getByLabelText('Valor'), '5000')
-    await u.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    await u.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Registrar pago' }))
 
     expect(await screen.findByText(/Pago de \$\s?5\.000 de «Motos del Centro» registrado/)).toBeInTheDocument()
     expect(api.llamadas.find((l) => l.clave === 'POST /consignee-payments')?.cuerpo).toEqual({ consignee: 1, amount: 5000, method: 'cash', notes: '' })
@@ -153,7 +161,7 @@ describe('pagos', () => {
     await u.click(await screen.findByRole('button', { name: 'Registrar pago' }))
     await u.selectOptions(await screen.findByLabelText('Local'), '1')
     await u.type(screen.getByLabelText('Valor'), '5000')
-    await u.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    await u.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Registrar pago' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('La caja está cerrada')
   })

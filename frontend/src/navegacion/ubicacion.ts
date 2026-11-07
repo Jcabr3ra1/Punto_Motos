@@ -18,3 +18,12 @@ export function ubicacionDe(pathname: string): { seccion: string; pestana?: stri
   )[0]
   return { seccion: seccion.etiqueta, ...(pestana && pestana.etiqueta !== seccion.etiqueta ? { pestana: pestana.etiqueta } : {}) }
 }
+
+/** El módulo del menú principal al que pertenece la pantalla: el de la ruta más larga que coincide. */
+export function moduloDe(pathname: string): Destino {
+  if (pathname === '/' || pathname === '') return DESTINOS.inicio
+  return (
+    MENU_PRINCIPAL.filter((d) => d.ruta !== '/' && coincide(d.ruta, pathname)).sort((a, b) => b.ruta.length - a.ruta.length)[0] ??
+    DESTINOS.inicio
+  )
+}

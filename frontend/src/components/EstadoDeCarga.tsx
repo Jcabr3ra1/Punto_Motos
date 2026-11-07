@@ -1,8 +1,10 @@
+import { LoaderCircle, RotateCw } from 'lucide-react'
 import { desglosarError } from '../api/errors'
 
 export function Cargando({ texto = 'Cargando…' }: { texto?: string }) {
   return (
-    <p role="status" className="texto-suave">
+    <p role="status" className="texto-suave cargando">
+      <LoaderCircle className="cargando__icono" aria-hidden="true" size={16} />
       {texto}
     </p>
   )
@@ -19,6 +21,7 @@ export function ErrorDeCarga({ error, onReintentar }: { error: unknown; onReinte
         <p key={mensaje}>{mensaje}</p>
       ))}
       <button type="button" className="boton boton--secundario boton--auto" onClick={onReintentar}>
+        <RotateCw aria-hidden="true" size={14} />
         Reintentar
       </button>
     </div>

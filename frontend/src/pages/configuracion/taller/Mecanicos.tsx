@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { claves } from '../../../api/consultas'
@@ -9,6 +10,7 @@ import { Campo } from '../../../components/Campo'
 import { Casilla } from '../../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
 import { Titulo } from '../../../components/Titulo'
+import { PanelLateral } from '../../../components/PanelLateral'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; mecanico: Mechanic }
 
@@ -27,21 +29,19 @@ export function Mecanicos() {
     setVista(siguiente)
   }
 
-  if (vista.tipo !== 'lista') {
-    const mecanico = vista.tipo === 'editar' ? vista.mecanico : undefined
-    return (
-      <>
-        <Titulo nivel={2}>{mecanico ? `Editar a ${mecanico.name}` : 'Nuevo mecánico'}</Titulo>
-        <FormularioDeMecanico mecanico={mecanico} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
-      </>
-    )
-  }
+  const mecanico = vista.tipo === 'editar' ? vista.mecanico : undefined
+  const panel = vista.tipo !== 'lista' && (
+    <PanelLateral titulo={mecanico ? `Editar a ${mecanico.name}` : 'Nuevo mecánico'} modulo="Configuración" descripcion="Su parte de la mano de obra se liquida al final del día." onCerrar={() => ir({ tipo: 'lista' })}>
+      <FormularioDeMecanico mecanico={mecanico} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
+    </PanelLateral>
+  )
 
   return (
     <>
       <div className="barra-de-acciones">
         <Titulo nivel={2}>Mecánicos</Titulo>
         <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
+          <Plus aria-hidden="true" size={16} />
           Nuevo mecánico
         </button>
       </div>
@@ -92,6 +92,7 @@ export function Mecanicos() {
             </table>
           </div>
         ))}
+      {panel}
     </>
   )
 }

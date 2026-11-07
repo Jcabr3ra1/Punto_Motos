@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SaleDetail } from '../../api/types'
@@ -58,7 +58,7 @@ describe('detalle y anulación', () => {
     const u = userEvent.setup()
 
     await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
-    expect(screen.getByRole('group', { name: '¿Anular la venta n.º 41?' })).toHaveTextContent(/las unidades vuelven al inventario/)
+    expect(screen.getByRole('alertdialog', { name: '¿Anular la venta n.º 41?' })).toHaveTextContent(/las unidades vuelven al inventario/)
     await u.type(screen.getByLabelText('Motivo'), 'Se cobró al cliente equivocado')
     await u.click(screen.getByRole('button', { name: 'Sí, anular la venta' }))
 
@@ -66,6 +66,20 @@ describe('detalle y anulación', () => {
     expect(screen.getByRole('article', { name: 'Recibo n.º 41' })).toHaveTextContent('Motivo: Se cobró al cliente equivocado')
     expect(screen.queryByRole('button', { name: 'Anular venta…' })).not.toBeInTheDocument()
     expect(api.llamadas.find((l) => l.clave === 'POST /sales/41/void')?.cuerpo).toEqual({ reason: 'Se cobró al cliente equivocado' })
+  })
+
+  it('anular pide confirmación en una ventana con el motivo enfocado y el botón en rojo', async () => {
+    simularApi({ 'GET /sales/41': () => ({ cuerpo: venta() }) })
+    mostrarRutas(dueno, '/venta/historial/41')
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
+
+    const dialogo = screen.getByRole('alertdialog', { name: '¿Anular la venta n.º 41?' })
+    expect(within(dialogo).getByLabelText('Motivo')).toHaveFocus()
+    expect(within(dialogo).getByRole('button', { name: 'Sí, anular la venta' })).toHaveClass('boton--peligro')
+    await u.keyboard('{Escape}')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
   })
 
   it('sin motivo muestra el error junto al campo', async () => {

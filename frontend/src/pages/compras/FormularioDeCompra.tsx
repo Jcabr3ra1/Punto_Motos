@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
@@ -13,6 +14,7 @@ import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { formatearPesos } from '../../utilidades/dinero'
 import { RecibirCompra } from './RecibirCompra'
+import { DialogoDeConfirmacion } from '../../components/DialogoDeConfirmacion'
 
 interface Linea {
   producto: { id: number; code: string; name: string }
@@ -108,7 +110,8 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
   if (proveedores.isPending) return <Cargando />
   if (proveedores.isError) return <ErrorDeCarga error={proveedores.error} onReintentar={() => void proveedores.refetch()} />
 
-  const error = guardar.isError ? desglosarError(guardar.error) : borrar.isError ? desglosarError(borrar.error) : null
+  // El error de borrar se muestra en su confirmación; aquí solo el de guardar.
+  const error = guardar.isError ? desglosarError(guardar.error) : null
   // Si el proveedor del borrador se desactivó después, se muestra igual en vez de un valor falso.
   const opcionesDeProveedor = [...proveedores.data]
   if (compra && !opcionesDeProveedor.some((p) => p.id === compra.supplier.id)) {
@@ -285,27 +288,26 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
           <button type="button" className="boton boton--secundario boton--auto" onClick={() => navegar('/compras/lista')}>
             {editando ? 'Volver a la lista' : 'Cancelar'}
           </button>
-          {editando &&
-            (confirmandoBorrado ? (
-              <span className="confirmacion-en-linea" role="group" aria-label="Confirmar borrado">
-                ¿Borrar este borrador?
-                <button
-                  type="button"
-                  className="boton boton--peligro boton--auto"
-                  disabled={borrar.isPending}
-                  onClick={() => borrar.mutate()}
-                >
-                  {borrar.isPending ? 'Borrando…' : 'Sí, borrar'}
-                </button>
-                <button type="button" className="boton boton--secundario boton--auto" onClick={() => setConfirmandoBorrado(false)}>
-                  No
-                </button>
-              </span>
-            ) : (
-              <button type="button" className="boton boton--secundario boton--auto" onClick={() => setConfirmandoBorrado(true)}>
-                Borrar borrador
-              </button>
-            ))}
+          {editando && (
+            <button type="button" className="boton boton--secundario boton--auto" onClick={() => setConfirmandoBorrado(true)}>
+              <Trash2 aria-hidden="true" size={16} />
+              Borrar borrador
+            </button>
+          )}
+          {confirmandoBorrado && (
+            <DialogoDeConfirmacion
+              titulo="¿Borrar este borrador?"
+              accion={borrar.isPending ? 'Borrando…' : 'Sí, borrar'}
+              cancelar="Volver"
+              peligro
+              ocupado={borrar.isPending}
+              onConfirmar={() => borrar.mutate()}
+              onCancelar={() => setConfirmandoBorrado(false)}
+            >
+              <p>La compra todavía no se recibió: no cambia el inventario ni lo que se le debe al proveedor.</p>
+              <AvisoDeError mensajes={borrar.isError ? desglosarError(borrar.error).generales : []} />
+            </DialogoDeConfirmacion>
+          )}
         </div>
       </form>
 

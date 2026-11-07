@@ -70,6 +70,29 @@ describe('caja abierta', () => {
     expect(await screen.findByText('Venta 41 · Ana Gómez')).toBeInTheDocument()
   })
 
+  it('gasto o retiro y cierre se abren en un panel con la caja detrás', async () => {
+    const { u } = abrir(() => ({ is_open: true, session: caja(), suggested_opening_cash: 0 }))
+
+    await u.click(await screen.findByRole('button', { name: 'Registrar gasto o retiro' }))
+    expect(screen.getByRole('dialog', { name: 'Registrar gasto o retiro' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Cifras de la caja')).toBeInTheDocument()
+    await u.keyboard('{Escape}')
+
+    await u.click(screen.getByRole('button', { name: 'Cerrar caja…' }))
+    expect(screen.getByRole('dialog', { name: 'Cerrar la caja' })).toBeInTheDocument()
+  })
+
+  it('al cerrar muestra el efectivo esperado contra el contado antes de confirmar', async () => {
+    const { u } = abrir(() => ({ is_open: true, session: caja(), suggested_opening_cash: 0 }))
+
+    await u.click(await screen.findByRole('button', { name: 'Cerrar caja…' }))
+    await u.type(screen.getByLabelText('Efectivo contado'), '74000')
+
+    const vista = screen.getByText('Efectivo en el cajón').closest('.vista-previa')
+    expect(vista).toHaveTextContent(/Efectivo en el cajón de \$\s?75\.000 a \$\s?74\.000/)
+    expect(vista).toHaveTextContent(/Faltan \$\s?1\.000/)
+  })
+
   it('registra un gasto con su motivo', async () => {
     const { api, u } = abrir(() => ({ is_open: true, session: caja(), suggested_opening_cash: 0 }), {
       'POST /cash-movements': () => ({ estado: 201, cuerpo: { ...movimiento, id: 2, kind: 'expense', kind_label: 'Gasto', amount: -3000, reason: 'Almuerzo' } }),

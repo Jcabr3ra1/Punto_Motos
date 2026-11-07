@@ -1,3 +1,4 @@
+import { PackageOpen } from 'lucide-react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { isApiError } from '../../api/client'
@@ -57,6 +58,7 @@ export function Entregas() {
             setNueva(true)
           }}
         >
+          <PackageOpen aria-hidden="true" size={16} />
           Nueva entrega
         </button>
       </div>
