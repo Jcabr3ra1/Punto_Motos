@@ -8,7 +8,7 @@ import { ContextoAuth, type ContextoAuth as TipoContextoAuth } from '../auth/con
 import { Rutas } from '../Rutas'
 
 /** Monta las rutas de la aplicación con la sesión de `usuario` ya abierta, en la dirección indicada. */
-export function mostrarRutas(usuario: User, ruta = '/') {
+export function mostrarRutas(usuario: User, ruta = '/', contenedor?: HTMLElement) {
   const cerrarSesion = vi.fn(async () => {})
   const contexto: TipoContextoAuth = {
     estado: { fase: 'con-sesion', usuario },
@@ -26,6 +26,7 @@ export function mostrarRutas(usuario: User, ruta = '/') {
         </MemoryRouter>
       </ContextoAuth.Provider>
     </QueryClientProvider>,
+    contenedor ? { container: contenedor } : undefined,
   )
   return { cerrarSesion }
 }

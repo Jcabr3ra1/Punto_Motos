@@ -1,3 +1,4 @@
+import { useIsMutating } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -23,6 +24,8 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
   const idTitulo = useId()
   const [conCambios, setConCambios] = useState(false)
   const [preguntando, setPreguntando] = useState(false)
+  // Mientras se guarda, el panel no se cierra: cerrarlo y volver a abrir permitiría enviar dos veces.
+  const enviando = useIsMutating() > 0
   useFondoInerte()
   useDevolverFoco()
   useFocoAtrapado(panel, !preguntando)
@@ -37,6 +40,7 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
   }, [])
 
   function intentarCerrar() {
+    if (enviando) return
     if (conCambios) setPreguntando(true)
     else onCerrar()
   }
@@ -71,7 +75,7 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
             </h2>
             {descripcion && <p className="panel-lateral__descripcion">{descripcion}</p>}
           </div>
-          <button type="button" className="panel-lateral__cerrar" onClick={intentarCerrar} aria-label="Cerrar" title="Cerrar (Esc)">
+          <button type="button" className="panel-lateral__cerrar" onClick={intentarCerrar} disabled={enviando} aria-label="Cerrar" title="Cerrar (Esc)">
             <X aria-hidden="true" size={18} />
           </button>
         </header>

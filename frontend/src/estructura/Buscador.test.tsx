@@ -121,6 +121,49 @@ describe('buscador de pantallas', () => {
     expect(screen.queryByRole('dialog', { name: 'Buscar pantalla' })).not.toBeInTheDocument()
   })
 
+  it('Ctrl+K y Ctrl+B no actúan con una confirmación o un diálogo nativo abiertos', async () => {
+    mostrarRutas(dueno, '/compras/proveedores')
+    const u = userEvent.setup()
+    for (const otra of [Object.assign(document.createElement('div'), { role: 'alertdialog' }), document.createElement('dialog')]) {
+      if (otra instanceof HTMLDialogElement) otra.setAttribute('open', '')
+      else otra.setAttribute('role', 'alertdialog')
+      document.body.append(otra)
+
+      await abrirConTeclado(u)
+      await u.keyboard('{Control>}b{/Control}')
+
+      expect(screen.queryByRole('dialog', { name: 'Buscar pantalla' })).not.toBeInTheDocument()
+      expect(document.querySelector('.panel-contextual')).not.toBeNull()
+      otra.remove()
+    }
+  })
+
+  it('al cerrar, devuelve el foco cuando la pantalla ya no está inerte', async () => {
+    const raiz = document.createElement('div')
+    raiz.id = 'root'
+    document.body.append(raiz)
+    mostrarRutas(dueno, '/', raiz)
+    const u = userEvent.setup()
+    const boton = screen.getByRole('button', { name: /Buscar pantalla/ })
+    const original = HTMLElement.prototype.focus
+    // Anota, en cada intento de enfocar algo de la pantalla, si en ese momento seguía inerte.
+    const intentos: boolean[] = []
+    const enfocar = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, opciones) {
+      if (raiz.contains(this)) intentos.push(Boolean(this.closest('[inert]')))
+      original.call(this, opciones)
+    })
+
+    await u.click(boton)
+    intentos.length = 0
+    await u.keyboard('{Escape}')
+
+    expect(intentos.length).toBeGreaterThan(0)
+    expect(intentos).not.toContain(true)
+    expect(boton).toHaveFocus()
+    enfocar.mockRestore()
+    raiz.remove()
+  })
+
   it('Ctrl+K no abre el buscador encima de otra ventana', async () => {
     mostrarRutas(dueno)
     const u = userEvent.setup()

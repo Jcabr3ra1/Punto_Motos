@@ -110,7 +110,8 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
   if (proveedores.isPending) return <Cargando />
   if (proveedores.isError) return <ErrorDeCarga error={proveedores.error} onReintentar={() => void proveedores.refetch()} />
 
-  const error = guardar.isError ? desglosarError(guardar.error) : borrar.isError ? desglosarError(borrar.error) : null
+  // El error de borrar se muestra en su confirmación; aquí solo el de guardar.
+  const error = guardar.isError ? desglosarError(guardar.error) : null
   // Si el proveedor del borrador se desactivó después, se muestra igual en vez de un valor falso.
   const opcionesDeProveedor = [...proveedores.data]
   if (compra && !opcionesDeProveedor.some((p) => p.id === compra.supplier.id)) {
@@ -304,6 +305,7 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
               onCancelar={() => setConfirmandoBorrado(false)}
             >
               <p>La compra todavía no se recibió: no cambia el inventario ni lo que se le debe al proveedor.</p>
+              <AvisoDeError mensajes={borrar.isError ? desglosarError(borrar.error).generales : []} />
             </DialogoDeConfirmacion>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 
 const ENFOCABLES = [
   'a[href]',
@@ -46,14 +46,25 @@ export function useFocoAtrapado(ref: RefObject<HTMLElement | null>, activo: bool
   }, [ref, activo])
 }
 
-/** Guarda quién tenía el foco al montar y se lo devuelve al desmontar. */
+/**
+ * Guarda quién tenía el foco al abrir y se lo devuelve al cerrar. Se toma en el primer render, antes de que un
+ * campo con autoFocus se quede con el foco.
+ */
 export function useDevolverFoco(): void {
-  useEffect(() => {
-    const previo = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    return () => {
+  const [previo] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null))
+  useEffect(
+    () => () => {
       if (previo?.isConnected) previo.focus()
-    }
-  }, [])
+    },
+    [previo],
+  )
+}
+
+/** Ventanas que ya tienen el teclado: paneles, confirmaciones y el diálogo nativo de actualizaciones. */
+export const SELECTOR_DE_VENTANAS = '[role="dialog"], [role="alertdialog"], dialog[open]'
+
+export function hayVentanaAbierta(): boolean {
+  return document.querySelector(SELECTOR_DE_VENTANAS) !== null
 }
 
 // Cuántas ventanas modales hay abiertas: la pantalla de atrás sigue inerte hasta que se cierre la última.

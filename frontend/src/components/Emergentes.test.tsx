@@ -1,10 +1,15 @@
-import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query'
+import { render as renderBase, screen, type RenderOptions } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DialogoDeConfirmacion } from './DialogoDeConfirmacion'
 import { PanelLateral } from './PanelLateral'
 import { VistaPrevia } from './VistaPrevia'
+
+// Como en la aplicación: los paneles viven dentro del proveedor de consultas.
+const render = (ui: React.ReactElement, opciones?: RenderOptions) =>
+  renderBase(ui, { wrapper: ({ children }) => <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>, ...opciones })
 
 function PantallaDePrueba({ onGuardar = () => {}, ancho }: { onGuardar?: () => void; ancho?: 'normal' | 'ancho' }) {
   const [abierto, setAbierto] = useState(false)
@@ -166,6 +171,79 @@ describe('panel lateral', () => {
     await abrir({ ancho: 'ancho' })
 
     expect(panel()).toHaveClass('panel-lateral--ancho')
+  })
+})
+
+describe('panel lateral: casos de borde', () => {
+  function PanelQueEnvia() {
+    const [abierto, setAbierto] = useState(true)
+    // Una solicitud que no termina: el formulario queda enviándose.
+    const guardar = useMutation({ mutationFn: () => new Promise<void>(() => {}) })
+    return abierto ? (
+      <PanelLateral titulo="Devolución" modulo="Venta" onCerrar={() => setAbierto(false)}>
+        <form
+          onSubmit={(evento) => {
+            evento.preventDefault()
+            guardar.mutate()
+          }}
+        >
+          <label>
+            Cantidad
+            <input name="cantidad" />
+          </label>
+          <div className="acciones">
+            <button type="submit">Registrar</button>
+          </div>
+        </form>
+      </PanelLateral>
+    ) : null
+  }
+
+  it('mientras se envía, no se puede cerrar (Esc, cerrar ni clic fuera)', async () => {
+    const u = userEvent.setup()
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <PanelQueEnvia />
+      </QueryClientProvider>,
+    )
+    await u.type(screen.getByRole('textbox', { name: 'Cantidad' }), '1')
+    await u.click(screen.getByRole('button', { name: 'Registrar' }))
+
+    await u.keyboard('{Escape}')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toBeDisabled()
+    await u.click(document.querySelector('.panel-lateral__velo')!)
+    expect(screen.getByRole('dialog', { name: 'Devolución' })).toBeInTheDocument()
+  })
+
+  it('con un campo autoFocus, al cerrar el foco vuelve al botón que lo abrió', async () => {
+    function ConAutoFocus() {
+      const [abierto, setAbierto] = useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setAbierto(true)}>
+            Abrir
+          </button>
+          {abierto && (
+            <PanelLateral titulo="Con autoFocus" modulo="Prueba" onCerrar={() => setAbierto(false)}>
+              <form>
+                <label>
+                  Nombre
+                  <input autoFocus />
+                </label>
+              </form>
+            </PanelLateral>
+          )}
+        </>
+      )
+    }
+    const u = userEvent.setup()
+    render(<ConAutoFocus />)
+
+    await u.click(screen.getByRole('button', { name: 'Abrir' }))
+    await u.keyboard('{Escape}')
+
+    expect(screen.getByRole('button', { name: 'Abrir' })).toHaveFocus()
   })
 })
 

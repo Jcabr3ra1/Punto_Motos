@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { useUsuario } from '../auth/useUsuario'
+import { hayVentanaAbierta } from '../components/useFocoAtrapado'
 import { useSalud } from '../hooks/useSalud'
 import { DESTINOS, MENU_PRINCIPAL, pantallasDe, puedeVer, type Destino } from '../navegacion/destinos'
 import { moduloDe } from '../navegacion/ubicacion'
@@ -32,19 +33,28 @@ export function Estructura() {
   const focoPrevio = useRef<HTMLElement | null>(null)
 
   function abrirBuscador() {
-    // No se abre encima de otra ventana (un panel o una confirmación).
-    if (document.querySelector('[role="dialog"]')) return
+    // No se abre encima de otra ventana (un panel, una confirmación o el diálogo de actualizaciones).
+    if (hayVentanaAbierta()) return
     focoPrevio.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setBuscando(true)
   }
 
+  // A dónde vuelve el foco al cerrar el buscador; se aplica cuando ya se desmontó y la pantalla dejó de estar inerte.
+  const focoAlCerrar = useRef<'previo' | 'contenido' | null>(null)
+
   function cerrarBuscador(eligio: boolean) {
+    focoAlCerrar.current = eligio ? 'contenido' : 'previo'
     setBuscando(false)
+  }
+
+  useEffect(() => {
+    if (buscando || !focoAlCerrar.current) return
     // Al abrir una pantalla, el foco va a su contenido; si no, vuelve a donde estaba.
     const previo = focoPrevio.current
-    const objetivo = !eligio && previo?.isConnected ? previo : document.getElementById('contenido')
+    const objetivo = focoAlCerrar.current === 'previo' && previo?.isConnected ? previo : document.getElementById('contenido')
+    focoAlCerrar.current = null
     objetivo?.focus()
-  }
+  }, [buscando])
 
   // Ctrl+K abre el buscador de pantallas desde cualquier lugar.
   useEffect(() => {
@@ -52,7 +62,7 @@ export function Estructura() {
       if (!(evento.ctrlKey || evento.metaKey) || evento.key.toLowerCase() !== 'k' || evento.repeat) return
       evento.preventDefault()
       if (buscando) cerrarBuscador(false)
-      else abrirBuscador()
+      else if (!hayVentanaAbierta()) abrirBuscador()
     }
     window.addEventListener('keydown', alPulsar, true)
     return () => window.removeEventListener('keydown', alPulsar, true)
@@ -62,7 +72,7 @@ export function Estructura() {
   useEffect(() => {
     const alPulsar = (evento: KeyboardEvent) => {
       if (!(evento.ctrlKey || evento.metaKey) || evento.key.toLowerCase() !== 'b' || evento.repeat) return
-      if (document.querySelector('[role="dialog"]')) return
+      if (hayVentanaAbierta()) return
       evento.preventDefault()
       alternar()
     }
