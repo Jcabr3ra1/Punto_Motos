@@ -1,11 +1,16 @@
-# Punto Moto 0.2.0
+# Punto Moto 0.3.0
 
 ## Cambios de esta versión
 
-- **Devoluciones parciales y totales (`Venta → Ventas` y `Venta → Devoluciones`):** permite devolver unidades pendientes de productos indicando su estado (`Vuelve al inventario` o `No puede volver`) y servicios completos, elegir la causa (`Otra causa` o, para el dueño, `Mal servicio del mecánico`), indicar el motivo y repartir el reembolso desde la caja abierta en efectivo, transferencia o mixto.
-- **Descuentos a mecánicos por mal servicio (`Taller → Liquidación del día`):** las devoluciones por mal servicio generan un cargo al mecánico que se resta automáticamente en sus próximas liquidaciones diarias (más antiguos primero), mostrando su parte, el descuento aplicado, el neto a pagar (incluso cuando queda en `$0`) y la tabla de saldos pendientes por descontar.
-- **Eliminación de productos sin historial (`Productos`):** el dueño puede eliminar definitivamente un producto que nunca se haya usado (`DELETE /products/{id}`); si ya tiene historial, el programa informa el motivo y ofrece desactivarlo ahí mismo.
-- **Ventas más ágiles:** el cliente y la descripción adicional del servicio ya no son obligatorios al cobrar en mostrador.
+- **Diseño nuevo «Tablero»:** el marco del programa ahora es negro con detalles en lima. Los módulos están en una columna de iconos a la izquierda y, a su lado, un panel con las pantallas del módulo abierto y para qué sirve cada una. `Ctrl+B` recoge o expande ese panel.
+- **Buscador de pantallas (`Ctrl+K`):** escribe parte del nombre (sin importar tildes), muévete con las flechas y abre con `Enter`. Solo muestra las pantallas que tu usuario puede abrir.
+- **Formularios en un panel lateral:** crear o editar productos, ajustar existencias, proveedores, abonos, gastos y cierre de caja, locales, usuarios, catálogo, servicios, mecánicos y devoluciones se abren desde la derecha sin perder de vista la lista. `Esc` cierra, `Ctrl+Enter` guarda y, si escribiste algo, pregunta antes de descartarlo.
+- **Vista previa antes de guardar:** el ajuste muestra cómo quedan las existencias (por ejemplo, `8 → 11`) y el cierre de caja compara el efectivo esperado con el contado.
+- **Confirmaciones claras:** eliminar un producto, anular una venta o borrar un borrador de compra se confirman en una ventana pequeña que empieza en «Volver».
+- **Inicio renovado:** saludo según la hora, accesos rápidos según el rol y, para el dueño, la caja de hoy con el efectivo esperado.
+- **Iconos** en el menú y en los botones principales; tablas y avisos más compactos y legibles.
+
+No cambian el contrato de la API ni el esquema de datos.
 
 ## Funciones disponibles
 
