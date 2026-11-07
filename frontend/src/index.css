@@ -2067,6 +2067,11 @@ kbd {
   border-top: 1px solid var(--color-borde);
 }
 
+.panel-lateral--enviando .acciones button[type='button'],
+.panel-lateral__cerrar:disabled {
+  opacity: 0.5;
+}
+
 .panel-lateral__ayuda {
   display: flex;
   gap: 1rem;

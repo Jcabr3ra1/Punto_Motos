@@ -24,8 +24,14 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
   const idTitulo = useId()
   const [conCambios, setConCambios] = useState(false)
   const [preguntando, setPreguntando] = useState(false)
-  // Mientras se guarda, el panel no se cierra: cerrarlo y volver a abrir permitiría enviar dos veces.
-  const enviando = useIsMutating() > 0
+  // Mientras se guarda, el panel no se cierra: cerrarlo y volver a abrir permitiría enviar dos veces. Solo cuentan los
+  // envíos que salieron de este panel (empezaron después de abrirlo) y están en curso, no los pausados sin conexión.
+  const [abiertoEn] = useState(() => Date.now())
+  const enviando =
+    useIsMutating({
+      predicate: (mutacion) =>
+        mutacion.state.status === 'pending' && !mutacion.state.isPaused && mutacion.state.submittedAt >= abiertoEn,
+    }) > 0
   useFondoInerte()
   useDevolverFoco()
   useFocoAtrapado(panel, !preguntando)
@@ -60,10 +66,11 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
     <div className="panel-lateral__velo" onMouseDown={(evento) => evento.target === evento.currentTarget && intentarCerrar()}>
       <div
         ref={panel}
-        className={`panel-lateral panel-lateral--${ancho}`}
+        className={`panel-lateral panel-lateral--${ancho}${enviando ? ' panel-lateral--enviando' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={idTitulo}
+        aria-busy={enviando || undefined}
         tabIndex={-1}
         onKeyDown={alPulsar}
       >
@@ -85,6 +92,14 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
           // Cualquier cambio en un campo cuenta como trabajo sin guardar.
           onInput={() => setConCambios(true)}
           onChange={() => setConCambios(true)}
+          // Durante el envío, los botones del formulario que no guardan (Cancelar, Volver) no hacen nada.
+          onClickCapture={(evento) => {
+            const boton = (evento.target as HTMLElement).closest('button')
+            if (enviando && boton && boton.type !== 'submit') {
+              evento.preventDefault()
+              evento.stopPropagation()
+            }
+          }}
         >
           {children}
         </div>

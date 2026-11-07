@@ -216,6 +216,55 @@ describe('panel lateral: casos de borde', () => {
     expect(screen.getByRole('dialog', { name: 'Devolución' })).toBeInTheDocument()
   })
 
+  it('mientras se envía, el botón Cancelar del formulario tampoco cierra', async () => {
+    function ConCancelar() {
+      const [abierto, setAbierto] = useState(true)
+      const guardar = useMutation({ mutationFn: () => new Promise<void>(() => {}) })
+      return abierto ? (
+        <PanelLateral titulo="Abono" modulo="Compras" onCerrar={() => setAbierto(false)}>
+          <form
+            onSubmit={(evento) => {
+              evento.preventDefault()
+              guardar.mutate()
+            }}
+          >
+            <div className="acciones">
+              <button type="submit">Registrar</button>
+              <button type="button" onClick={() => setAbierto(false)}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </PanelLateral>
+      ) : null
+    }
+    const u = userEvent.setup()
+    render(<ConCancelar />)
+
+    await u.click(screen.getByRole('button', { name: 'Registrar' }))
+    await u.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    expect(screen.getByRole('dialog', { name: 'Abono' })).toBeInTheDocument()
+  })
+
+  it('un envío que quedó pendiente de un panel anterior no bloquea el siguiente', async () => {
+    const cliente = new QueryClient()
+    // Una mutación colgada de otro formulario que ya no está en pantalla.
+    void cliente.getMutationCache().build(cliente, { mutationFn: () => new Promise<void>(() => {}) }).execute(undefined)
+    const u = userEvent.setup()
+    renderBase(
+      <QueryClientProvider client={cliente}>
+        <PantallaDePrueba />
+      </QueryClientProvider>,
+    )
+
+    await u.click(screen.getByRole('button', { name: 'Nuevo' }))
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toBeEnabled()
+    await u.keyboard('{Escape}')
+
+    expect(panel()).not.toBeInTheDocument()
+  })
+
   it('con un campo autoFocus, al cerrar el foco vuelve al botón que lo abrió', async () => {
     function ConAutoFocus() {
       const [abierto, setAbierto] = useState(false)
