@@ -9,7 +9,8 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { CampoLargo } from '../../components/CampoLargo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
-import { Titulo } from '../../components/Titulo'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { DESTINOS } from '../../navegacion/destinos'
 
 function aValores({ name, tax_id, address, phone, receipt_footer, default_mechanic_percentage }: BusinessSettings): BusinessSettingsInput {
   return { name, tax_id, address, phone, receipt_footer, default_mechanic_percentage }
@@ -26,11 +27,16 @@ export function DatosDelNegocio() {
 
   return (
     <section>
-      <Titulo nivel={2}>Datos del negocio</Titulo>
-      <p className="texto-suave">Aparecen en el encabezado y al pie del recibo.</p>
-      {consulta.isPending && <Cargando />}
-      {consulta.isError && <ErrorDeCarga error={consulta.error} onReintentar={() => void consulta.refetch()} />}
-      {consulta.isSuccess && <FormularioDelNegocio negocio={consulta.data} />}
+      <EncabezadoDePantalla
+        icono={DESTINOS.negocio.icono}
+        titulo="Datos del negocio"
+        descripcion="Aparecen en el encabezado y al pie del recibo."
+      />
+      <div className="tarjeta-de-formulario">
+        {consulta.isPending && <Cargando />}
+        {consulta.isError && <ErrorDeCarga error={consulta.error} onReintentar={() => void consulta.refetch()} />}
+        {consulta.isSuccess && <FormularioDelNegocio negocio={consulta.data} />}
+      </div>
     </section>
   )
 }

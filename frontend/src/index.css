@@ -3309,3 +3309,16 @@ kbd {
     animation: none;
   }
 }
+
+/* Formularios de configuración en una tarjeta de ancho fijo, alineada a la izquierda. */
+.tarjeta-de-formulario {
+  max-width: 640px;
+  padding: var(--esp-4) var(--esp-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-top: 3px solid var(--color-marca);
+}
+
+.tarjeta-de-formulario .formulario {
+  max-width: none;
+}

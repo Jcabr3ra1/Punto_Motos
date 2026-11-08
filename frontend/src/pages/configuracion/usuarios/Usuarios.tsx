@@ -5,7 +5,10 @@ import { claves } from '../../../api/consultas'
 import type { User } from '../../../api/types'
 import { listarUsuarios } from '../../../api/usuarios'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
-import { Titulo } from '../../../components/Titulo'
+import { EncabezadoDePantalla } from '../../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../../components/FranjaDeIndicadores'
+import { useAtajo } from '../../../hooks/useAtajo'
+import { DESTINOS } from '../../../navegacion/destinos'
 import { formatearFechaHora } from '../../../utilidades/fechas'
 import { CambiarClave } from './CambiarClave'
 import { FormularioUsuario } from './FormularioUsuario'
@@ -34,9 +37,38 @@ export function Usuarios() {
     setVista({ tipo: 'lista' })
   }
 
+  function crear() {
+    setAviso(null)
+    setVista({ tipo: 'crear' })
+  }
+  useAtajo('n', crear)
+
   return (
     <section>
-      <Titulo nivel={2}>Usuarios</Titulo>
+      <EncabezadoDePantalla
+        icono={DESTINOS.usuarios.icono}
+        titulo="Usuarios"
+        descripcion="Las personas que pueden entrar al programa. No se eliminan: se desactivan."
+        acciones={
+          <button type="button" className="boton boton--auto boton--con-icono" onClick={crear} aria-keyshortcuts="Control+N">
+            <UserPlus aria-hidden="true" size={16} />
+            Nuevo usuario
+            <kbd className="atajo-visible" aria-hidden="true">
+              Ctrl+N
+            </kbd>
+          </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          {
+            rotulo: 'Usuarios activos',
+            valor: String(usuarios.filter((u) => u.is_active).length),
+            cargando: consulta.isPending,
+            error: consulta.isError,
+          },
+        ]}
+      />
       {consulta.isPending && <Cargando />}
       {consulta.isError && <ErrorDeCarga error={consulta.error} onReintentar={() => void consulta.refetch()} />}
 
@@ -47,20 +79,6 @@ export function Usuarios() {
               {aviso}
             </p>
           )}
-          <div className="barra-de-acciones">
-            <p className="texto-suave">Las personas que pueden entrar al programa. No se eliminan: se desactivan.</p>
-            <button
-              type="button"
-              className="boton boton--auto"
-              onClick={() => {
-                setAviso(null)
-                setVista({ tipo: 'crear' })
-              }}
-            >
-              <UserPlus aria-hidden="true" size={16} />
-              Nuevo usuario
-            </button>
-          </div>
           <TablaDeUsuarios
             usuarios={usuarios}
             onEditar={(u) => {
