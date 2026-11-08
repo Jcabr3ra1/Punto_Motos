@@ -330,17 +330,17 @@ summary {
 
 .estructura {
   display: grid;
-  grid-template-columns: 14.25rem minmax(0, 1fr);
+  grid-template-columns: 228px minmax(0, 1fr);
   /* Ventana fija: no hay scroll de página, solo se desplaza el contenido. */
   height: 100vh;
   /* Ancho mínimo de ventana (el mismo de Tauri): la aplicación no se apila como una página web. */
-  min-width: 56.25rem;
+  min-width: 900px;
   overflow: hidden;
   background: var(--fondo-trabajo);
 }
 
 .estructura--recogida {
-  grid-template-columns: 3.5rem minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
 }
 
 /* Menú lateral: cada sección con sus pantallas colgando debajo, anclado al borde como en un programa de escritorio. */
@@ -358,24 +358,24 @@ summary {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.75rem;
-  height: 3.5rem;
-  padding: 0 1rem;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--marco-separador);
 }
 
 .menu-lateral__logo {
   display: block;
   flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 }
 
 .menu-lateral__titulo {
   min-width: 0;
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 650;
   line-height: 1.2;
   color: #ffffff;
@@ -384,7 +384,7 @@ summary {
 
 .menu-lateral__subtitulo {
   display: block;
-  font-size: 0.71875rem;
+  font-size: 11.5px;
   font-weight: 400;
   color: var(--marco-texto-suave);
 }
@@ -398,7 +398,7 @@ summary {
 
 .menu-lateral__lista {
   margin: 0;
-  padding: 0.5rem 0;
+  padding: 8px 0;
   list-style: none;
 }
 
@@ -418,15 +418,15 @@ summary {
 .menu-lateral__seccion {
   position: relative;
   display: grid;
-  grid-template-columns: 1.125rem minmax(0, 1fr) 0.875rem;
+  grid-template-columns: 18px minmax(0, 1fr) 14px;
   align-items: center;
-  column-gap: 0.75rem;
+  column-gap: 12px;
   width: 100%;
-  height: 2.25rem;
+  height: 36px;
   margin: 0;
-  padding: 0 1rem;
+  padding: 0 16px;
   font: inherit;
-  font-size: 0.84375rem;
+  font-size: 13.5px;
   font-weight: 500;
   text-align: left;
   color: var(--marco-texto);
@@ -486,8 +486,8 @@ summary {
 
 /* Las pantallas cuelgan de su sección, unidas por una línea que baja desde el centro de su icono. */
 .menu-lateral__pantallas {
-  margin: 0 0 0.25rem 1.5625rem;
-  padding: 0.125rem 0;
+  margin: 0 0 4px 25px;
+  padding: 2px 0;
   list-style: none;
   border-left: 1px solid var(--marco-separador);
 }
@@ -496,10 +496,10 @@ summary {
   position: relative;
   display: flex;
   align-items: center;
-  height: 1.75rem;
-  padding: 0 0.75rem 0 1rem;
+  height: 28px;
+  padding: 0 12px 0 16px;
   overflow: hidden;
-  font-size: 0.8125rem;
+  font-size: 13px;
   color: var(--marco-texto-suave);
   text-decoration: none;
   text-overflow: ellipsis;
@@ -525,14 +525,14 @@ summary {
 .menu-lateral__alternar {
   display: grid;
   flex-shrink: 0;
-  grid-template-columns: 1.125rem minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  column-gap: 0.75rem;
+  column-gap: 12px;
   width: 100%;
-  height: 2rem;
-  padding: 0 1rem;
+  height: 32px;
+  padding: 0 16px;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 12px;
   text-align: left;
   color: var(--marco-texto-suave);
   background: transparent;
@@ -583,10 +583,10 @@ summary {
 /* Ventanita del menú recogido: las pantallas de la sección, a la derecha de su icono. Flota, así que lleva sombra. */
 .menu-lateral__flotante {
   position: fixed;
-  left: 3.5rem;
+  left: 56px;
   z-index: 40;
-  min-width: 13.5rem;
-  padding: 0 0 0.25rem;
+  min-width: 216px;
+  padding: 0 0 4px;
   background: var(--marco-elevado);
   border: 1px solid var(--marco-separador);
   border-left: 3px solid var(--color-marca);
@@ -596,10 +596,10 @@ summary {
 .menu-lateral__flotante-titulo {
   display: flex;
   align-items: center;
-  height: 2.25rem;
+  height: 36px;
   margin: 0;
-  padding: 0 1rem;
-  font-size: 0.71875rem;
+  padding: 0 16px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
