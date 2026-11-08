@@ -1390,7 +1390,8 @@ kbd {
 /* Avance del conteo: el mismo aspecto de la franja de indicadores. */
 .avance {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Tantas columnas como cifras quepan: nunca queda una celda vacía. */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1px;
   margin: 0 0 var(--esp-4);
   background: var(--color-borde);
@@ -1417,6 +1418,20 @@ kbd {
   font-weight: 650;
   line-height: 28px;
   font-variant-numeric: tabular-nums;
+}
+
+/* La cifra principal de la caja, en negro como un instrumento del tablero. */
+.avance > .avance__destacado {
+  background: var(--marco);
+  box-shadow: inset 0 3px 0 var(--color-marca);
+}
+
+.avance__destacado dt {
+  color: var(--marco-texto-suave);
+}
+
+.avance__destacado dd {
+  color: #ffffff;
 }
 
 .terminar {

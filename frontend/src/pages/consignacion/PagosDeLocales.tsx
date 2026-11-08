@@ -10,12 +10,17 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
-import { Titulo } from '../../components/Titulo'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
+import { useConteo } from '../../hooks/useConteo'
+import { DESTINOS } from '../../navegacion/destinos'
+import { formatearNumero } from '../../utilidades/numeros'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora } from '../../utilidades/fechas'
+import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
 import { SelectorDeLocal } from './SelectorDeLocal'
 import { PanelLateral } from '../../components/PanelLateral'
+import { EstadoVacio } from '../../components/EstadoVacio'
 
 // Pagos de los locales (solo el dueño): pagan por partes, cada pago baja su saldo y entra a la caja abierta.
 export function PagosDeLocales() {
@@ -30,22 +35,34 @@ export function PagosDeLocales() {
     placeholderData: keepPreviousData,
   })
 
+  const inicioDelMes = `${hoyEnColombia().slice(0, 8)}01`
+  const delMes = useConteo([...claves.consignacion, 'pagos', 'mes', inicioDelMes], (signal) =>
+    listarPagosDeLocales({ date_from: inicioDelMes, page_size: 1 }, signal),
+  )
+
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Pagos de los locales</Titulo>
-        <button
-          type="button"
-          className="boton boton--auto"
-          onClick={() => {
-            setAviso(null)
-            setNuevo(true)
-          }}
-        >
-          <HandCoins aria-hidden="true" size={16} />
-          Registrar pago
-        </button>
-      </div>
+      <EncabezadoDePantalla
+        icono={DESTINOS.pagosDeLocales.icono}
+        titulo="Pagos de los locales"
+        descripcion="Lo que los locales pagan por lo vendido."
+        acciones={
+            <button
+              type="button"
+              className="boton boton--auto"
+              onClick={() => {
+                setAviso(null)
+                setNuevo(true)
+              }}
+            >
+              <HandCoins aria-hidden="true" size={16} />
+              Registrar pago
+            </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[{ rotulo: 'Pagos este mes', valor: formatearNumero(delMes.data ?? 0), cargando: delMes.isPending, error: delMes.isError }]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
@@ -66,7 +83,7 @@ export function PagosDeLocales() {
       {pagos.isError && <ErrorDeCarga error={pagos.error} onReintentar={() => void pagos.refetch()} />}
       {pagos.isSuccess &&
         (pagos.data.count === 0 ? (
-          <p className="texto-suave">Todavía no hay pagos.</p>
+          <EstadoVacio icono={DESTINOS.pagosDeLocales.icono} mensaje="Todavía no hay pagos." />
         ) : (
           <>
             <div className="tabla-contenedor">

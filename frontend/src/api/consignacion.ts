@@ -42,6 +42,7 @@ export interface FiltrosDeConsignacion {
   date_from?: string
   date_to?: string
   page?: number
+  page_size?: number
 }
 
 const consulta = (f: FiltrosDeConsignacion) => ({
@@ -49,6 +50,7 @@ const consulta = (f: FiltrosDeConsignacion) => ({
   date_from: f.date_from,
   date_to: f.date_to,
   page: f.page && f.page > 1 ? f.page : undefined,
+  page_size: f.page_size,
 })
 
 export const listarEntregas = (f: FiltrosDeConsignacion = {}, signal?: AbortSignal) =>

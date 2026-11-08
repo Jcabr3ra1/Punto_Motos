@@ -19,6 +19,8 @@ import { useSeleccion } from '../../hooks/useSeleccion'
 import { FichaDeProducto } from './FichaDeProducto'
 import type { EstadoDeFiltros } from './filtros'
 import { formatearPesos } from '../../utilidades/dinero'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { DESTINOS } from '../../navegacion/destinos'
 
 const TAMANO_DE_PAGINA = 50
 
@@ -156,13 +158,10 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
             {productos.data.count === 1 ? '1 producto' : `${productos.data.count} productos`}
           </p>
           {productos.data.count === 0 ? (
-            <p className="texto-suave">
-              {hayFiltros
-                ? 'Ningún producto coincide con la búsqueda.'
-                : esDueno
-                  ? 'Todavía no hay productos. Crea el primero con «Nuevo producto».'
-                  : 'Todavía no hay productos.'}
-            </p>
+            <EstadoVacio
+              icono={DESTINOS.productos.icono}
+              mensaje={hayFiltros ? 'Ningún producto coincide con la búsqueda.' : esDueno ? 'Todavía no hay productos. Crea el primero con «Nuevo producto».' : 'Todavía no hay productos.'}
+            />
           ) : (
             <div className={seleccion.elegido ? 'con-ficha' : undefined}>
               {eliminando && (

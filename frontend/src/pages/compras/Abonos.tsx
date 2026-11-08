@@ -18,6 +18,7 @@ import { formatearDia, hoyEnColombia } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { useDeudaConProveedores } from './useDeudaConProveedores'
 import { FormularioDeAbono } from './FormularioDeAbono'
+import { EstadoVacio } from '../../components/EstadoVacio'
 
 function leerFiltros(params: URLSearchParams): FiltrosDeAbonos {
   const proveedor = Number(params.get('supplier'))
@@ -127,9 +128,10 @@ export function Abonos() {
             {abonos.data.count === 1 ? '1 abono' : `${formatearNumero(abonos.data.count)} abonos`}
           </p>
           {abonos.data.count === 0 ? (
-            <p className="texto-suave">
-              {hayFiltros ? 'Ningún abono coincide con los filtros.' : 'Todavía no hay abonos.'}
-            </p>
+            <EstadoVacio
+              icono={DESTINOS.abonos.icono}
+              mensaje={hayFiltros ? 'Ningún abono coincide con los filtros.' : 'Todavía no hay abonos.'}
+            />
           ) : (
             <>
               <div className="tabla-contenedor">

@@ -9,11 +9,15 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
+import { DESTINOS } from '../../navegacion/destinos'
 import { useDebounce } from '../../hooks/useDebounce'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { PanelLateral } from '../../components/PanelLateral'
+import { EstadoVacio } from '../../components/EstadoVacio'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; local: Consignee } | { tipo: 'tiene'; local: Consignee }
 
@@ -47,6 +51,15 @@ export function Locales() {
     </PanelLateral>
   )
 
+  // Sin el filtro de búsqueda: la suma de una lista sin paginar es exacta.
+  const todos = useQuery({ queryKey: [...claves.consignacion, 'locales', 'todos'], queryFn: ({ signal }) => listarLocales({}, signal) })
+  const deuda = {
+    total: (todos.data ?? []).reduce((suma, uno) => suma + uno.balance_due, 0),
+    conSaldo: (todos.data ?? []).filter((uno) => uno.balance_due > 0).length,
+    cargando: todos.isPending,
+    error: todos.isError,
+  }
+
   if (vista.tipo === 'tiene') {
     return (
       <>
@@ -63,13 +76,23 @@ export function Locales() {
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Locales</Titulo>
-        <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
-          <Plus aria-hidden="true" size={16} />
-          Nuevo local
-        </button>
-      </div>
+      <EncabezadoDePantalla
+        icono={DESTINOS.locales.icono}
+        titulo="Locales"
+        descripcion="Locales que venden mercancía en consignación y lo que deben."
+        acciones={
+            <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
+              <Plus aria-hidden="true" size={16} />
+              Nuevo local
+            </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Me deben en total', valor: formatearPesos(deuda.total), cargando: deuda.cargando, error: deuda.error },
+          { rotulo: 'Locales con saldo', valor: String(deuda.conSaldo), cargando: deuda.cargando, error: deuda.error },
+        ]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
@@ -86,7 +109,10 @@ export function Locales() {
       {locales.isError && <ErrorDeCarga error={locales.error} onReintentar={() => void locales.refetch()} />}
       {locales.isSuccess &&
         (locales.data.length === 0 ? (
-          <p className="texto-suave">{busqueda || conDeuda ? 'Ningún local coincide con los filtros.' : 'Todavía no hay locales.'}</p>
+          <EstadoVacio
+            icono={DESTINOS.locales.icono}
+            mensaje={busqueda || conDeuda ? 'Ningún local coincide con los filtros.' : 'Todavía no hay locales.'}
+          />
         ) : (
           <div className="tabla-contenedor">
             <table className="tabla">

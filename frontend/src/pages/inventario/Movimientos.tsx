@@ -22,6 +22,7 @@ import { formatearPesos } from '../../utilidades/dinero'
 import { formatearConSigno, formatearNumero } from '../../utilidades/numeros'
 import { ConsumoDelTaller } from './ConsumoDelTaller'
 import { FormularioDeAjuste } from './FormularioDeAjuste'
+import { EstadoVacio } from '../../components/EstadoVacio'
 
 const TIPOS: readonly { valor: '' | MovementKind; texto: string }[] = [
   { valor: '', texto: 'Todos los tipos' },
@@ -177,9 +178,10 @@ export function Movimientos() {
             {movimientos.data.count === 1 ? '1 movimiento' : `${formatearNumero(movimientos.data.count)} movimientos`}
           </p>
           {movimientos.data.count === 0 ? (
-            <p className="texto-suave">
-              {hayFiltros ? 'Ningún movimiento coincide con los filtros.' : 'Todavía no hay movimientos.'}
-            </p>
+            <EstadoVacio
+              icono={DESTINOS.movimientos.icono}
+              mensaje={hayFiltros ? 'Ningún movimiento coincide con los filtros.' : 'Todavía no hay movimientos.'}
+            />
           ) : (
             <>
               <TablaDeMovimientos movimientos={movimientos.data.results} esDueno={esDueno} />

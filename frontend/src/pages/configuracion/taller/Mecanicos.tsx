@@ -14,6 +14,7 @@ import { FranjaDeIndicadores } from '../../../components/FranjaDeIndicadores'
 import { useAtajo } from '../../../hooks/useAtajo'
 import { DESTINOS } from '../../../navegacion/destinos'
 import { PanelLateral } from '../../../components/PanelLateral'
+import { EstadoVacio } from '../../../components/EstadoVacio'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; mecanico: Mechanic }
 
@@ -80,7 +81,7 @@ export function Mecanicos() {
       {mecanicos.isError && <ErrorDeCarga error={mecanicos.error} onReintentar={() => void mecanicos.refetch()} />}
       {mecanicos.isSuccess &&
         (mecanicos.data.length === 0 ? (
-          <p className="texto-suave">Todavía no hay mecánicos.</p>
+          <EstadoVacio icono={DESTINOS.mecanicos.icono} mensaje="Todavía no hay mecánicos." />
         ) : (
           <div className="tabla-contenedor">
             <table className="tabla">

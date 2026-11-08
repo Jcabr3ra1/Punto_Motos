@@ -19,6 +19,7 @@ import { useDeudaConProveedores } from './useDeudaConProveedores'
 import { EstadoDeCuenta } from './EstadoDeCuenta'
 import { FormularioDeAbono } from './FormularioDeAbono'
 import { FormularioDeProveedor } from './FormularioDeProveedor'
+import { EstadoVacio } from '../../components/EstadoVacio'
 
 type Vista =
   | { tipo: 'lista' }
@@ -144,9 +145,10 @@ export function Proveedores() {
       {proveedores.isError && <ErrorDeCarga error={proveedores.error} onReintentar={() => void proveedores.refetch()} />}
       {proveedores.isSuccess &&
         (proveedores.data.length === 0 ? (
-          <p className="texto-suave">
-            {busqueda || conDeuda ? 'Ningún proveedor coincide con los filtros.' : 'Todavía no hay proveedores.'}
-          </p>
+          <EstadoVacio
+            icono={DESTINOS.proveedores.icono}
+            mensaje={busqueda || conDeuda ? 'Ningún proveedor coincide con los filtros.' : 'Todavía no hay proveedores.'}
+          />
         ) : (
           <div className="tabla-contenedor">
             <table className="tabla">

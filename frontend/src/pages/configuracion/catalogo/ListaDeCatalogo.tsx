@@ -6,6 +6,8 @@ import { claves } from '../../../api/consultas'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
 import { FormularioDeCatalogo } from './FormularioDeCatalogo'
 import { PanelLateral } from '../../../components/PanelLateral'
+import { EstadoVacio } from '../../../components/EstadoVacio'
+import { DESTINOS } from '../../../navegacion/destinos'
 
 export interface SeccionDeCatalogo {
   tipo: TipoDeCatalogo
@@ -71,7 +73,10 @@ export function ListaDeCatalogo({ seccion }: { seccion: SeccionDeCatalogo }) {
         </button>
       </div>
       {elementos.length === 0 ? (
-        <p className="texto-suave">Todavía no hay registros en {seccion.etiqueta.toLowerCase()}.</p>
+        <EstadoVacio
+          icono={DESTINOS.catalogo.icono}
+          mensaje={`Todavía no hay registros en ${seccion.etiqueta.toLowerCase()}.`}
+        />
       ) : (
         <div className="tabla-contenedor">
           <table className="tabla">

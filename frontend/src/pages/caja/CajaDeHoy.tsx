@@ -10,7 +10,9 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { PanelLateral } from '../../components/PanelLateral'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { Titulo } from '../../components/Titulo'
+import { DESTINOS } from '../../navegacion/destinos'
 import { VistaPrevia } from '../../components/VistaPrevia'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -33,7 +35,11 @@ export function CajaDeHoy() {
   const caja = actual.data.session
   return (
     <>
-      <Titulo nivel={2}>Caja de hoy</Titulo>
+      <EncabezadoDePantalla
+        icono={DESTINOS.cajaActual.icono}
+        titulo="Caja de hoy"
+        descripcion="El efectivo del día: apertura, gastos, retiros y cierre."
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}

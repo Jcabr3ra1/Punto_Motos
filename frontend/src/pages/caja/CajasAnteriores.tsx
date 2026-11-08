@@ -5,9 +5,15 @@ import { listarCajas, obtenerCaja } from '../../api/caja'
 import { claves } from '../../api/consultas'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
+import { useSeleccion } from '../../hooks/useSeleccion'
+import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
+import { FichaDeCaja } from './FichaDeCaja'
 import { CifrasDeCaja, MovimientosDeCaja, ResumenPorTipo } from './ResumenDeCaja'
 
 /** Historial de cajas (solo el dueño). */
@@ -18,18 +24,31 @@ export function CajasAnteriores() {
     queryFn: ({ signal }) => listarCajas({ page: pagina }, signal),
     placeholderData: keepPreviousData,
   })
+  const seleccion = useSeleccion(cajas.data?.results, (caja) => caja.id)
 
   return (
     <>
-      <Titulo nivel={2}>Cajas anteriores</Titulo>
+      <EncabezadoDePantalla
+        icono={DESTINOS.cajaHistorial.icono}
+        titulo="Cajas anteriores"
+        descripcion="Cada día de caja con su cierre. Elige una para ver su resumen."
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Cajas registradas', valor: String(cajas.data?.count ?? 0), cargando: cajas.isPending, error: cajas.isError },
+        ]}
+      />
       {cajas.isPending && <Cargando />}
       {cajas.isError && <ErrorDeCarga error={cajas.error} onReintentar={() => void cajas.refetch()} />}
       {cajas.isSuccess &&
         (cajas.data.count === 0 ? (
-          <p className="texto-suave">Todavía no hay cajas.</p>
+          <EstadoVacio icono={DESTINOS.cajaHistorial.icono} mensaje="Todavía no hay cajas." />
         ) : (
-          <>
-            <div className="tabla-contenedor">
+          <div className={seleccion.elegido ? 'con-ficha' : undefined}>
+            <div className="tabla-contenedor" tabIndex={0} onKeyDown={seleccion.alTeclear} aria-describedby="ayuda-cajas">
+              <p id="ayuda-cajas" className="solo-lectores">
+                Usa las flechas para ver el resumen de cada caja.
+              </p>
               <table className="tabla">
                 <caption className="solo-lectores">Cajas</caption>
                 <thead>
@@ -50,7 +69,12 @@ export function CajasAnteriores() {
                 </thead>
                 <tbody>
                   {cajas.data.results.map((caja) => (
-                    <tr key={caja.id}>
+                    <tr
+                      key={caja.id}
+                      className="tabla__fila--elegible"
+                      aria-selected={seleccion.elegido?.id === caja.id}
+                      onClick={() => seleccion.elegir(caja)}
+                    >
                       <th scope="row">
                         <Link to={`/caja/historial/${caja.id}`}>{formatearFechaHora(caja.opened_at)}</Link>
                         <span className="tabla__detalle">Abrió {caja.opened_by}</span>
@@ -82,7 +106,10 @@ export function CajasAnteriores() {
               haySiguiente={Boolean(cajas.data.next)}
               onCambiar={setPagina}
             />
-          </>
+            {seleccion.elegido && (
+              <FichaDeCaja id={seleccion.elegido.id} abierta={seleccion.elegido.opened_at} onCerrar={seleccion.cerrar} />
+            )}
+          </div>
         ))}
     </>
   )

@@ -15,6 +15,7 @@ import { useAtajo } from '../../../hooks/useAtajo'
 import { DESTINOS } from '../../../navegacion/destinos'
 import { formatearPesos } from '../../../utilidades/dinero'
 import { PanelLateral } from '../../../components/PanelLateral'
+import { EstadoVacio } from '../../../components/EstadoVacio'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; servicio: ServiceType }
 
@@ -81,7 +82,7 @@ export function TiposDeServicio() {
       {tipos.isError && <ErrorDeCarga error={tipos.error} onReintentar={() => void tipos.refetch()} />}
       {tipos.isSuccess &&
         (tipos.data.length === 0 ? (
-          <p className="texto-suave">Todavía no hay tipos de servicio.</p>
+          <EstadoVacio icono={DESTINOS.tiposDeServicio.icono} mensaje="Todavía no hay tipos de servicio." />
         ) : (
           <div className="tabla-contenedor">
             <table className="tabla">

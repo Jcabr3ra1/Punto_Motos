@@ -17,6 +17,7 @@ import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { ESTADO_DE_PAGO } from './etiquetas'
+import { EstadoVacio } from '../../components/EstadoVacio'
 
 const ESTADOS = [
   { valor: '', texto: 'Todas' },
@@ -163,9 +164,10 @@ export function ListaDeCompras() {
             {compras.data.count === 1 ? '1 compra' : `${formatearNumero(compras.data.count)} compras`}
           </p>
           {compras.data.count === 0 ? (
-            <p className="texto-suave">
-              {hayFiltros ? 'Ninguna compra coincide con los filtros.' : 'Todavía no hay compras. Crea la primera con «Nueva compra».'}
-            </p>
+            <EstadoVacio
+              icono={DESTINOS.comprasLista.icono}
+              mensaje={hayFiltros ? 'Ninguna compra coincide con los filtros.' : 'Todavía no hay compras. Crea la primera con «Nueva compra».'}
+            />
           ) : (
             <>
               <div className="tabla-contenedor">
