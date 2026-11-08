@@ -1,4 +1,4 @@
-import { cleanup, screen, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dueno, simularApi, vendedor } from '../test/apiSimulada'
@@ -138,3 +138,76 @@ describe('menú lateral', () => {
     expect(document.querySelector('.menu-lateral--recogido')).toBeNull()
   })
 })
+
+describe('menú recogido', () => {
+  beforeEach(() => localStorage.setItem('puntomoto.menuRecogido', '1'))
+
+  it('el foco en una sección muestra sus pantallas', async () => {
+    mostrarRutas(dueno)
+
+    seccion('Taller').focus()
+
+    const ventanita = await screen.findByRole('group', { name: 'Taller' })
+    expect(within(ventanita).getAllByRole('link').map((enlace) => enlace.textContent)).toEqual([
+      'Liquidación del día',
+      'Historial de liquidaciones',
+      'Mecánicos',
+      'Tipos de servicio',
+    ])
+  })
+
+  it('pasar el ratón por una sección muestra sus pantallas y salir las oculta', async () => {
+    mostrarRutas(dueno)
+    const u = userEvent.setup()
+
+    await u.hover(seccion('Compras'))
+    expect(screen.getByRole('group', { name: 'Compras' })).toBeInTheDocument()
+
+    await u.unhover(seccion('Compras'))
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Compras' })).not.toBeInTheDocument())
+  })
+
+  it('Esc cierra la ventanita y devuelve el foco a la sección', async () => {
+    mostrarRutas(dueno)
+    const u = userEvent.setup()
+    seccion('Taller').focus()
+    await u.tab()
+    expect(within(screen.getByRole('group', { name: 'Taller' })).getByRole('link', { name: 'Liquidación del día' })).toHaveFocus()
+
+    await u.keyboard('{Escape}')
+
+    expect(screen.queryByRole('group', { name: 'Taller' })).not.toBeInTheDocument()
+    expect(seccion('Taller')).toHaveFocus()
+  })
+
+  it('elegir una pantalla navega y cierra la ventanita', async () => {
+    mostrarRutas(dueno)
+    const u = userEvent.setup()
+    await u.hover(seccion('Taller'))
+
+    await u.click(within(screen.getByRole('group', { name: 'Taller' })).getByRole('link', { name: 'Mecánicos' }))
+
+    expect(await screen.findByRole('heading', { name: 'Mecánicos' })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Taller' })).not.toBeInTheDocument()
+  })
+
+  it('pulsar la sección va a su primera pantalla', async () => {
+    mostrarRutas(dueno)
+
+    await userEvent.setup().click(seccion('Compras'))
+
+    expect(await screen.findByRole('heading', { name: 'Compras', level: 2 })).toBeInTheDocument()
+  })
+
+  it('Esc fuera de la ventanita no la toca ni hace nada en el menú', async () => {
+    mostrarRutas(dueno)
+    const u = userEvent.setup()
+    await u.hover(seccion('Caja'))
+    screen.getByRole('main').focus()
+
+    await u.keyboard('{Escape}')
+
+    expect(screen.getByRole('group', { name: 'Caja' })).toBeInTheDocument()
+  })
+})
+

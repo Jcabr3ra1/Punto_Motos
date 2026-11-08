@@ -580,6 +580,38 @@ summary {
   background: var(--color-marca);
 }
 
+/* Ventanita del menú recogido: las pantallas de la sección, a la derecha de su icono. Flota, así que lleva sombra. */
+.menu-lateral__flotante {
+  position: fixed;
+  left: 3.5rem;
+  z-index: 40;
+  min-width: 13.5rem;
+  padding: 0 0 0.25rem;
+  background: var(--marco-elevado);
+  border: 1px solid var(--marco-separador);
+  border-left: 3px solid var(--color-marca);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+.menu-lateral__flotante-titulo {
+  display: flex;
+  align-items: center;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0 1rem;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.menu-lateral__flotante-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 /* Sobre el marco negro, el foco se ve en lima y por dentro, para no quedar cortado por el borde. */
 .menu-lateral :focus-visible,
 .navbar :focus-visible {

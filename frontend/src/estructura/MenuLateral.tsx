@@ -1,8 +1,16 @@
 import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { useEffect, useRef, useState, type FocusEvent } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import type { Role } from '../api/types'
 import { DESTINOS, MENU_PRINCIPAL, pantallasVisibles, type Destino } from '../navegacion/destinos'
 import { moduloDe } from '../navegacion/ubicacion'
+
+/** Milisegundos que espera la ventanita antes de cerrarse cuando el ratón sale. */
+const PAUSA_AL_SALIR = 150
+/** Medidas de la ventanita en píxeles (las mismas del CSS), para que no se salga por abajo. */
+const ALTO_TITULO = 36
+const ALTO_PANTALLA = 28
+const MARGEN = 8
 
 interface Props {
   rol: Role
@@ -14,12 +22,38 @@ interface Props {
 /**
  * Menú lateral del marco «Tablero»: cada sección con sus pantallas colgando debajo. Solo está desplegada la sección
  * de la pantalla actual; al pulsar otra se va a su primera pantalla, así que nunca hay dos abiertas. Configuración va
- * al pie, separada del trabajo diario.
+ * al pie, separada del trabajo diario. Recogido, solo quedan los iconos: al pasar el ratón o llevar el foco a una
+ * sección, sus pantallas salen en una ventanita a la derecha.
  */
 export function MenuLateral({ rol, conteoAbierto, recogido, onAlternar }: Props) {
   const { pathname } = useLocation()
   const navegar = useNavigate()
   const actual = moduloDe(pathname)
+  // Recogido: la sección cuya ventanita está abierta y a qué altura de la ventana sale.
+  const [estadoFlotante, setFlotante] = useState<{ ruta: string; arriba: number; en: string } | null>(null)
+  // Al cambiar de pantalla o expandir el menú, la ventanita que estaba abierta deja de valer.
+  const flotante = recogido && estadoFlotante?.en === pathname ? estadoFlotante : null
+
+  const mostrar = (ruta: string, elemento: HTMLElement, cuantas: number) => {
+    if (!recogido || flotante?.ruta === ruta) return
+    // Sale a la altura de la sección, pero sin pasarse del borde de abajo (Configuración está al pie).
+    const alto = ALTO_TITULO + cuantas * ALTO_PANTALLA
+    const arriba = Math.max(0, Math.min(elemento.getBoundingClientRect().top, window.innerHeight - alto - MARGEN))
+    setFlotante({ ruta, arriba, en: pathname })
+  }
+  // Al salir con el ratón se espera un instante: así, al ir en diagonal hacia la ventanita, no se cierra en el camino.
+  const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const cancelarCierre = () => clearTimeout(temporizador.current)
+  const cerrarConPausa = () => {
+    cancelarCierre()
+    temporizador.current = setTimeout(() => setFlotante(null), PAUSA_AL_SALIR)
+  }
+  useEffect(() => cancelarCierre, [])
+
+  // El foco salió del grupo (botón y ventanita): se cierra.
+  const alSalirElFoco = (evento: FocusEvent<HTMLLIElement>) => {
+    if (!evento.currentTarget.contains(evento.relatedTarget)) setFlotante(null)
+  }
 
   const entrada = (modulo: Destino) => {
     const Icono = modulo.icono
@@ -39,12 +73,28 @@ export function MenuLateral({ rol, conteoAbierto, recogido, onAlternar }: Props)
     const abierta = modulo.ruta === actual.ruta
     const Flecha = abierta ? ChevronDown : ChevronRight
     return (
-      <li key={modulo.ruta} className={`menu-lateral__grupo${abierta ? ' menu-lateral__grupo--abierto' : ''}`}>
+      <li
+        key={modulo.ruta}
+        className={`menu-lateral__grupo${abierta ? ' menu-lateral__grupo--abierto' : ''}`}
+        onMouseEnter={(evento) => {
+          cancelarCierre()
+          mostrar(modulo.ruta, evento.currentTarget, pantallas.length)
+        }}
+        onMouseLeave={cerrarConPausa}
+        onFocus={(evento) => mostrar(modulo.ruta, evento.currentTarget, pantallas.length)}
+        onBlur={alSalirElFoco}
+        onKeyDown={(evento) => {
+          if (evento.key !== 'Escape' || flotante?.ruta !== modulo.ruta) return
+          evento.stopPropagation()
+          setFlotante(null)
+          evento.currentTarget.querySelector<HTMLButtonElement>('.menu-lateral__seccion')?.focus()
+        }}
+      >
         <button
           type="button"
           className="menu-lateral__seccion"
           aria-expanded={abierta}
-          title={recogido ? modulo.etiqueta : undefined}
+          aria-label={recogido ? modulo.etiqueta : undefined}
           onClick={() => {
             if (!abierta) navegar(pantallas[0].ruta)
           }}
@@ -63,6 +113,22 @@ export function MenuLateral({ rol, conteoAbierto, recogido, onAlternar }: Props)
               </li>
             ))}
           </ul>
+        )}
+        {recogido && flotante?.ruta === modulo.ruta && (
+          <div className="menu-lateral__flotante" style={{ top: flotante.arriba }}>
+            <p className="menu-lateral__flotante-titulo" aria-hidden="true">
+              {modulo.etiqueta}
+            </p>
+            <ul role="group" aria-label={modulo.etiqueta} className="menu-lateral__flotante-lista">
+              {pantallas.map((pantalla) => (
+                <li key={pantalla.ruta}>
+                  <NavLink to={pantalla.ruta} className="menu-lateral__pantalla" onClick={() => setFlotante(null)}>
+                    {pantalla.etiqueta}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </li>
     )
