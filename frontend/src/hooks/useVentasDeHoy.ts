@@ -5,7 +5,11 @@ import { useHoy } from './useHoy'
 
 export interface VentasDeHoy {
   cantidad: number
+  /** Cuántas ventas no anuladas de hoy incluyeron al menos un servicio de taller. */
+  conTaller: number
   total: number
+  /** La hora con mayor venta del día, o `null` si aún no se ha vendido nada. */
+  horaPico: { hora: number; total: number } | null
   /** Total vendido en cada hora del día, de 8 a. m. a 6 p. m. o más si hubo ventas fuera de ese horario. */
   porHora: { hora: number; total: number }[]
 }
@@ -45,7 +49,18 @@ export function useVentasDeHoy(cadaCuanto?: number) {
         const hora = horaDe(venta.created_at)
         if (hora !== null) porHora[hora - desde].total += venta.total
       })
-      return { cantidad: ventas.length, total: ventas.reduce((suma, venta) => suma + venta.total, 0), porHora }
+      const conTaller = ventas.filter((venta) => venta.services_count > 0).length
+      const horaPico = porHora.reduce<{ hora: number; total: number } | null>(
+        (mejor, actual) => (actual.total > (mejor?.total ?? 0) ? actual : mejor),
+        null,
+      )
+      return {
+        cantidad: ventas.length,
+        conTaller,
+        total: ventas.reduce((suma, venta) => suma + venta.total, 0),
+        horaPico,
+        porHora,
+      }
     },
   })
 }

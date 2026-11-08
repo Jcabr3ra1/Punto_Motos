@@ -7,14 +7,13 @@ import { listarLocales } from '../../api/consignacion'
 import { claves } from '../../api/consultas'
 import { consultarLiquidacionDelDia } from '../../api/taller'
 import { useCajaActual } from '../../hooks/useCajaActual'
+import { useHoy } from '../../hooks/useHoy'
 import { useVentasDeHoy } from '../../hooks/useVentasDeHoy'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { Cargando, Instrumento, NoSePudoCargar } from './comun'
-import { CADA_MINUTO, horaDe } from './formato'
-import { useHoy } from '../../hooks/useHoy'
-
-const plural = (n: number, una: string, varias: string) => `${n} ${n === 1 ? una : varias}`
+import { CADA_MINUTO, horaDe, horaLegible, plural } from './formato'
+import { BarraComparativa, BarrasHorizontales, GraficaVentasPorHora } from './Graficas'
 
 function IrA({ a, children }: { a: string; children: string }) {
   return (
@@ -27,19 +26,32 @@ function IrA({ a, children }: { a: string; children: string }) {
 
 /** El efectivo que debe haber en el cajón, en negro como un instrumento del tablero. */
 export function CajaDeHoy() {
-  const actual = useCajaActual()
+  const actual = useCajaActual(CADA_MINUTO)
   const sesion = actual.data?.session
   const abierta = actual.data?.is_open && sesion
+  const resumen = sesion?.summary
+  const cobradoEfectivo = resumen?.by_kind.reduce((suma, fila) => suma + Math.max(0, fila.cash), 0) ?? 0
+  const cobradoTransferencia = resumen?.by_kind.reduce((suma, fila) => suma + Math.max(0, fila.transfer), 0) ?? 0
+  const totalCobrado = cobradoEfectivo + cobradoTransferencia
+  const porcentajeEfectivo = totalCobrado > 0 ? Math.round((cobradoEfectivo / totalCobrado) * 100) : 0
+  const porcentajeTransferencia = totalCobrado > 0 ? 100 - porcentajeEfectivo : 0
+
   return (
     <Instrumento
       id="instrumento-caja"
       titulo="Caja de hoy"
+      extra={actual.isSuccess ? (abierta ? 'Abierta' : 'Cerrada') : undefined}
       oscuro
-      pie={actual.isSuccess && (abierta ? <IrA a={DESTINOS.cajaActual.ruta}>Ver la caja</IrA> : (
-        <Link to={DESTINOS.cajaActual.ruta} className="boton boton--auto">
-          Abrir caja
-        </Link>
-      ))}
+      pie={
+        actual.isSuccess &&
+        (abierta ? (
+          <IrA a={DESTINOS.cajaActual.ruta}>Ver la caja</IrA>
+        ) : (
+          <Link to={DESTINOS.cajaActual.ruta} className="boton boton--auto">
+            Abrir caja
+          </Link>
+        ))
+      }
     >
       {actual.isPending ? (
         <Cargando />
@@ -47,12 +59,30 @@ export function CajaDeHoy() {
         <NoSePudoCargar />
       ) : abierta ? (
         <>
-          <p className="instrumento__cifra">{formatearPesos(sesion.expected_cash)}</p>
-          <p className="instrumento__detalle">esperado en el cajón</p>
+          <p className="instrumento__cifra instrumento__cifra--marca">{formatearPesos(sesion.expected_cash)}</p>
           <p className="instrumento__detalle">
-            Abrió con {formatearPesos(sesion.opening_cash)}
+            esperado en el cajón · Abrió con {formatearPesos(sesion.opening_cash)}
             {horaDe(sesion.opened_at) && ` a las ${horaDe(sesion.opened_at)}`}
           </p>
+          {!resumen ? (
+            <p className="instrumento__detalle">Resumen de cobros no disponible</p>
+          ) : totalCobrado > 0 ? (
+            <>
+              <BarraComparativa
+                izquierda={cobradoEfectivo}
+                derecha={cobradoTransferencia}
+                colorIzquierda="#cde409"
+                colorDerecha="#6e7552"
+                fondoPista="#262728"
+                etiquetaAccesible={`Cobros de hoy: ${porcentajeEfectivo} % en efectivo (${formatearPesos(cobradoEfectivo)}) y ${porcentajeTransferencia} % por transferencia (${formatearPesos(cobradoTransferencia)})`}
+              />
+              <p className="instrumento__detalle">
+                Cobrado: {porcentajeEfectivo} % efec. · {porcentajeTransferencia} % transf.
+              </p>
+            </>
+          ) : (
+            <p className="instrumento__detalle">Sin cobros registrados aún</p>
+          )}
         </>
       ) : (
         <>
@@ -64,13 +94,14 @@ export function CajaDeHoy() {
   )
 }
 
-/** Cuántas ventas van hoy, por cuánto y un gráfico de barras por hora. */
+/** Cuántas ventas van hoy, por cuánto y una gráfica SVG de barras por hora. */
 export function VentasDeHoy() {
   const ventas = useVentasDeHoy(CADA_MINUTO)
   const datos = ventas.data
-  const mayor = Math.max(1, ...(datos?.porHora.map((h) => h.total) ?? []))
   // La hora que se resalta en la gráfica se toma al abrir Inicio.
-  const [horaActual] = useState(() => Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bogota', hour: 'numeric', hourCycle: 'h23' }).format(new Date())))
+  const [horaActual] = useState(() =>
+    Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bogota', hour: 'numeric', hourCycle: 'h23' }).format(new Date())),
+  )
   const rango = datos && `${horaLegible(datos.porHora[0].hora)} a ${horaLegible(datos.porHora[datos.porHora.length - 1].hora)}`
   return (
     <Instrumento
@@ -86,29 +117,24 @@ export function VentasDeHoy() {
       ) : (
         <>
           <p className="instrumento__cifra">{formatearPesos(datos!.total)}</p>
-          <div className="grafica-horas" aria-hidden="true">
-            {datos!.porHora.map(({ hora, total }) => (
-              <span
-                key={hora}
-                className={`grafica-horas__barra${hora === horaActual ? ' grafica-horas__barra--ahora' : ''}`}
-                style={{ height: `${Math.round((total / mayor) * 100)}%` }}
-              />
-            ))}
-          </div>
-          <p className="instrumento__detalle">por hora, de {rango}</p>
+          <GraficaVentasPorHora
+            porHora={datos!.porHora}
+            horaActual={horaActual}
+            total={datos!.total}
+            horaPico={datos!.horaPico}
+          />
+          <p className="instrumento__detalle">
+            por hora, de {rango}
+            {datos!.horaPico ? ` · pico ${horaLegible(datos!.horaPico.hora)}` : ''}
+            {datos!.conTaller > 0 ? ` · ${datos!.conTaller} con taller` : ''}
+          </p>
         </>
       )}
     </Instrumento>
   )
 }
 
-/** «8 a. m.», «6 p. m.». */
-function horaLegible(hora: number): string {
-  const doce = hora % 12 === 0 ? 12 : hora % 12
-  return `${doce} ${hora < 12 ? 'a. m.' : 'p. m.'}`
-}
-
-/** Lo que hay que pagarles hoy a los mecánicos. */
+/** Lo que hay que pagarles hoy a los mecánicos, con barras proporcionales por persona. */
 export function MecanicosHoy() {
   const hoy = useHoy()
   const dia = useQuery({
@@ -118,6 +144,8 @@ export function MecanicosHoy() {
   })
   const filas = dia.data?.mechanics ?? []
   const servicios = filas.reduce((suma, fila) => suma + fila.services_count, 0)
+  const visibles = filas.slice(0, 3)
+
   return (
     <Instrumento id="instrumento-mecanicos" titulo="Mecánicos hoy" pie={<IrA a={DESTINOS.liquidacion.ruta}>Liquidar</IrA>}>
       {dia.isPending ? (
@@ -132,6 +160,20 @@ export function MecanicosHoy() {
               ? 'Nada por pagar hoy'
               : `por pagar a ${plural(filas.length, 'mecánico', 'mecánicos')} · ${plural(servicios, 'servicio', 'servicios')}`}
           </p>
+          {visibles.length > 0 && (
+            <BarrasHorizontales
+              compacta
+              filas={visibles.map((fila, indice) => ({
+                clave: String(fila.mechanic.id),
+                rotulo: fila.mechanic.name,
+                magnitud: fila.amount,
+                valorFormateado: formatearPesos(fila.amount),
+                tono: indice === 0 ? 'entrada' : 'suave',
+              }))}
+              etiquetaAccesible={`Por pagar hoy por mecánico: ${filas.map((f) => `${f.mechanic.name} ${formatearPesos(f.amount)}`).join(', ')}`}
+            />
+          )}
+          {filas.length > 3 && <p className="instrumento__detalle">y {plural(filas.length - 3, 'mecánico más', 'mecánicos más')}</p>}
         </>
       )}
     </Instrumento>
@@ -150,7 +192,12 @@ export function Cuentas() {
     queryFn: ({ signal }) => listarLocales({ with_debt: true, include_inactive: true }, signal),
     refetchInterval: CADA_MINUTO,
   })
-  const fila = (rotulo: string, consulta: typeof proveedores | typeof locales) => (
+
+  const totalProveedores = proveedores.data?.reduce((suma, uno) => suma + uno.balance_due, 0) ?? 0
+  const totalLocales = locales.data?.reduce((suma, uno) => suma + uno.balance_due, 0) ?? 0
+  const listasListas = proveedores.isSuccess && locales.isSuccess
+
+  const fila = (rotulo: string, consulta: typeof proveedores | typeof locales, total: number) => (
     <div className="instrumento__fila">
       <dt>{rotulo}</dt>
       <dd>
@@ -159,17 +206,34 @@ export function Cuentas() {
         ) : consulta.isError ? (
           <span className="instrumento__error">No se pudo cargar</span>
         ) : (
-          formatearPesos(consulta.data.reduce((suma, uno) => suma + uno.balance_due, 0))
+          formatearPesos(total)
         )}
       </dd>
     </div>
   )
+
   return (
     <Instrumento id="instrumento-cuentas" titulo="Cuentas" pie={<IrA a={DESTINOS.proveedores.ruta}>Ver proveedores</IrA>}>
       <dl className="instrumento__lista">
-        {fila('Debo a proveedores', proveedores)}
-        {fila('Me deben los locales', locales)}
+        {fila('Debo a proveedores', proveedores, totalProveedores)}
+        {fila('Me deben los locales', locales, totalLocales)}
       </dl>
+      {listasListas && (
+        <>
+          <BarraComparativa
+            izquierda={totalProveedores}
+            derecha={totalLocales}
+            colorIzquierda="#0b0b0c"
+            colorDerecha="#4a5700"
+            etiquetaAccesible={`Comparación de cuentas: debo a proveedores ${formatearPesos(totalProveedores)} frente a ${formatearPesos(totalLocales)} que deben los locales`}
+          />
+          <p className="instrumento__detalle">
+            {totalProveedores + totalLocales === 0
+              ? 'Sin saldos pendientes'
+              : `${plural(proveedores.data.length, 'proveedor', 'proveedores')} · ${plural(locales.data.length, 'local', 'locales')}`}
+          </p>
+        </>
+      )}
     </Instrumento>
   )
 }

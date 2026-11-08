@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { DESTINOS, type Destino } from '../../navegacion/destinos'
 import { EncabezadoDeInicio } from './comun'
 import { CajaDeHoy, Cuentas, MecanicosHoy, VentasDeHoy } from './Instrumentos'
+import { FlujoDeCaja, RitmoDeVentas } from './PanelesDeTablero'
 import { TablaDeVentas } from './TablaDeVentas'
 
 const IR_A: readonly Destino[] = [DESTINOS.vender, DESTINOS.productos, DESTINOS.liquidacion, DESTINOS.comprasLista]
@@ -23,6 +24,10 @@ export function InicioDelDueno() {
         <VentasDeHoy />
         <MecanicosHoy />
         <Cuentas />
+      </div>
+      <div className="inicio__tablero">
+        <RitmoDeVentas />
+        <FlujoDeCaja />
       </div>
       <div className="inicio__abajo">
         <TablaDeVentas titulo="Últimas ventas de hoy" cuantas={5} completa />

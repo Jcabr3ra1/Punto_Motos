@@ -2776,6 +2776,251 @@ kbd {
   }
 }
 
+/* Inicio */
+.instrumento--oscuro .instrumento__cifra--marca {
+  color: var(--color-marca);
+}
+
+.inicio__tablero {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-3);
+}
+
+.inicio__tablero > .panel-inicio {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-inicio--marca {
+  border-top: 3px solid var(--color-marca);
+}
+
+.panel-inicio__cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+}
+
+.inicio-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.inicio-periodo .filtro {
+  height: 28px;
+  padding: 0 var(--esp-2);
+  font-size: 12px;
+}
+
+.inicio-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--esp-3);
+  margin: 0;
+  padding-bottom: var(--esp-3);
+  border-bottom: 1px solid var(--linea-suave);
+}
+
+.inicio-cifras--dos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inicio-cifras__celda {
+  min-width: 0;
+}
+
+.inicio-cifras__celda dt {
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 16px;
+  color: var(--texto-secundario);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inicio-cifras__celda:not(:first-child) dt {
+  text-align: right;
+}
+
+.inicio-cifras__celda dd {
+  margin: var(--esp-1) 0 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 24px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.inicio-cifras__celda:first-child dd {
+  text-align: left;
+}
+
+.inicio-cifras__valor--entrada {
+  color: var(--color-exito);
+}
+
+.inicio-cifras__valor--salida {
+  color: var(--color-error);
+}
+
+.inicio-svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.inicio-svg--horas {
+  height: 56px;
+  margin-top: var(--esp-2);
+}
+
+.inicio-svg--ritmo {
+  height: 148px;
+}
+
+.inicio-barra-comparativa {
+  display: block;
+  width: 100%;
+  height: var(--esp-2);
+  margin-top: var(--esp-2);
+  border-radius: 2px;
+}
+
+.inicio-barras-h {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.inicio-barras-h--compacta {
+  gap: var(--esp-1);
+  margin-top: var(--esp-2);
+}
+
+.inicio-barra-h {
+  display: grid;
+  grid-template-columns: minmax(76px, 116px) minmax(40px, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-2);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.inicio-barras-h--compacta .inicio-barra-h {
+  grid-template-columns: minmax(56px, 88px) minmax(32px, 1fr) auto;
+}
+
+.inicio-barra-h__rotulo {
+  overflow: hidden;
+  color: var(--texto-secundario);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inicio-barra-h__pista {
+  display: block;
+  width: 100%;
+  height: var(--esp-2);
+}
+
+.inicio-barra-h__valor {
+  font-weight: 650;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.inicio-barra-h__valor--salida {
+  color: var(--color-error);
+}
+
+.inicio-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-3);
+  margin-top: auto;
+  padding-top: var(--esp-2);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--texto-secundario);
+  border-top: 1px solid var(--linea-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.inicio-leyenda--pie strong {
+  color: var(--color-texto);
+  font-weight: 650;
+}
+
+.inicio-leyenda__items {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.inicio-leyenda__muestra {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.inicio-leyenda__color {
+  display: inline-block;
+  width: var(--esp-2);
+  height: var(--esp-2);
+  border-radius: 2px;
+}
+
+.inicio-leyenda__color--hoy {
+  background: var(--color-acento);
+}
+
+.inicio-leyenda__color--previo {
+  background: #cfd4b0;
+}
+
+.inicio-leyenda__linea {
+  display: inline-block;
+  width: var(--esp-3);
+  height: 0;
+  border-top: 2px dashed var(--color-acento);
+}
+
+.inicio-flujo__vacio {
+  margin: var(--esp-2) 0;
+  font-size: 12.5px;
+  line-height: 16px;
+  color: var(--texto-secundario);
+}
+
+.inicio-panel-cargando {
+  min-height: 180px;
+}
+
+.inicio-panel-cargando__grafica {
+  display: block;
+  width: 100%;
+  height: 112px;
+}
+
+@container area (max-width: 959px) {
+  .inicio__tablero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Cargando: una rueda discreta junto al texto. */
 .cargando {
   display: inline-flex;

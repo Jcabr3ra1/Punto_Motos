@@ -5,6 +5,7 @@ import type { CurrentCash, DailySettlement, Sale } from '../../api/types'
 import { dueno, errorDeApi, simularApi, vendedor } from '../../test/apiSimulada'
 import { caja, local, paginaDe, producto, proveedor, venta } from '../../test/datos'
 import { mostrarRutas } from '../../test/mostrar'
+import { diaEnColombia, hoyEnColombia, moverDia } from '../../utilidades/fechas'
 import { saludoSegunHora } from '../../utilidades/saludo'
 
 afterEach(() => {
@@ -50,6 +51,13 @@ describe('saludoSegunHora', () => {
     expect(saludoSegunHora(new Date(2026, 10, 6, 18, 59))).toBe('Buenas tardes')
     expect(saludoSegunHora(new Date(2026, 10, 6, 19, 0))).toBe('Buenas noches')
     expect(saludoSegunHora(new Date(2026, 10, 6, 2, 0))).toBe('Buenas noches')
+  })
+
+  it('calcula fechas calendario en Colombia sin desfase horario', () => {
+    expect(moverDia('2026-11-08', -6)).toBe('2026-11-02')
+    expect(moverDia('2026-03-03', -6)).toBe('2026-02-25')
+    expect(moverDia('2026-01-05', -10)).toBe('2025-12-26')
+    expect(diaEnColombia('2026-11-09T04:40:00Z')).toBe('2026-11-08')
   })
 })
 
@@ -102,10 +110,11 @@ describe('inicio del dueño', () => {
       },
     })
 
+    const hoy = hoyEnColombia()
     const ventas = await instrumento('Ventas de hoy')
     await waitFor(() => expect(within(ventas).getByText('403 ventas')).toBeInTheDocument())
     expect(ventas).toHaveTextContent(/\$\s?403\.000/)
-    expect(api.llamadas.filter((l) => l.clave.startsWith('GET /sales?') && l.clave.includes('voided=false'))).toHaveLength(3)
+    expect(api.llamadas.filter((l) => l.clave.startsWith('GET /sales?') && l.clave.includes(`date_from=${hoy}`) && l.clave.includes('voided=false'))).toHaveLength(3)
   })
 
   it('las cuentas incluyen lo que deben proveedores y locales desactivados', async () => {
@@ -169,6 +178,172 @@ describe('inicio del dueño', () => {
 
     expect(await screen.findByRole('region', { name: 'Productos de la venta' })).toBeInTheDocument()
   })
+
+  it('muestra gráficas accesibles en los cuatro instrumentos superiores y cuenta ventas con taller', async () => {
+    const hoy = hoyEnColombia()
+    abrir(
+      dueno,
+      {
+        'GET /sales*': () => ({
+          cuerpo: paginaDe([
+            ventaDeLista({ id: 1, total: 300000, services_count: 2, created_at: `${hoy}T10:15:00-05:00` }),
+            ventaDeLista({ id: 2, total: 150000, services_count: 0, created_at: `${hoy}T23:30:00-05:00` }),
+          ]),
+        }),
+      },
+      {
+        is_open: true,
+        session: caja({
+          expected_cash: 520000,
+          opening_cash: 100000,
+          summary: {
+            by_kind: [
+              { kind: 'sale', kind_label: 'Venta', cash: 300000, transfer: 150000 },
+              { kind: 'consignee_payment', kind_label: 'Pago de consignación', cash: 50000, transfer: 0 },
+              { kind: 'expense', kind_label: 'Gasto', cash: -30000, transfer: 0 },
+            ],
+            cash_total: 320000,
+            transfer_total: 150000,
+          },
+        }),
+      },
+    )
+
+    const cajaDeHoy = await instrumento('Caja de hoy')
+    await waitFor(() => expect(within(cajaDeHoy).getByRole('img', { name: /Cobros de hoy/i })).toBeInTheDocument())
+    expect(cajaDeHoy).toHaveTextContent(/70\s*%/)
+    expect(cajaDeHoy).toHaveTextContent(/30\s*%/)
+
+    const ventas = await instrumento('Ventas de hoy')
+    await waitFor(() => expect(within(ventas).getByRole('img', { name: /Ventas por hora de hoy/i })).toBeInTheDocument())
+    expect(ventas).toHaveTextContent('1 con taller')
+    expect(ventas).toHaveTextContent(/11 p\. m\./)
+
+    const mecanicos = await instrumento('Mecánicos hoy')
+    await waitFor(() => expect(within(mecanicos).getByRole('img', { name: /Por pagar hoy por mecánico/i })).toBeInTheDocument())
+    expect(mecanicos).toHaveTextContent('Pedro')
+    expect(mecanicos).toHaveTextContent(/\$\s?120\.000/)
+
+    const cuentas = await instrumento('Cuentas')
+    await waitFor(() => expect(within(cuentas).getByRole('img', { name: /Comparación de cuentas/i })).toBeInTheDocument())
+    expect(cuentas).toHaveTextContent('2 proveedores · 1 local')
+  })
+
+  it('muestra el ritmo de ventas de 7 días recorriendo páginas y permite cambiar a 30 días', async () => {
+    const hoy = hoyEnColombia()
+    const haceDosDias = moverDia(hoy, -2)
+    const haceDiezDias = moverDia(hoy, -10)
+    const desde7 = moverDia(hoy, -6)
+    const desde30 = moverDia(hoy, -29)
+
+    const api = abrir(dueno, {
+      'GET /sales*': (_, ruta) => {
+        const texto = String(ruta)
+        if (texto.includes('page_size=5')) return { cuerpo: paginaDe([ventaDeLista()]) }
+        if (texto.includes(`date_from=${desde7}`)) {
+          const pagina = Number(new URLSearchParams(texto.split('?')[1]).get('page') ?? 1)
+          if (pagina === 1) {
+            const lote = Array.from({ length: 200 }, (_, i) =>
+              ventaDeLista({ id: 500 + i, total: 1000, created_at: `${haceDosDias}T14:00:00-05:00` }),
+            )
+            return { cuerpo: paginaDe(lote, { count: 201, next: 'x?page=2' }) }
+          }
+          // 23:40 en Colombia es 04:40 UTC del día siguiente: debe quedar en `hoy`, no fuera del rango.
+          return {
+            cuerpo: paginaDe(
+              [ventaDeLista({ id: 901, total: 500000, created_at: `${moverDia(hoy, 1)}T04:40:00Z` })],
+              { count: 201, next: null },
+            ),
+          }
+        }
+        if (texto.includes(`date_from=${desde30}`)) {
+          return {
+            cuerpo: paginaDe([
+              ventaDeLista({ id: 950, total: 900000, created_at: `${haceDiezDias}T11:00:00-05:00` }),
+              ventaDeLista({ id: 951, total: 500000, created_at: `${hoy}T16:00:00-05:00` }),
+            ]),
+          }
+        }
+        return { cuerpo: paginaDe([ventaDeLista({ id: 1, total: 500000, created_at: `${hoy}T16:00:00-05:00` })]) }
+      },
+    })
+
+    const ritmo = await instrumento('Ritmo de ventas')
+    await waitFor(() => expect(ritmo).toHaveTextContent(/\$\s?700\.000/))
+    expect(within(ritmo).getByRole('button', { name: '7 días' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(ritmo).getByRole('img', { name: /Ritmo de ventas de los últimos 7 días/i })).toBeInTheDocument()
+    expect(ritmo).toHaveTextContent(/\$\s?100\.000/)
+    expect(ritmo).toHaveTextContent(/\$\s?500\.000/)
+    expect(api.llamadas.filter((l) => l.clave.includes(`date_from=${desde7}`) && l.clave.includes('voided=false'))).toHaveLength(2)
+
+    await userEvent.setup().click(within(ritmo).getByRole('button', { name: '30 días' }))
+    expect(within(ritmo).getByRole('button', { name: '30 días' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(ritmo).toHaveTextContent(/\$\s?1\.400\.000/))
+    expect(within(ritmo).getByRole('img', { name: /Ritmo de ventas de los últimos 30 días/i })).toBeInTheDocument()
+    expect(api.llamadas.some((l) => l.clave.includes(`date_from=${desde30}`) && l.clave.includes(`date_to=${hoy}`))).toBe(true)
+  })
+
+  it('muestra el flujo de la caja de hoy separando entradas, salidas, efectivo y transferencias', async () => {
+    abrir(
+      dueno,
+      {},
+      {
+        is_open: true,
+        session: caja({
+          summary: {
+            by_kind: [
+              { kind: 'sale', kind_label: 'Venta', cash: 400000, transfer: 200000 },
+              { kind: 'consignee_payment', kind_label: 'Pago de consignación', cash: 80000, transfer: 0 },
+              { kind: 'supplier_payment', kind_label: 'Abono a proveedor', cash: -150000, transfer: -50000 },
+              { kind: 'mechanic_payment', kind_label: 'Pago a mecánico', cash: -90000, transfer: 0 },
+            ],
+            cash_total: 240000,
+            transfer_total: 150000,
+          },
+        }),
+      },
+    )
+
+    const flujo = await instrumento('Flujo de la caja de hoy')
+    await waitFor(() => expect(flujo).toHaveTextContent(/\+\$\s?680\.000/))
+    expect(flujo).toHaveTextContent(/-\$\s?290\.000/)
+    expect(within(flujo).getByRole('img', { name: /Movimientos de la caja de hoy/i })).toBeInTheDocument()
+    expect(flujo).toHaveTextContent('Abono a proveedor')
+    expect(flujo).toHaveTextContent(/Efectivo neto:\s*\+\$\s?240\.000/)
+    expect(flujo).toHaveTextContent(/Transferencias:\s*\+\$\s?150\.000/)
+  })
+
+  it('en el flujo de caja avisa cuando la caja está cerrada', async () => {
+    abrir(dueno, {}, { is_open: false, session: null, suggested_opening_cash: 0 })
+
+    const flujo = await instrumento('Flujo de la caja de hoy')
+    await waitFor(() => expect(flujo).toHaveTextContent(/La caja está cerrada/))
+  })
+
+  it('cuando falta el resumen de caja no inventa ceros', async () => {
+    abrir(dueno, {}, { is_open: true, session: caja({ summary: undefined }) })
+
+    const cajaDeHoy = await instrumento('Caja de hoy')
+    await waitFor(() => expect(cajaDeHoy).toHaveTextContent(/Resumen de cobros no disponible/))
+    const flujo = await instrumento('Flujo de la caja de hoy')
+    await waitFor(() => expect(flujo).toHaveTextContent(/resumen no está disponible/i))
+  })
+
+  it('si falla el ritmo de ventas, los demás paneles del tablero siguen operativos', async () => {
+    const hoy = hoyEnColombia()
+    const desde7 = moverDia(hoy, -6)
+    abrir(dueno, {
+      'GET /sales*': (_, ruta) => {
+        if (String(ruta).includes(`date_from=${desde7}`)) return errorDeApi(500, 'server_error', 'Falló.')
+        return { cuerpo: paginaDe([ventaDeLista({ total: 125000 })]) }
+      },
+    })
+
+    const ritmo = await instrumento('Ritmo de ventas')
+    await waitFor(() => expect(ritmo).toHaveTextContent('No se pudo cargar'))
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Ventas de hoy' })).toHaveTextContent(/\$\s?125\.000/))
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Flujo de la caja de hoy' })).toHaveTextContent(/\+\$\s?43\.000/))
+  })
 })
 
 describe('inicio del vendedor', () => {
@@ -179,10 +354,13 @@ describe('inicio del vendedor', () => {
     await screen.findByRole('table', { name: 'Ventas de hoy' })
     expect(screen.queryByRole('region', { name: 'Caja de hoy' })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Cuentas' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Ritmo de ventas' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Flujo de la caja de hoy' })).not.toBeInTheDocument()
     const pedidas = api.llamadas.map((l) => l.clave)
     expect(pedidas.some((c) => c.startsWith('GET /mechanic-settlements'))).toBe(false)
     expect(pedidas.some((c) => c.startsWith('GET /suppliers'))).toBe(false)
     expect(pedidas.some((c) => c.startsWith('GET /consignees'))).toBe(false)
+    expect(pedidas.some((c) => c.startsWith('GET /sales?') && c.includes('voided=false'))).toBe(false)
   })
 
   it('dice si la caja está abierta para vender', async () => {
