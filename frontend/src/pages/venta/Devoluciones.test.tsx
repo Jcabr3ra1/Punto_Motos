@@ -66,7 +66,7 @@ describe('registrar devolución desde el detalle de la venta', () => {
       }),
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Devolver…' }))
+    await u.click(await screen.findByRole('button', { name: 'Devolver' }))
     expect(screen.queryByRole('option', { name: /Mal servicio/ })).not.toBeInTheDocument()
 
     const cantidad = screen.getByLabelText('Cantidad a devolver de FRE-PUL-PAS · Pastillas de freno Pulsar 180')
@@ -141,7 +141,7 @@ describe('registrar devolución desde el detalle de la venta', () => {
       }),
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Devolver…' }))
+    await u.click(await screen.findByRole('button', { name: 'Devolver' }))
     await u.selectOptions(screen.getByLabelText('Causa'), 'bad_service')
     await u.type(screen.getByLabelText('Motivo de la devolución'), 'Quedó botando aceite')
 
@@ -179,7 +179,7 @@ describe('registrar devolución desde el detalle de la venta', () => {
     mostrarRutas(vendedor, '/venta/historial/41')
     const u = userEvent.setup()
 
-    await u.click(await screen.findByRole('button', { name: 'Devolver…' }))
+    await u.click(await screen.findByRole('button', { name: 'Devolver' }))
 
     expect(screen.getByRole('dialog', { name: 'Devolver productos o servicios' })).toHaveClass('panel-lateral--ancho')
   })
@@ -195,7 +195,7 @@ describe('registrar devolución desde el detalle de la venta', () => {
     })
 
     expect(await screen.findByText('Devueltas: 1 de 2')).toBeInTheDocument()
-    await u.click(screen.getByRole('button', { name: 'Devolver…' }))
+    await u.click(screen.getByRole('button', { name: 'Devolver' }))
 
     const cantidad = screen.getByLabelText('Cantidad a devolver de FRE-PUL-PAS · Pastillas de freno Pulsar 180')
     expect(cantidad).toHaveAttribute('max', '1')
@@ -214,7 +214,7 @@ describe('registrar devolución desde el detalle de la venta', () => {
           : { estado: 201, cuerpo: devolucion() },
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Devolver…' }))
+    await u.click(await screen.findByRole('button', { name: 'Devolver' }))
     const cantidad = screen.getByLabelText('Cantidad a devolver de FRE-PUL-PAS · Pastillas de freno Pulsar 180')
     await u.clear(cantidad)
     await u.type(cantidad, '1')
@@ -265,7 +265,7 @@ describe('registrar devolución desde el detalle de la venta', () => {
         }),
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Devolver…' }))
+    await u.click(await screen.findByRole('button', { name: 'Devolver' }))
     const cantidadPastillas = screen.getByLabelText('Cantidad a devolver de FRE-PUL-PAS · Pastillas de freno Pulsar 180')
     await u.clear(cantidadPastillas)
     await u.type(cantidadPastillas, '1')

@@ -140,3 +140,27 @@ izquierda (en el recibo, «Devolver…» y «Anular venta…», que funcionan ig
 «Cerrar» a la derecha. Se abre desde el registro negro o desde el número (o la
 fecha) de cada fila. Las direcciones directas siguen mostrando la página.
 
+
+## Compras
+
+- **Compras:** libro con registro negro (total, estado, proveedor, saldo, pago y
+  productos). Barra: período (abre en todas las fechas), botones Todas,
+  Borradores y Recibidas, Proveedor y Pago como listas con forma de botón.
+  **Abrir una compra** (desde el registro, su número o un enlace del estado de
+  cuenta o de abonos) la muestra en el **panel lateral amplio** sobre la lista:
+  el borrador se edita y se recibe ahí; la recibida se consulta y se le abona.
+  La ruta `/compras/lista/:id` ahora muestra la lista con ese panel abierto, y al
+  cerrarlo se vuelve a la lista con sus filtros.
+- **Proveedores:** libro con registro negro (lo que se le debe, NIT, teléfono,
+  notas y compras con saldo; «Abonar» y «Estado de cuenta»). El estado de cuenta
+  se abre en la ventana emergente en lugar de reemplazar la pantalla. Barra:
+  búsqueda, botones Con saldo y Desactivados; acciones de fila como iconos.
+- **Abonos:** libro sin registro; período (por fecha de pago) y Proveedor. A
+  qué compras se aplicó va bajo el proveedor («Aplicado a FV-1001 y FV-1020»,
+  con enlaces y los montos en el `title`), sin columna propia.
+
+## Textos de los botones
+
+Juan pidió que ningún botón lleve puntos suspensivos: «Pagar», «Recibir
+compra», «Devolver», «Anular venta», «Fechas». Solo los textos de carga
+(«Guardando…») los conservan mientras algo trabaja.

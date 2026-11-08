@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router'
+import { useLocation } from 'react-router'
 import { obtenerCompra } from '../../api/compras'
 import { claves } from '../../api/consultas'
 import type { PriceChange, PurchaseDetail } from '../../api/types'
@@ -16,9 +16,12 @@ import { FormularioDeCompra } from './FormularioDeCompra'
 const nombreDeCompra = (compra: { id: number; document_number: string }) =>
   compra.document_number ? `Compra ${compra.document_number}` : `Compra n.º ${compra.id}`
 
-// Una compra: el borrador se edita y se recibe; la recibida solo se consulta y se le abona.
-export function DetalleDeCompra() {
-  const id = Number(useParams().id)
+/**
+ * Una compra en el panel lateral amplio, sobre la lista: el borrador se edita y se recibe; la recibida solo se
+ * consulta y se le abona. Se abre con la dirección `/compras/lista/:id` (desde la lista, el estado de cuenta o los
+ * abonos) y al cerrar se vuelve a la lista.
+ */
+export function PanelDeCompra({ id, onCerrar }: { id: number; onCerrar: () => void }) {
   const avisoDeLlegada = (useLocation().state as { aviso?: string } | null)?.aviso ?? null
   const [aviso, setAviso] = useState<string | null>(avisoDeLlegada)
   const [cambiosDePrecio, setCambiosDePrecio] = useState<PriceChange[] | null>(null)
@@ -28,32 +31,30 @@ export function DetalleDeCompra() {
     queryFn: ({ signal }) => obtenerCompra(id, signal),
     enabled: Number.isInteger(id) && id > 0,
   })
-
-  if (compra.isPending) return <Cargando />
-  if (compra.isError) return <ErrorDeCarga error={compra.error} onReintentar={() => void compra.refetch()} />
-
   const datos = compra.data
+
   return (
-    <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>
-          {nombreDeCompra(datos)} · {datos.supplier.name}
-        </Titulo>
-        <Link to="/compras/lista">Volver a la lista</Link>
-      </div>
+    <PanelLateral
+      titulo={datos ? `${nombreDeCompra(datos)} · ${datos.supplier.name}` : 'Compra'}
+      modulo="Compras"
+      descripcion={
+        datos?.status === 'draft'
+          ? `Borrador de ${datos.created_by}, del ${formatearFechaHora(datos.created_at)}. No toca el inventario hasta recibirla.`
+          : undefined
+      }
+      ancho="amplio"
+      onCerrar={onCerrar}
+    >
+      {compra.isPending && <Cargando />}
+      {compra.isError && <ErrorDeCarga error={compra.error} onReintentar={() => void compra.refetch()} />}
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
         </p>
       )}
-
-      {datos.status === 'draft' ? (
-        <>
-          <p className="texto-suave">
-            <span className="etiqueta etiqueta--neutra">Borrador</span> Creado el {formatearFechaHora(datos.created_at)} por{' '}
-            {datos.created_by}. No toca el inventario hasta recibirla.
-          </p>
-          {/* La clave reinicia el formulario cuando el backend devuelve una versión nueva. */}
+      {datos &&
+        (datos.status === 'draft' ? (
+          // La clave reinicia el formulario cuando el backend devuelve una versión nueva.
           <FormularioDeCompra
             key={datos.id}
             compra={datos}
@@ -63,12 +64,12 @@ export function DetalleDeCompra() {
               setAviso('Compra recibida: las existencias, los costos y los saldos ya se actualizaron.')
               setCambiosDePrecio(recibida.price_changes)
             }}
+            onCancelar={onCerrar}
           />
-        </>
-      ) : (
-        <CompraRecibida compra={datos} cambiosDePrecio={cambiosDePrecio} onAviso={setAviso} />
-      )}
-    </>
+        ) : (
+          <CompraRecibida compra={datos} cambiosDePrecio={cambiosDePrecio} onAviso={setAviso} />
+        ))}
+    </PanelLateral>
   )
 }
 

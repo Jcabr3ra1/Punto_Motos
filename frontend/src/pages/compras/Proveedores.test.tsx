@@ -48,14 +48,30 @@ describe('lista de proveedores', () => {
     const { api, u } = await abrir()
 
     await u.type(screen.getByLabelText('Buscar'), 'andina')
-    await u.click(screen.getByLabelText('Solo a los que se les debe'))
-    await u.click(screen.getByLabelText('Mostrar desactivados'))
+    await u.click(screen.getByRole('button', { name: 'Con saldo' }))
+    await u.click(screen.getByRole('button', { name: 'Desactivados' }))
 
     await waitFor(() =>
       expect(llamadas(api, 'GET /suppliers?')).toContain('GET /suppliers?q=andina&with_debt=true&include_inactive=true'),
     )
     expect(await screen.findByText('Motopartes Viejo')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Motopartes Viejo/ })).toHaveTextContent('Desactivado')
+  })
+})
+
+describe('registro del proveedor', () => {
+  it('muestra lo que se le debe, sus datos y sus compras con saldo, con Abonar y Estado de cuenta', async () => {
+    const { u } = await abrir()
+    expect(screen.getByText('Elige un proveedor para ver su cuenta.')).toBeInTheDocument()
+
+    await u.click(within(screen.getByRole('table', { name: 'Proveedores' })).getByText('Distribuidora Andina'))
+
+    const registro = await screen.findByRole('complementary', { name: 'Distribuidora Andina' })
+    expect(registro).toHaveTextContent(/\$\s?105\.000/)
+    await waitFor(() => expect(registro).toHaveTextContent('FV-1020'))
+    expect(within(registro).getByRole('button', { name: 'Abonar' })).toBeInTheDocument()
+    await u.click(within(registro).getByRole('button', { name: 'Estado de cuenta' }))
+    expect(await screen.findByRole('dialog', { name: 'Estado de cuenta de «Distribuidora Andina»' })).toBeInTheDocument()
   })
 })
 
@@ -125,10 +141,12 @@ describe('estado de cuenta', () => {
 
     await u.click(screen.getByRole('button', { name: 'Estado de cuenta de Distribuidora Andina' }))
 
-    expect(await screen.findByLabelText('Saldo del proveedor')).toHaveTextContent(/\$\s?105\.000/)
-    const compras = (await screen.findAllByRole('table'))[0]
+    // El estado de cuenta se abre en una ventana emergente sobre la lista.
+    const ventana = await screen.findByRole('dialog', { name: 'Estado de cuenta de «Distribuidora Andina»' })
+    expect(await within(ventana).findByLabelText('Saldo del proveedor')).toHaveTextContent(/\$\s?105\.000/)
+    const compras = (await within(ventana).findAllByRole('table'))[0]
     expect(within(compras).getByRole('link', { name: 'FV-1020' })).toHaveAttribute('href', '/compras/lista/15')
-    expect(await screen.findByText('Nequi')).toBeInTheDocument()
+    expect(await within(ventana).findByText('Nequi')).toBeInTheDocument()
     expect(llamadas(api, 'GET /purchases')).toContain('GET /purchases?supplier=1&payment_status=pending%2Cpartial')
     expect(llamadas(api, 'GET /supplier-payments')).toContain('GET /supplier-payments?supplier=1')
   })

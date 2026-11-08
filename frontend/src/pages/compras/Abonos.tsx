@@ -1,34 +1,41 @@
 import { HandCoins } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { listarAbonos, listarProveedores, type FiltrosDeAbonos } from '../../api/compras'
 import { claves } from '../../api/consultas'
-import { Campo } from '../../components/Campo'
-import { CampoSelector } from '../../components/CampoSelector'
+import { BarraDeFiltros, ListaDeFiltro } from '../../components/BarraDeFiltros'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FiltroDePeriodo } from '../../components/FiltroDePeriodo'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { useConteo } from '../../hooks/useConteo'
+import { MEDIDAS_DEL_LIBRO, useFilasQueCaben } from '../../hooks/useFilasQueCaben'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearDia } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
+import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
 import { useDeudaConProveedores } from './useDeudaConProveedores'
 import { FormularioDeAbono } from './FormularioDeAbono'
 import { EstadoVacio } from '../../components/EstadoVacio'
 import { useHoy } from '../../hooks/useHoy'
 
-function leerFiltros(params: URLSearchParams): FiltrosDeAbonos {
+/** Abre con todas las fechas, como antes. */
+const PERIODO_INICIAL: Periodo = 'todas'
+
+function leerFiltros(params: URLSearchParams, hoy: string, porPagina: number): FiltrosDeAbonos & { periodo: Periodo } {
   const proveedor = Number(params.get('supplier'))
   const pagina = Number(params.get('page'))
+  const periodo = leerPeriodo(params, PERIODO_INICIAL)
   return {
+    periodo,
     supplier: Number.isInteger(proveedor) && proveedor > 0 ? proveedor : undefined,
-    date_from: params.get('date_from') || undefined,
-    date_to: params.get('date_to') || undefined,
+    ...rangoDePeriodo(periodo, hoy, { desde: params.get('date_from') || undefined, hasta: params.get('date_to') || undefined }),
     page: Number.isInteger(pagina) && pagina > 1 ? pagina : undefined,
+    page_size: porPagina,
   }
 }
 
@@ -37,7 +44,11 @@ export function Abonos() {
   const [params, setParams] = useSearchParams()
   const [registrando, setRegistrando] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  const filtros = leerFiltros(params)
+  const hoy = useHoy()
+  const lista = useRef<HTMLElement>(null)
+  const porPagina = useFilasQueCaben(lista, MEDIDAS_DEL_LIBRO)
+  const filtros = leerFiltros(params, hoy, porPagina)
+  const { periodo, ...consulta } = filtros
 
   function cambiar(parcial: Record<string, string | undefined>) {
     const siguiente = new URLSearchParams(params)
@@ -49,25 +60,32 @@ export function Abonos() {
     setParams(siguiente, { replace: true })
   }
 
+  function elegirPeriodo(valor: Periodo) {
+    cambiar({
+      periodo: valor === PERIODO_INICIAL ? undefined : valor,
+      ...(valor === 'fechas' ? {} : { date_from: undefined, date_to: undefined }),
+    })
+  }
+
   const proveedores = useQuery({
     queryKey: [...claves.proveedores, { include_inactive: true }],
     queryFn: ({ signal }) => listarProveedores({ include_inactive: true }, signal),
   })
   const abonos = useQuery({
-    queryKey: [...claves.abonos, filtros],
-    queryFn: ({ signal }) => listarAbonos(filtros, signal),
+    queryKey: [...claves.abonos, consulta],
+    queryFn: ({ signal }) => listarAbonos(consulta, signal),
     placeholderData: keepPreviousData,
   })
 
-  const hayFiltros = Boolean(filtros.supplier || filtros.date_from || filtros.date_to)
-  const inicioDelMes = `${useHoy().slice(0, 8)}01`
+  const hayFiltros = Boolean(filtros.supplier || periodo !== PERIODO_INICIAL)
+  const inicioDelMes = `${hoy.slice(0, 8)}01`
   const delMes = useConteo([...claves.abonos, 'mes', inicioDelMes], (signal) =>
     listarAbonos({ date_from: inicioDelMes, page_size: 1 }, signal),
   )
   const deuda = useDeudaConProveedores()
 
   return (
-    <>
+    <section className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.abonos.icono}
         titulo="Abonos a proveedores"
@@ -97,44 +115,39 @@ export function Abonos() {
           {aviso}
         </p>
       )}
-      <div className="filtros" role="search" aria-label="Filtrar abonos">
-        <CampoSelector
-          etiqueta="Proveedor"
-          value={filtros.supplier ? String(filtros.supplier) : ''}
-          onChange={(e) => cambiar({ supplier: e.target.value || undefined })}
-          opciones={[
-            { valor: '', texto: 'Todos los proveedores' },
-            ...(proveedores.data ?? []).map((p) => ({ valor: String(p.id), texto: p.name })),
-          ]}
+      <BarraDeFiltros>
+        <FiltroDePeriodo
+          periodo={periodo}
+          desde={params.get('date_from') ?? ''}
+          hasta={params.get('date_to') ?? ''}
+          onPeriodo={elegirPeriodo}
+          onDesde={(dia) => cambiar({ date_from: dia || undefined })}
+          onHasta={(dia) => cambiar({ date_to: dia || undefined })}
         />
-        <Campo
-          etiqueta="Pagados desde"
-          type="date"
-          value={filtros.date_from ?? ''}
-          onChange={(e) => cambiar({ date_from: e.target.value || undefined })}
-        />
-        <Campo
-          etiqueta="Hasta"
-          type="date"
-          value={filtros.date_to ?? ''}
-          onChange={(e) => cambiar({ date_to: e.target.value || undefined })}
-        />
-      </div>
-
-      {abonos.isPending && <Cargando />}
-      {abonos.isError && <ErrorDeCarga error={abonos.error} onReintentar={() => void abonos.refetch()} />}
-      {abonos.isSuccess && (
-        <>
-          <p role="status" className="texto-suave">
+        <ListaDeFiltro etiqueta="Proveedor" valor={filtros.supplier ? String(filtros.supplier) : ''} onCambiar={(p) => cambiar({ supplier: p || undefined })}>
+          <option value="">Todos</option>
+          {(proveedores.data ?? []).map((p) => (
+            <option key={p.id} value={String(p.id)}>
+              {p.name}
+            </option>
+          ))}
+        </ListaDeFiltro>
+        {abonos.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
             {abonos.data.count === 1 ? '1 abono' : `${formatearNumero(abonos.data.count)} abonos`}
           </p>
-          {abonos.data.count === 0 ? (
-            <EstadoVacio
-              icono={DESTINOS.abonos.icono}
-              mensaje={hayFiltros ? 'Ningún abono coincide con los filtros.' : 'Todavía no hay abonos.'}
-            />
-          ) : (
-            <>
+        )}
+      </BarraDeFiltros>
+
+      {/* Sin detalle por fila: cada abono dice bajo el proveedor a qué compras se aplicó. */}
+      <div className="libro libro--sin-registro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de abonos">
+          {abonos.isPending && <Cargando />}
+          {abonos.isError && <ErrorDeCarga error={abonos.error} onReintentar={() => void abonos.refetch()} />}
+          {abonos.isSuccess &&
+            (abonos.data.count === 0 ? (
+              <EstadoVacio icono={DESTINOS.abonos.icono} mensaje={hayFiltros ? 'Ningún abono coincide con los filtros.' : 'Todavía no hay abonos.'} />
+            ) : (
               <div className="tabla-contenedor">
                 <table className="tabla">
                   <caption className="solo-lectores">Abonos a proveedores</caption>
@@ -145,48 +158,66 @@ export function Abonos() {
                       <th scope="col" className="tabla__numero">
                         Valor
                       </th>
-                      <th scope="col">Medio</th>
-                      <th scope="col">Aplicado a</th>
-                      <th scope="col">Notas</th>
-                      <th scope="col">Registró</th>
+                      <th scope="col" className="libro__secundaria">
+                        Notas
+                      </th>
+                      <th scope="col" className="libro__secundaria">
+                        Registró
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {abonos.data.results.map((abono) => (
                       <tr key={abono.id}>
                         <td className="tabla__nowrap">{formatearDia(abono.paid_on)}</td>
-                        <td>{abono.supplier.name}</td>
-                        <td className="tabla__numero">{formatearPesos(abono.amount)}</td>
-                        <td>{abono.method_label}</td>
-                        <td>
-                          {abono.allocations.map((reparto) => (
-                            <span key={reparto.purchase} className="tabla__detalle">
-                              <Link to={`/compras/lista/${reparto.purchase}`}>
-                                {reparto.document_number || `Compra n.º ${reparto.purchase}`}
-                              </Link>
-                              : {formatearPesos(reparto.amount)}
+                        <td
+                          title={abono.allocations
+                            .map((r) => `${r.document_number || `Compra n.º ${r.purchase}`}: ${formatearPesos(r.amount)}`)
+                            .join(', ')}
+                        >
+                          {abono.supplier.name}
+                          {/* A qué compras se aplicó, en una línea bajo el proveedor; los montos, en el title. */}
+                          {abono.allocations.length > 0 && (
+                            <span className="tabla__detalle">
+                              Aplicado a{' '}
+                              {abono.allocations.map((reparto, indice) => (
+                                <span key={reparto.purchase}>
+                                  {indice > 0 && (indice === abono.allocations.length - 1 ? ' y ' : ', ')}
+                                  <Link to={`/compras/lista/${reparto.purchase}`}>{reparto.document_number || `Compra n.º ${reparto.purchase}`}</Link>
+                                </span>
+                              ))}
                             </span>
-                          ))}
+                          )}
                         </td>
-                        <td>{abono.notes || '—'}</td>
-                        <td>{abono.created_by}</td>
+                        <td className="tabla__numero">
+                          {formatearPesos(abono.amount)}
+                          <span className="tabla__detalle">{abono.method_label}</span>
+                        </td>
+                        <td className="libro__secundaria libro__recortado" title={abono.notes || undefined}>
+                          {abono.notes || '—'}
+                        </td>
+                        <td className="libro__secundaria">{abono.created_by}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <Paginacion
-                etiqueta="Páginas de abonos"
-                pagina={filtros.page ?? 1}
-                total={abonos.data.count}
-                hayAnterior={Boolean(abonos.data.previous)}
-                haySiguiente={Boolean(abonos.data.next)}
-                onCambiar={(pagina) => cambiar({ page: String(pagina) })}
-              />
-            </>
+            ))}
+          {abonos.isSuccess && (
+            <Paginacion
+              etiqueta="Páginas de abonos"
+              pagina={filtros.page ?? 1}
+              total={abonos.data.count}
+              tamano={porPagina}
+              hayAnterior={Boolean(abonos.data.previous)}
+              haySiguiente={Boolean(abonos.data.next)}
+              onCambiar={(pagina) => cambiar({ page: String(pagina) })}
+              mostrarSiempre
+              textoAnterior="Atrás"
+            />
           )}
-        </>
-      )}
+        </section>
+      </div>
       {registrando && (
         <PanelLateral
           titulo="Registrar abono"
@@ -204,6 +235,6 @@ export function Abonos() {
           />
         </PanelLateral>
       )}
-    </>
+    </section>
   )
 }

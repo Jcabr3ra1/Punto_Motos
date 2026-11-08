@@ -127,14 +127,14 @@ describe('detalle y anulación', () => {
     mostrarRutas(dueno, '/venta/historial/41')
     const u = userEvent.setup()
 
-    await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
+    await u.click(await screen.findByRole('button', { name: 'Anular venta' }))
     expect(screen.getByRole('alertdialog', { name: '¿Anular la venta n.º 41?' })).toHaveTextContent(/las unidades vuelven al inventario/)
     await u.type(screen.getByLabelText('Motivo'), 'Se cobró al cliente equivocado')
     await u.click(screen.getByRole('button', { name: 'Sí, anular la venta' }))
 
     expect(await screen.findByText(/Venta n\.º 41 anulada/)).toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Recibo n.º 41' })).toHaveTextContent('Motivo: Se cobró al cliente equivocado')
-    expect(screen.queryByRole('button', { name: 'Anular venta…' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Anular venta' })).not.toBeInTheDocument()
     expect(api.llamadas.find((l) => l.clave === 'POST /sales/41/void')?.cuerpo).toEqual({ reason: 'Se cobró al cliente equivocado' })
   })
 
@@ -143,7 +143,7 @@ describe('detalle y anulación', () => {
     mostrarRutas(dueno, '/venta/historial/41')
     const u = userEvent.setup()
 
-    await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
+    await u.click(await screen.findByRole('button', { name: 'Anular venta' }))
 
     const dialogo = screen.getByRole('alertdialog', { name: '¿Anular la venta n.º 41?' })
     expect(within(dialogo).getByLabelText('Motivo')).toHaveFocus()
@@ -160,7 +160,7 @@ describe('detalle y anulación', () => {
     mostrarRutas(dueno, '/venta/historial/41')
     const u = userEvent.setup()
 
-    await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
+    await u.click(await screen.findByRole('button', { name: 'Anular venta' }))
     await u.click(screen.getByRole('button', { name: 'Sí, anular la venta' }))
 
     expect(await screen.findByText('Este campo no puede estar en blanco.')).toBeInTheDocument()
@@ -175,7 +175,7 @@ describe('detalle y anulación', () => {
     mostrarRutas(dueno, '/venta/historial/41')
     const u = userEvent.setup()
 
-    await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
+    await u.click(await screen.findByRole('button', { name: 'Anular venta' }))
     await u.type(screen.getByLabelText('Motivo'), 'Error')
     await u.click(screen.getByRole('button', { name: 'Sí, anular la venta' }))
 
@@ -202,7 +202,7 @@ describe('detalle y anulación', () => {
     mostrarRutas(dueno, '/venta/historial/41')
     const u = userEvent.setup()
 
-    await u.click(await screen.findByRole('button', { name: 'Anular venta…' }))
+    await u.click(await screen.findByRole('button', { name: 'Anular venta' }))
     await u.type(screen.getByLabelText('Motivo'), 'Error')
     await u.click(screen.getByRole('button', { name: 'Sí, anular la venta' }))
 

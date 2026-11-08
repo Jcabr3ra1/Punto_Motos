@@ -7,7 +7,6 @@ import { NoEncontrada } from './pages/NoEncontrada'
 import { ActualizarPrograma } from './pages/configuracion/ActualizarPrograma'
 import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
 import { Abonos } from './pages/compras/Abonos'
-import { DetalleDeCompra } from './pages/compras/DetalleDeCompra'
 import { ListaDeCompras } from './pages/compras/ListaDeCompras'
 import { Proveedores } from './pages/compras/Proveedores'
 import { Catalogo } from './pages/configuracion/catalogo/Catalogo'
@@ -93,7 +92,8 @@ export function Rutas() {
           <Route index element={<Navigate to="lista" replace />} />
           <Route path="lista" element={<ListaDeCompras />} />
           <Route path="lista/nueva" element={<ListaDeCompras nueva />} />
-          <Route path="lista/:id" element={<DetalleDeCompra />} />
+          {/* La compra se abre en el panel amplio sobre la lista, no en otra página. */}
+          <Route path="lista/:id" element={<ListaDeCompras />} />
           <Route path="proveedores" element={<Proveedores />} />
           <Route path="abonos" element={<Abonos />} />
         </Route>
