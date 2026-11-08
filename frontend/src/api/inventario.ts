@@ -31,6 +31,7 @@ export interface FiltrosDeMovimientos {
   date_from?: string
   date_to?: string
   page?: number
+  page_size?: number
 }
 
 /** Kárdex paginado, del más reciente al más antiguo. El vendedor no recibe `unit_cost`. */
@@ -42,6 +43,7 @@ export const listarMovimientos = (filtros: FiltrosDeMovimientos, signal?: AbortS
       date_from: filtros.date_from,
       date_to: filtros.date_to,
       page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+      page_size: filtros.page_size,
     },
     signal,
   })

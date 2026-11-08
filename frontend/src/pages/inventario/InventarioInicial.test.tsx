@@ -166,7 +166,7 @@ describe('terminar el conteo', () => {
 
     expect(await screen.findByText(/El inventario inicial ya terminó el/)).toHaveTextContent('lo terminó dueno')
     expect(screen.getByText(/Se cargaron 149 productos con 1\.332 unidades/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ver los productos' })).toHaveAttribute('href', '/productos')
+    expect(screen.getByRole('link', { name: 'Ver los productos' })).toHaveAttribute('href', '/inventario/productos')
     expect(within(menu).queryByRole('link', { name: 'Inventario inicial' })).not.toBeInTheDocument()
     expect(api.cuantas('POST /inventory/initial-count/finish')).toBe(1)
   })

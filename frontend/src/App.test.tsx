@@ -119,6 +119,36 @@ describe('asistente del dueño', () => {
 describe('inicio de sesión', () => {
   const rutas = { 'GET /health': salud, 'GET /setup/status': necesitaDueno(false) }
 
+  it('no muestra la versión ni la ayuda de contraseña', async () => {
+    simularApi(rutas)
+    render(<App />)
+
+    await screen.findByLabelText('Usuario')
+    expect(screen.queryByText(/versión/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/olvidaste/i)).not.toBeInTheDocument()
+  })
+
+  it('dice si hay conexión con el programa', async () => {
+    simularApi(rutas)
+    render(<App />)
+
+    expect(await screen.findByText('Conectado')).toBeInTheDocument()
+  })
+
+  it('la contraseña se puede mostrar y volver a ocultar', async () => {
+    simularApi(rutas)
+    render(<App />)
+    const u = userEvent.setup()
+    const clave = await screen.findByLabelText('Contraseña')
+    expect(clave).toHaveAttribute('type', 'password')
+
+    await u.click(screen.getByRole('button', { name: 'Mostrar contraseña' }))
+    expect(clave).toHaveAttribute('type', 'text')
+
+    await u.click(screen.getByRole('button', { name: 'Ocultar contraseña' }))
+    expect(clave).toHaveAttribute('type', 'password')
+  })
+
   it('abre la sesión con las credenciales correctas', async () => {
     const api = simularApi({ ...rutas, 'POST /auth/login': () => ({ cuerpo: sesion }) })
     render(<App />)

@@ -12,10 +12,17 @@ import { BuscadorDeProductos } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
+import { useConteo } from '../../hooks/useConteo'
+import { DESTINOS } from '../../navegacion/destinos'
+import { formatearNumero } from '../../utilidades/numeros'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { SelectorDeLocal } from './SelectorDeLocal'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 // Entregas en consignación (solo el dueño): las unidades salen del inventario hacia otro local, con un valor
 // pactado por unidad (por defecto el costo). No se editan ni se borran.
@@ -30,6 +37,10 @@ export function Entregas() {
     queryFn: ({ signal }) => listarEntregas(filtros, signal),
     placeholderData: keepPreviousData,
   })
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
+  const delMes = useConteo([...claves.consignacion, 'entregas', 'mes', inicioDelMes], (signal) =>
+    listarEntregas({ date_from: inicioDelMes, page_size: 1 }, signal),
+  )
 
   if (nueva) {
     return (
@@ -48,20 +59,27 @@ export function Entregas() {
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Entregas</Titulo>
-        <button
-          type="button"
-          className="boton boton--auto"
-          onClick={() => {
-            setAviso(null)
-            setNueva(true)
-          }}
-        >
-          <PackageOpen aria-hidden="true" size={16} />
-          Nueva entrega
-        </button>
-      </div>
+      <EncabezadoDePantalla
+        icono={DESTINOS.entregas.icono}
+        titulo="Entregas"
+        descripcion="Mercancía que sale a un local en consignación."
+        acciones={
+            <button
+              type="button"
+              className="boton boton--auto"
+              onClick={() => {
+                setAviso(null)
+                setNueva(true)
+              }}
+            >
+              <PackageOpen aria-hidden="true" size={16} />
+              Nueva entrega
+            </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[{ rotulo: 'Entregas este mes', valor: formatearNumero(delMes.data ?? 0), cargando: delMes.isPending, error: delMes.isError }]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
@@ -82,7 +100,7 @@ export function Entregas() {
       {entregas.isError && <ErrorDeCarga error={entregas.error} onReintentar={() => void entregas.refetch()} />}
       {entregas.isSuccess &&
         (entregas.data.count === 0 ? (
-          <p className="texto-suave">Todavía no hay entregas.</p>
+          <EstadoVacio icono={DESTINOS.entregas.icono} mensaje="Todavía no hay entregas." />
         ) : (
           <>
             <div className="tabla-contenedor">

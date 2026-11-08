@@ -50,4 +50,10 @@ describe('buscarPantallas', () => {
   it('las coincidencias por nombre van antes que las de descripción', () => {
     expect(rutas(buscarPantallas('ventas', 'owner', false))[0]).toBe(DESTINOS.ventas.ruta)
   })
+
+  it('mecánicos está dentro de Taller', () => {
+    const [primero] = buscarPantallas('mecanicos', 'owner', false)
+    expect(primero.destino).toBe(DESTINOS.mecanicos)
+    expect(primero.modulo).toBe(DESTINOS.taller)
+  })
 })

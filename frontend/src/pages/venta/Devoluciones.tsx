@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { Undo2 } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import type { ReturnCause } from '../../api/types'
@@ -6,12 +7,20 @@ import { listarDevoluciones, obtenerDevolucion, type FiltrosDeDevoluciones } fro
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Paginacion } from '../../components/Paginacion'
+import { useConteo } from '../../hooks/useConteo'
+import { useSeleccion } from '../../hooks/useSeleccion'
+import { DESTINOS } from '../../navegacion/destinos'
 import { Titulo } from '../../components/Titulo'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { ComprobanteDeDevolucion } from './ComprobanteDeDevolucion'
+import { FichaDeDevolucion } from './FichaDeDevolucion'
+import { useHoy } from '../../hooks/useHoy'
 
 function leerFiltros(params: URLSearchParams): FiltrosDeDevoluciones {
   const numero = Number(params.get('number'))
@@ -49,10 +58,24 @@ export function Devoluciones() {
     placeholderData: keepPreviousData,
   })
   const hayFiltros = Boolean(filtros.number || filtros.sale || filtros.cause || filtros.date_from || filtros.date_to)
+  const seleccion = useSeleccion(devoluciones.data?.results, (devolucion) => devolucion.id)
+  const hoy = useHoy()
+  const deHoy = useConteo([...claves.devoluciones, 'hoy', hoy], (signal) =>
+    listarDevoluciones({ date_from: hoy, date_to: hoy, page_size: 1 }, signal),
+  )
 
   return (
     <>
-      <Titulo nivel={2}>Devoluciones</Titulo>
+      <EncabezadoDePantalla
+        icono={DESTINOS.devoluciones.icono}
+        titulo="Devoluciones"
+        descripcion="Lo que los clientes devolvieron. Se registran desde el detalle de cada venta."
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Devoluciones de hoy', valor: formatearNumero(deHoy.data ?? 0), cargando: deHoy.isPending, error: deHoy.isError },
+        ]}
+      />
       <div className="filtros" role="search" aria-label="Filtrar devoluciones">
         <Campo
           etiqueta="N.º de devolución"
@@ -94,12 +117,16 @@ export function Devoluciones() {
             {devoluciones.data.count === 1 ? '1 devolución' : `${formatearNumero(devoluciones.data.count)} devoluciones`}
           </p>
           {devoluciones.data.count === 0 ? (
-            <p className="texto-suave">
-              {hayFiltros ? 'Ninguna devolución coincide con los filtros.' : 'Todavía no hay devoluciones.'}
-            </p>
+            <EstadoVacio
+              icono={Undo2}
+              mensaje={hayFiltros ? 'Ninguna devolución coincide con los filtros.' : 'Todavía no hay devoluciones.'}
+            />
           ) : (
-            <>
-              <div className="tabla-contenedor">
+            <div className={seleccion.elegido ? 'con-ficha' : undefined}>
+              <div className="tabla-contenedor" tabIndex={0} onKeyDown={seleccion.alTeclear} aria-describedby="ayuda-devoluciones">
+                <p id="ayuda-devoluciones" className="solo-lectores">
+                  Usa las flechas para ver el detalle de cada devolución.
+                </p>
                 <table className="tabla">
                   <caption className="solo-lectores">Devoluciones</caption>
                   <thead>
@@ -117,9 +144,16 @@ export function Devoluciones() {
                   </thead>
                   <tbody>
                     {devoluciones.data.results.map((d) => (
-                      <tr key={d.id}>
+                      <tr
+                        key={d.id}
+                        className="tabla__fila--elegible"
+                        aria-selected={seleccion.elegido?.id === d.id}
+                        onClick={seleccion.alHacerClic(d)}
+                      >
                         <th scope="row">
-                          <Link to={`/venta/devoluciones/${d.id}`}>N.º {d.number}</Link>
+                          <Link to={`/venta/devoluciones/${d.id}`} className="tabla__codigo">
+                            N.º {d.number}
+                          </Link>
                         </th>
                         <td>
                           <Link to={`/venta/historial/${d.sale}`}>Venta n.º {d.sale_number}</Link>
@@ -148,7 +182,10 @@ export function Devoluciones() {
                 haySiguiente={Boolean(devoluciones.data.next)}
                 onCambiar={(pagina) => cambiar({ page: String(pagina) })}
               />
-            </>
+              {seleccion.elegido && (
+                <FichaDeDevolucion id={seleccion.elegido.id} numero={seleccion.elegido.number} onCerrar={seleccion.cerrar} />
+              )}
+            </div>
           )}
         </>
       )}

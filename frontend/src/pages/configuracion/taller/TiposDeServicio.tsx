@@ -9,9 +9,13 @@ import { AvisoDeError } from '../../../components/AvisoDeError'
 import { Campo } from '../../../components/Campo'
 import { Casilla } from '../../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
-import { Titulo } from '../../../components/Titulo'
+import { EncabezadoDePantalla } from '../../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../../components/FranjaDeIndicadores'
+import { useAtajo } from '../../../hooks/useAtajo'
+import { DESTINOS } from '../../../navegacion/destinos'
 import { formatearPesos } from '../../../utilidades/dinero'
 import { PanelLateral } from '../../../components/PanelLateral'
+import { EstadoVacio } from '../../../components/EstadoVacio'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; servicio: ServiceType }
 
@@ -29,24 +33,46 @@ export function TiposDeServicio() {
     setAviso(mensaje)
     setVista(siguiente)
   }
+  useAtajo('n', () => ir({ tipo: 'crear' }))
 
   const servicio = vista.tipo === 'editar' ? vista.servicio : undefined
   const panel = vista.tipo !== 'lista' && (
-    <PanelLateral titulo={servicio ? `Editar «${servicio.name}»` : 'Nuevo tipo de servicio'} modulo="Configuración" descripcion="Un servicio que ofrece el taller, con su código para cobrarlo rápido." onCerrar={() => ir({ tipo: 'lista' })}>
+    <PanelLateral titulo={servicio ? `Editar «${servicio.name}»` : 'Nuevo tipo de servicio'} modulo="Taller" descripcion="Un servicio que ofrece el taller, con su código para cobrarlo rápido." onCerrar={() => ir({ tipo: 'lista' })}>
       <FormularioDeTipo servicio={servicio} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
     </PanelLateral>
   )
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Tipos de servicio</Titulo>
-        <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
-          <Plus aria-hidden="true" size={16} />
-          Nuevo tipo de servicio
-        </button>
-      </div>
-      <p className="texto-suave">En la venta se agregan escribiendo su código en el buscador. No se eliminan: se desactivan.</p>
+      <EncabezadoDePantalla
+        icono={DESTINOS.tiposDeServicio.icono}
+        titulo="Tipos de servicio"
+        descripcion="En la venta se agregan escribiendo su código en el buscador. No se eliminan: se desactivan."
+        acciones={
+          <button
+            type="button"
+            className="boton boton--auto boton--con-icono"
+            onClick={() => ir({ tipo: 'crear' })}
+            aria-keyshortcuts="Control+N"
+          >
+            <Plus aria-hidden="true" size={16} />
+            Nuevo tipo de servicio
+            <kbd className="atajo-visible" aria-hidden="true">
+              Ctrl+N
+            </kbd>
+          </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          {
+            rotulo: 'Servicios activos',
+            valor: String(tipos.data?.filter((uno) => uno.is_active).length ?? 0),
+            cargando: tipos.isPending,
+            error: tipos.isError,
+          },
+        ]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
@@ -56,7 +82,7 @@ export function TiposDeServicio() {
       {tipos.isError && <ErrorDeCarga error={tipos.error} onReintentar={() => void tipos.refetch()} />}
       {tipos.isSuccess &&
         (tipos.data.length === 0 ? (
-          <p className="texto-suave">Todavía no hay tipos de servicio.</p>
+          <EstadoVacio icono={DESTINOS.tiposDeServicio.icono} mensaje="Todavía no hay tipos de servicio." />
         ) : (
           <div className="tabla-contenedor">
             <table className="tabla">
@@ -77,7 +103,9 @@ export function TiposDeServicio() {
               <tbody>
                 {tipos.data.map((tipo) => (
                   <tr key={tipo.id} className={tipo.is_active ? undefined : 'tabla__fila--inactiva'}>
-                    <td className="tabla__codigo">{tipo.code}</td>
+                    <td>
+                      <span className="tabla__codigo">{tipo.code}</span>
+                    </td>
                     <th scope="row">
                       {tipo.name}
                     </th>

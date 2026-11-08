@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router'
 import { crearClienteDeConsultas } from './api/consultas'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
+import { useTamanoDeVentana } from './desktop/useTamanoDeVentana'
 import { Rutas } from './Rutas'
 import { AsistenteDelDueno } from './pages/acceso/AsistenteDelDueno'
 import { InicioDeSesion } from './pages/acceso/InicioDeSesion'
@@ -11,6 +12,7 @@ import { Conectando, SinConexion } from './pages/acceso/PantallaDeConexion'
 
 function Pantalla() {
   const { estado, reintentar } = useAuth()
+  useTamanoDeVentana(estado.fase === 'con-sesion')
 
   switch (estado.fase) {
     case 'conectando':

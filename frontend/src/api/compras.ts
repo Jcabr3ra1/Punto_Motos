@@ -53,6 +53,7 @@ export interface FiltrosDeCompras {
   date_from?: string
   date_to?: string
   page?: number
+  page_size?: number
 }
 
 export const listarCompras = (filtros: FiltrosDeCompras = {}, signal?: AbortSignal) =>
@@ -64,6 +65,7 @@ export const listarCompras = (filtros: FiltrosDeCompras = {}, signal?: AbortSign
       date_from: filtros.date_from,
       date_to: filtros.date_to,
       page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+      page_size: filtros.page_size,
     },
     signal,
   })
@@ -91,6 +93,7 @@ export interface FiltrosDeAbonos {
   date_from?: string
   date_to?: string
   page?: number
+  page_size?: number
 }
 
 export const listarAbonos = (filtros: FiltrosDeAbonos = {}, signal?: AbortSignal) =>
@@ -100,6 +103,7 @@ export const listarAbonos = (filtros: FiltrosDeAbonos = {}, signal?: AbortSignal
       date_from: filtros.date_from,
       date_to: filtros.date_to,
       page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+      page_size: filtros.page_size,
     },
     signal,
   })

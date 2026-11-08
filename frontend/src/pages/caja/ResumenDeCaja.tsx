@@ -20,7 +20,7 @@ export function CifrasDeCaja({ caja }: { caja: CashSession }) {
         <dt>Efectivo inicial</dt>
         <dd>{formatearPesos(caja.opening_cash)}</dd>
       </div>
-      <div>
+      <div className="avance__destacado">
         <dt>{caja.is_open ? 'Efectivo esperado en el cajón' : 'Efectivo esperado al cierre'}</dt>
         <dd>{formatearPesos(caja.expected_cash)}</dd>
       </div>

@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dueno, vendedor, simularApi, errorDeApi } from './test/apiSimulada'
+import { RUTAS_ANTERIORES } from './navegacion/destinos'
 import { pagina, producto } from './test/datos'
 import { mostrarRutas as mostrar } from './test/mostrar'
 
@@ -20,6 +21,9 @@ beforeEach(() => {
     'GET /catalog/categories*': () => ({ cuerpo: [] }),
     'GET /catalog/brands*': () => ({ cuerpo: [] }),
     'GET /catalog/motos*': () => ({ cuerpo: [] }),
+    'GET /service-types*': () => ({ cuerpo: [] }),
+    'GET /mechanics*': () => ({ cuerpo: [] }),
+    'GET /inventory/movements*': () => ({ cuerpo: pagina([]) }),
   })
 })
 
@@ -28,14 +32,13 @@ afterEach(() => {
 })
 
 const menuPrincipal = () => screen.getByRole('navigation', { name: 'Principal' })
-const menuConfiguracion = () => screen.getByRole('navigation', { name: 'Configuración' })
 
 describe('menú principal', () => {
   it('muestra el menú completo del dueño y marca la pantalla actual', () => {
     mostrar(dueno)
 
-    const enlaces = within(menuPrincipal()).getAllByRole('link')
-    expect(enlaces.map((e) => e.textContent)).toEqual(['Inicio', 'Venta', 'Productos', 'Movimientos', 'Compras', 'Taller', 'Caja', 'Consignación', 'Configuración'])
+    const entradas = Array.from(menuPrincipal().querySelectorAll('.menu-lateral__seccion')).map((e) => e.getAttribute('aria-label') ?? e.textContent)
+    expect(entradas).toEqual(['Inicio', 'Mostrador', 'Inventario', 'Taller', 'Compras', 'Caja', 'Consignación', 'Configuración'])
     expect(within(menuPrincipal()).getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page')
   })
 
@@ -49,7 +52,7 @@ describe('menú principal', () => {
   it('navega a otra pantalla al elegirla', async () => {
     mostrar(dueno)
 
-    await userEvent.setup().click(within(menuPrincipal()).getByRole('link', { name: 'Productos' }))
+    await userEvent.setup().click(within(menuPrincipal()).getByRole('button', { name: 'Inventario' }))
 
     expect(screen.getByRole('heading', { name: 'Productos' })).toBeInTheDocument()
     expect(within(menuPrincipal()).getByRole('link', { name: 'Productos' })).toHaveAttribute('aria-current', 'page')
@@ -152,14 +155,14 @@ describe('barra superior', () => {
 describe('inventario inicial en el menú', () => {
   it('el dueño ve la entrada mientras el conteo esté abierto', async () => {
     simularApi({ 'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_ABIERTO }) })
-    mostrar(dueno)
+    mostrar(dueno, '/inventario/productos')
 
     expect(await within(menuPrincipal()).findByRole('link', { name: 'Inventario inicial' })).toBeInTheDocument()
   })
 
   it('el dueño no la ve cuando el conteo ya terminó', async () => {
     const api = simularApi({ 'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_TERMINADO }) })
-    mostrar(dueno)
+    mostrar(dueno, '/inventario/productos')
 
     await waitFor(() => expect(api.cuantas('GET /inventory/initial-count')).toBe(1))
     expect(within(menuPrincipal()).queryByRole('link', { name: 'Inventario inicial' })).not.toBeInTheDocument()
@@ -174,7 +177,7 @@ describe('inventario inicial en el menú', () => {
   })
 
   it('el vendedor que escribe la dirección ve que no tiene permiso', () => {
-    mostrar(vendedor, '/inventario-inicial')
+    mostrar(vendedor, '/inventario/inicial')
 
     expect(screen.getByRole('heading', { name: 'No tienes permiso para ver esta pantalla' })).toBeInTheDocument()
   })
@@ -202,20 +205,6 @@ describe('configuración', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
-  it('el dueño ve todas las pestañas', () => {
-    mostrar(dueno, '/configuracion/negocio')
-
-    const pestanas = within(menuConfiguracion()).getAllByRole('link')
-    expect(pestanas.map((p) => p.textContent)).toEqual(['Datos del negocio', 'Tipos, marcas y motos', 'Tipos de servicio', 'Mecánicos', 'Usuarios'])
-  })
-
-  it('el vendedor solo ve Datos del negocio', () => {
-    mostrar(vendedor, '/configuracion/negocio')
-
-    const pestanas = within(menuConfiguracion()).getAllByRole('link')
-    expect(pestanas.map((p) => p.textContent)).toEqual(['Datos del negocio'])
-  })
-
   it('el dueño entra a Usuarios', () => {
     mostrar(dueno, '/configuracion/usuarios')
 
@@ -231,6 +220,59 @@ describe('configuración', () => {
       expect(screen.getByRole('link', { name: 'Volver al inicio' })).toBeInTheDocument()
     },
   )
+})
+
+describe('pantallas en su sección', () => {
+  it.each([
+    ['/inventario/productos', 'Productos'],
+    ['/inventario/catalogo', 'Tipos, marcas y motos'],
+    ['/taller/mecanicos', 'Mecánicos'],
+    ['/taller/servicios', 'Tipos de servicio'],
+    ['/configuracion/actualizaciones', 'Actualizar programa'],
+  ])('las pantallas movidas abren en su ruta nueva: %s', async (ruta, titulo) => {
+    mostrar(dueno, ruta)
+
+    expect(await screen.findByRole('heading', { name: titulo })).toBeInTheDocument()
+  })
+
+  it.each(Object.entries(RUTAS_ANTERIORES))('la ruta anterior %s lleva a %s', async (anterior) => {
+    mostrar(dueno, anterior)
+
+    expect(screen.queryByRole('heading', { name: 'No encontramos esa pantalla' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'No tienes permiso para ver esta pantalla' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThan(0)
+  })
+
+  it('/inventario lleva a Productos', async () => {
+    mostrar(dueno, '/inventario')
+
+    expect(await screen.findByRole('heading', { name: 'Productos' })).toBeInTheDocument()
+  })
+
+  it.each(['/inventario/catalogo', '/taller/mecanicos', '/configuracion/actualizaciones'])(
+    'el vendedor no entra a %s',
+    (ruta) => {
+      mostrar(vendedor, ruta)
+
+      expect(screen.getByRole('heading', { name: 'No tienes permiso para ver esta pantalla' })).toBeInTheDocument()
+    },
+  )
+
+  it.each(['/compras/proveedores', '/configuracion/negocio', '/inventario/productos', '/taller/mecanicos'])(
+    'la sección de %s tiene un solo título principal',
+    (ruta) => {
+      mostrar(dueno, ruta)
+
+      expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    },
+  )
+
+  it('Inicio ya no ofrece actualizar el programa', () => {
+    mostrar(dueno)
+
+    expect(screen.queryByText('Buscando actualizaciones…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /buscar actualizaciones/i })).not.toBeInTheDocument()
+  })
 })
 
 describe('direcciones inexistentes', () => {

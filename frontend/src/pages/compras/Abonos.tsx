@@ -9,11 +9,17 @@ import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { PanelLateral } from '../../components/PanelLateral'
-import { Titulo } from '../../components/Titulo'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
+import { useConteo } from '../../hooks/useConteo'
+import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearDia } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
+import { useDeudaConProveedores } from './useDeudaConProveedores'
 import { FormularioDeAbono } from './FormularioDeAbono'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 function leerFiltros(params: URLSearchParams): FiltrosDeAbonos {
   const proveedor = Number(params.get('supplier'))
@@ -54,23 +60,38 @@ export function Abonos() {
   })
 
   const hayFiltros = Boolean(filtros.supplier || filtros.date_from || filtros.date_to)
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
+  const delMes = useConteo([...claves.abonos, 'mes', inicioDelMes], (signal) =>
+    listarAbonos({ date_from: inicioDelMes, page_size: 1 }, signal),
+  )
+  const deuda = useDeudaConProveedores()
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Abonos a proveedores</Titulo>
-        <button
-          type="button"
-          className="boton boton--auto"
-          onClick={() => {
-            setAviso(null)
-            setRegistrando(true)
-          }}
-        >
-          <HandCoins aria-hidden="true" size={16} />
-          Registrar abono
-        </button>
-      </div>
+      <EncabezadoDePantalla
+        icono={DESTINOS.abonos.icono}
+        titulo="Abonos a proveedores"
+        descripcion="Pagos a los proveedores. Se reparten entre sus compras pendientes, de la más antigua a la más nueva."
+        acciones={
+          <button
+            type="button"
+            className="boton boton--auto boton--con-icono"
+            onClick={() => {
+              setAviso(null)
+              setRegistrando(true)
+            }}
+          >
+            <HandCoins aria-hidden="true" size={16} />
+            Registrar abono
+          </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Abonos este mes', valor: formatearNumero(delMes.data ?? 0), cargando: delMes.isPending, error: delMes.isError },
+          { rotulo: 'Debo en total', valor: formatearPesos(deuda.total), cargando: deuda.cargando, error: deuda.error },
+        ]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
@@ -108,9 +129,10 @@ export function Abonos() {
             {abonos.data.count === 1 ? '1 abono' : `${formatearNumero(abonos.data.count)} abonos`}
           </p>
           {abonos.data.count === 0 ? (
-            <p className="texto-suave">
-              {hayFiltros ? 'Ningún abono coincide con los filtros.' : 'Todavía no hay abonos.'}
-            </p>
+            <EstadoVacio
+              icono={DESTINOS.abonos.icono}
+              mensaje={hayFiltros ? 'Ningún abono coincide con los filtros.' : 'Todavía no hay abonos.'}
+            />
           ) : (
             <>
               <div className="tabla-contenedor">

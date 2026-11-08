@@ -9,8 +9,12 @@ import { AvisoDeError } from '../../../components/AvisoDeError'
 import { Campo } from '../../../components/Campo'
 import { Casilla } from '../../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
-import { Titulo } from '../../../components/Titulo'
+import { EncabezadoDePantalla } from '../../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../../components/FranjaDeIndicadores'
+import { useAtajo } from '../../../hooks/useAtajo'
+import { DESTINOS } from '../../../navegacion/destinos'
 import { PanelLateral } from '../../../components/PanelLateral'
+import { EstadoVacio } from '../../../components/EstadoVacio'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; mecanico: Mechanic }
 
@@ -28,24 +32,46 @@ export function Mecanicos() {
     setAviso(mensaje)
     setVista(siguiente)
   }
+  useAtajo('n', () => ir({ tipo: 'crear' }))
 
   const mecanico = vista.tipo === 'editar' ? vista.mecanico : undefined
   const panel = vista.tipo !== 'lista' && (
-    <PanelLateral titulo={mecanico ? `Editar a ${mecanico.name}` : 'Nuevo mecánico'} modulo="Configuración" descripcion="Su parte de la mano de obra se liquida al final del día." onCerrar={() => ir({ tipo: 'lista' })}>
+    <PanelLateral titulo={mecanico ? `Editar a ${mecanico.name}` : 'Nuevo mecánico'} modulo="Taller" descripcion="Su parte de la mano de obra se liquida al final del día." onCerrar={() => ir({ tipo: 'lista' })}>
       <FormularioDeMecanico mecanico={mecanico} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
     </PanelLateral>
   )
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Mecánicos</Titulo>
-        <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
-          <Plus aria-hidden="true" size={16} />
-          Nuevo mecánico
-        </button>
-      </div>
-      <p className="texto-suave">No inician sesión en el programa: se eligen en cada servicio de la venta.</p>
+      <EncabezadoDePantalla
+        icono={DESTINOS.mecanicos.icono}
+        titulo="Mecánicos"
+        descripcion="No inician sesión en el programa: se eligen en cada servicio de la venta."
+        acciones={
+          <button
+            type="button"
+            className="boton boton--auto boton--con-icono"
+            onClick={() => ir({ tipo: 'crear' })}
+            aria-keyshortcuts="Control+N"
+          >
+            <Plus aria-hidden="true" size={16} />
+            Nuevo mecánico
+            <kbd className="atajo-visible" aria-hidden="true">
+              Ctrl+N
+            </kbd>
+          </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          {
+            rotulo: 'Mecánicos activos',
+            valor: String(mecanicos.data?.filter((uno) => uno.is_active).length ?? 0),
+            cargando: mecanicos.isPending,
+            error: mecanicos.isError,
+          },
+        ]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
@@ -55,7 +81,7 @@ export function Mecanicos() {
       {mecanicos.isError && <ErrorDeCarga error={mecanicos.error} onReintentar={() => void mecanicos.refetch()} />}
       {mecanicos.isSuccess &&
         (mecanicos.data.length === 0 ? (
-          <p className="texto-suave">Todavía no hay mecánicos.</p>
+          <EstadoVacio icono={DESTINOS.mecanicos.icono} mensaje="Todavía no hay mecánicos." />
         ) : (
           <div className="tabla-contenedor">
             <table className="tabla">

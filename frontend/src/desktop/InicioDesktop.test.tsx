@@ -39,10 +39,13 @@ it('no consulta Django hasta recibir la dirección y credencial de escritorio', 
     config: { baseUrl: 'http://127.0.0.1:49123/api/v1', appToken: 'credencial-efimera' },
   }))
   expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
-  expect(solicitudes).toEqual([
+  // Las dos primeras son las del arranque; después, el inicio de sesión vuelve a consultar /health para su punto de
+  // conexión. Todas llevan la credencial de escritorio.
+  expect(solicitudes.slice(0, 2)).toEqual([
     { url: 'http://127.0.0.1:49123/api/v1/health', token: 'credencial-efimera' },
     { url: 'http://127.0.0.1:49123/api/v1/setup/status', token: 'credencial-efimera' },
   ])
+  expect(solicitudes.every((s) => s.url.startsWith('http://127.0.0.1:49123/api/v1/') && s.token === 'credencial-efimera')).toBe(true)
 })
 
 it('espera mientras Rust informa que Django está arrancando', async () => {

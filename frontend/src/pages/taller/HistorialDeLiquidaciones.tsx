@@ -1,14 +1,22 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { History } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import { listarLiquidaciones, listarMecanicos, obtenerLiquidacion } from '../../api/taller'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Paginacion } from '../../components/Paginacion'
 import { Titulo } from '../../components/Titulo'
+import { useConteo } from '../../hooks/useConteo'
+import { useSeleccion } from '../../hooks/useSeleccion'
+import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearDia, formatearFechaHora } from '../../utilidades/fechas'
+import { FichaDeLiquidacion } from './FichaDeLiquidacion'
 import { HojaDeLiquidacion } from './HojaDeLiquidacion'
 
 /** Liquidaciones pagadas (solo el dueño), de la más reciente a la más antigua. */
@@ -41,10 +49,19 @@ export function HistorialDeLiquidaciones() {
     queryFn: ({ signal }) => listarLiquidaciones(filtros, signal),
     placeholderData: keepPreviousData,
   })
+  const seleccion = useSeleccion(liquidaciones.data?.results, (liquidacion) => liquidacion.id)
+  const todas = useConteo([...claves.liquidaciones, 'cuantas'], (signal) => listarLiquidaciones({ page_size: 1 }, signal))
 
   return (
     <>
-      <Titulo nivel={2}>Historial de liquidaciones</Titulo>
+      <EncabezadoDePantalla
+        icono={DESTINOS.historialDeLiquidaciones.icono}
+        titulo="Historial de liquidaciones"
+        descripcion="Lo que se les pagó a los mecánicos. Elige una para ver sus servicios."
+      />
+      <FranjaDeIndicadores
+        indicadores={[{ rotulo: 'Liquidaciones', valor: String(todas.data ?? 0), cargando: todas.isPending, error: todas.isError }]}
+      />
       <div className="filtros" role="search" aria-label="Filtrar liquidaciones">
         <CampoSelector
           etiqueta="Mecánico"
@@ -59,10 +76,13 @@ export function HistorialDeLiquidaciones() {
       {liquidaciones.isError && <ErrorDeCarga error={liquidaciones.error} onReintentar={() => void liquidaciones.refetch()} />}
       {liquidaciones.isSuccess &&
         (liquidaciones.data.count === 0 ? (
-          <p className="texto-suave">Todavía no hay liquidaciones.</p>
+          <EstadoVacio icono={History} mensaje="Todavía no hay liquidaciones." />
         ) : (
-          <>
-            <div className="tabla-contenedor">
+          <div className={seleccion.elegido ? 'con-ficha' : undefined}>
+            <div className="tabla-contenedor" tabIndex={0} onKeyDown={seleccion.alTeclear} aria-describedby="ayuda-liquidaciones">
+              <p id="ayuda-liquidaciones" className="solo-lectores">
+                Usa las flechas para ver el detalle de cada liquidación.
+              </p>
               <table className="tabla">
                 <caption className="solo-lectores">Liquidaciones pagadas</caption>
                 <thead>
@@ -83,7 +103,12 @@ export function HistorialDeLiquidaciones() {
                 </thead>
                 <tbody>
                   {liquidaciones.data.results.map((l) => (
-                    <tr key={l.id}>
+                    <tr
+                      key={l.id}
+                      className="tabla__fila--elegible"
+                      aria-selected={seleccion.elegido?.id === l.id}
+                      onClick={seleccion.alHacerClic(l)}
+                    >
                       <th scope="row">
                         <Link to={`/taller/historial/${l.id}`}>{formatearDia(l.date)}</Link>
                       </th>
@@ -114,7 +139,14 @@ export function HistorialDeLiquidaciones() {
               haySiguiente={Boolean(liquidaciones.data.next)}
               onCambiar={(pagina) => cambiar({ page: String(pagina) })}
             />
-          </>
+            {seleccion.elegido && (
+              <FichaDeLiquidacion
+                id={seleccion.elegido.id}
+                mecanico={seleccion.elegido.mechanic.name}
+                onCerrar={seleccion.cerrar}
+              />
+            )}
+          </div>
         ))}
     </>
   )

@@ -1,13 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { Estructura } from './estructura/Estructura'
 import { Permiso } from './estructura/Permiso'
-import { DESTINOS, MENU_CAJA, MENU_CONSIGNACION, MENU_TALLER, MENU_VENTA } from './navegacion/destinos'
-import { Inicio } from './pages/Inicio'
+import { DESTINOS, RUTAS_ANTERIORES } from './navegacion/destinos'
+import { Inicio } from './pages/inicio/Inicio'
 import { NoEncontrada } from './pages/NoEncontrada'
-import { Configuracion } from './pages/configuracion/Configuracion'
+import { ActualizarPrograma } from './pages/configuracion/ActualizarPrograma'
 import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
 import { Abonos } from './pages/compras/Abonos'
-import { Compras } from './pages/compras/Compras'
 import { DetalleDeCompra } from './pages/compras/DetalleDeCompra'
 import { ListaDeCompras } from './pages/compras/ListaDeCompras'
 import { NuevaCompra } from './pages/compras/NuevaCompra'
@@ -21,7 +20,7 @@ import { LiquidacionDelDia } from './pages/taller/LiquidacionDelDia'
 import { InventarioInicial } from './pages/inventario/InventarioInicial'
 import { Movimientos } from './pages/inventario/Movimientos'
 import { Productos } from './pages/productos/Productos'
-import { SeccionConPestanas } from './components/SeccionConPestanas'
+import { Seccion } from './components/Seccion'
 import { CajaDeHoy } from './pages/caja/CajaDeHoy'
 import { CajasAnteriores, DetalleDeCaja } from './pages/caja/CajasAnteriores'
 import { Entregas } from './pages/consignacion/Entregas'
@@ -33,13 +32,14 @@ import { DetalleDeVenta } from './pages/venta/DetalleDeVenta'
 import { Vender } from './pages/venta/Vender'
 import { Ventas } from './pages/venta/Ventas'
 
-// Rutas de la aplicación con sesión abierta. El enrutador (por hash) lo pone App.tsx.
+// Rutas de la aplicación con sesión abierta. El enrutador (por hash) lo pone App.tsx. Cada sección del menú es una
+// ruta con sus pantallas dentro; las secciones solo del dueño aplican el permiso una vez, en la sección.
 export function Rutas() {
   return (
     <Routes>
       <Route element={<Estructura />}>
         <Route index element={<Inicio />} />
-        <Route path="venta" element={<SeccionConPestanas titulo="Venta" destinos={MENU_VENTA} />}>
+        <Route path="venta" element={<Seccion titulo={DESTINOS.venta.etiqueta} />}>
           <Route index element={<Navigate to="vender" replace />} />
           <Route path="vender" element={<Vender />} />
           <Route path="historial" element={<Ventas />} />
@@ -47,22 +47,47 @@ export function Rutas() {
           <Route path="devoluciones" element={<Devoluciones />} />
           <Route path="devoluciones/:id" element={<DetalleDeDevolucion />} />
         </Route>
-        <Route path="productos" element={<Productos />} />
-        <Route path="inventario/movimientos" element={<Movimientos />} />
+        <Route path="inventario" element={<Seccion titulo={DESTINOS.inventario.etiqueta} />}>
+          <Route index element={<Navigate to="productos" replace />} />
+          <Route path="productos" element={<Productos />} />
+          <Route path="movimientos" element={<Movimientos />} />
+          <Route
+            path="inicial"
+            element={
+              <Permiso destino={DESTINOS.inventarioInicial} nivel={2}>
+                <InventarioInicial />
+              </Permiso>
+            }
+          />
+          <Route
+            path="catalogo"
+            element={
+              <Permiso destino={DESTINOS.catalogo} nivel={2}>
+                <Catalogo />
+              </Permiso>
+            }
+          />
+        </Route>
         <Route
-          path="inventario-inicial"
+          path="taller"
           element={
-            <Permiso destino={DESTINOS.inventarioInicial}>
-              <InventarioInicial />
+            <Permiso destino={DESTINOS.taller}>
+              <Seccion titulo={DESTINOS.taller.etiqueta} />
             </Permiso>
           }
-        />
-        {/* Todo Compras es solo del dueño: el permiso se aplica una vez, en la sección. */}
+        >
+          <Route index element={<Navigate to="liquidacion" replace />} />
+          <Route path="liquidacion" element={<LiquidacionDelDia />} />
+          <Route path="historial" element={<HistorialDeLiquidaciones />} />
+          <Route path="historial/:id" element={<DetalleDeLiquidacion />} />
+          <Route path="mecanicos" element={<Mecanicos />} />
+          <Route path="servicios" element={<TiposDeServicio />} />
+        </Route>
         <Route
           path="compras"
           element={
             <Permiso destino={DESTINOS.compras}>
-              <Compras />
+              <Seccion titulo={DESTINOS.compras.etiqueta} />
             </Permiso>
           }
         >
@@ -74,23 +99,10 @@ export function Rutas() {
           <Route path="abonos" element={<Abonos />} />
         </Route>
         <Route
-          path="taller"
-          element={
-            <Permiso destino={DESTINOS.taller}>
-              <SeccionConPestanas titulo="Taller" destinos={MENU_TALLER} />
-            </Permiso>
-          }
-        >
-          <Route index element={<Navigate to="liquidacion" replace />} />
-          <Route path="liquidacion" element={<LiquidacionDelDia />} />
-          <Route path="historial" element={<HistorialDeLiquidaciones />} />
-          <Route path="historial/:id" element={<DetalleDeLiquidacion />} />
-        </Route>
-        <Route
           path="caja"
           element={
             <Permiso destino={DESTINOS.caja}>
-              <SeccionConPestanas titulo="Caja" destinos={MENU_CAJA} />
+              <Seccion titulo={DESTINOS.caja.etiqueta} />
             </Permiso>
           }
         >
@@ -103,7 +115,7 @@ export function Rutas() {
           path="consignacion"
           element={
             <Permiso destino={DESTINOS.consignacion}>
-              <SeccionConPestanas titulo="Consignación" destinos={MENU_CONSIGNACION} />
+              <Seccion titulo={DESTINOS.consignacion.etiqueta} />
             </Permiso>
           }
         >
@@ -113,33 +125,9 @@ export function Rutas() {
           <Route path="reportes" element={<Reportes />} />
           <Route path="pagos" element={<PagosDeLocales />} />
         </Route>
-        <Route path="configuracion" element={<Configuracion />}>
+        <Route path="configuracion" element={<Seccion titulo={DESTINOS.configuracion.etiqueta} />}>
           <Route index element={<Navigate to="negocio" replace />} />
           <Route path="negocio" element={<DatosDelNegocio />} />
-          <Route
-            path="catalogo"
-            element={
-              <Permiso destino={DESTINOS.catalogo} nivel={2}>
-                <Catalogo />
-              </Permiso>
-            }
-          />
-          <Route
-            path="servicios"
-            element={
-              <Permiso destino={DESTINOS.tiposDeServicio} nivel={2}>
-                <TiposDeServicio />
-              </Permiso>
-            }
-          />
-          <Route
-            path="mecanicos"
-            element={
-              <Permiso destino={DESTINOS.mecanicos} nivel={2}>
-                <Mecanicos />
-              </Permiso>
-            }
-          />
           <Route
             path="usuarios"
             element={
@@ -148,7 +136,18 @@ export function Rutas() {
               </Permiso>
             }
           />
+          <Route
+            path="actualizaciones"
+            element={
+              <Permiso destino={DESTINOS.actualizaciones} nivel={2}>
+                <ActualizarPrograma />
+              </Permiso>
+            }
+          />
         </Route>
+        {Object.entries(RUTAS_ANTERIORES).map(([anterior, nueva]) => (
+          <Route key={anterior} path={anterior} element={<Navigate to={nueva} replace />} />
+        ))}
         <Route path="*" element={<NoEncontrada />} />
       </Route>
     </Routes>

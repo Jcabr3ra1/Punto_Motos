@@ -9,10 +9,17 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
+import { useConteo } from '../../hooks/useConteo'
+import { DESTINOS } from '../../navegacion/destinos'
+import { formatearNumero } from '../../utilidades/numeros'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { SelectorDeLocal } from './SelectorDeLocal'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 // Reportes de los locales (solo el dueño): cuántas unidades vendieron (suben su saldo al valor pactado) y
 // cuántas devolvieron (vuelven al inventario). No se editan ni se borran.
@@ -27,6 +34,10 @@ export function Reportes() {
     queryFn: ({ signal }) => listarReportes(filtros, signal),
     placeholderData: keepPreviousData,
   })
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
+  const delMes = useConteo([...claves.consignacion, 'reportes', 'mes', inicioDelMes], (signal) =>
+    listarReportes({ date_from: inicioDelMes, page_size: 1 }, signal),
+  )
 
   if (nuevo) {
     return (
@@ -45,20 +56,27 @@ export function Reportes() {
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Reportes</Titulo>
-        <button
-          type="button"
-          className="boton boton--auto"
-          onClick={() => {
-            setAviso(null)
-            setNuevo(true)
-          }}
-        >
-          <ClipboardCheck aria-hidden="true" size={16} />
-          Nuevo reporte
-        </button>
-      </div>
+      <EncabezadoDePantalla
+        icono={DESTINOS.reportes.icono}
+        titulo="Reportes"
+        descripcion="Lo que cada local reporta como vendido o devuelto."
+        acciones={
+            <button
+              type="button"
+              className="boton boton--auto"
+              onClick={() => {
+                setAviso(null)
+                setNuevo(true)
+              }}
+            >
+              <ClipboardCheck aria-hidden="true" size={16} />
+              Nuevo reporte
+            </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[{ rotulo: 'Reportes este mes', valor: formatearNumero(delMes.data ?? 0), cargando: delMes.isPending, error: delMes.isError }]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
@@ -79,7 +97,7 @@ export function Reportes() {
       {reportes.isError && <ErrorDeCarga error={reportes.error} onReintentar={() => void reportes.refetch()} />}
       {reportes.isSuccess &&
         (reportes.data.count === 0 ? (
-          <p className="texto-suave">Todavía no hay reportes.</p>
+          <EstadoVacio icono={DESTINOS.reportes.icono} mensaje="Todavía no hay reportes." />
         ) : (
           <>
             <div className="tabla-contenedor">
