@@ -3,7 +3,7 @@ import { useSalud } from '../../hooks/useSalud'
 
 /**
  * Marco de las pantallas de acceso (arranque, asistente e inicio de sesión) en la ventana pequeña: a la izquierda el
- * arte de la marca y el estado de la conexión; a la derecha el formulario.
+ * piñón de la marca centrado, «Bienvenido» y el estado de la conexión; a la derecha el formulario.
  */
 export function MarcoDeAcceso({
   titulo,
@@ -20,21 +20,9 @@ export function MarcoDeAcceso({
   return (
     <main className="acceso">
       <div className="acceso__arte">
-        <div className="acceso__decoracion" aria-hidden="true">
-          <img className="acceso__pinon" src="/logo.png" alt="" width={480} height={469} />
-          <span className="acceso__velocidad acceso__velocidad--1" />
-          <span className="acceso__velocidad acceso__velocidad--2" />
-          <span className="acceso__velocidad acceso__velocidad--3" />
-          <span className="acceso__velocidad acceso__velocidad--4" />
-        </div>
-        <div className="acceso__lema">
-          <p className="acceso__titular">
-            Tienda y taller,
-            <em> en un solo tablero.</em>
-          </p>
-          <p className="acceso__frase">Ventas, inventario, caja y mecánicos del día, al alcance de la mano.</p>
-          {conEstado && <EstadoDeConexion />}
-        </div>
+        <img className="acceso__pinon" src="/logo.png" alt="" aria-hidden="true" width={480} height={469} />
+        <p className="acceso__titular">Bienvenido</p>
+        {conEstado && <EstadoDeConexion />}
       </div>
       <div className="acceso__formulario">
         <h1>{titulo}</h1>
