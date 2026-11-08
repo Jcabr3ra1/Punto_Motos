@@ -12,7 +12,9 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { BuscadorDeProductos, type OpcionAdicional } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { Titulo } from '../../components/Titulo'
+import { DESTINOS } from '../../navegacion/destinos'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos } from '../../utilidades/dinero'
 import { useConteoInicial } from '../inventario/useConteoInicial'
@@ -256,6 +258,11 @@ export function Vender() {
 
   return (
     <form onSubmit={alCobrar} noValidate className="venta">
+      <EncabezadoDePantalla
+        icono={DESTINOS.vender.icono}
+        titulo="Vender"
+        descripcion="Busca productos o servicios, elige cómo paga el cliente y cobra."
+      />
       {cajaCerrada && (
         <p role="status" className="aviso aviso--advertencia">
           La caja está cerrada: no se puede vender.{' '}

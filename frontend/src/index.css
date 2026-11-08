@@ -1168,10 +1168,19 @@ kbd {
   max-width: 44rem;
 }
 
+/* Filtros con campo y rótulo: una barra de igual alto, rótulos pequeños en negrita como el resto del diseño. */
 .filtros {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 0 var(--esp-3);
+  margin-bottom: var(--esp-1);
+}
+
+.filtros .campo label {
+  margin-bottom: var(--esp-1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-secundario);
 }
 
 .filtros__casillas {
@@ -1595,38 +1604,55 @@ kbd {
 
 .venta__columnas {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 21rem;
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) 336px;
+  gap: var(--esp-3);
   align-items: start;
 }
 
+/* El carrito y el cobro, dos recuadros que empiezan a la misma altura. */
+.venta__carrito {
+  min-width: 0;
+  padding: var(--esp-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-top: 3px solid var(--color-borde);
+}
+
+/* El cobro como un recibo: filete lima arriba y el total en un instrumento negro. */
 .venta__cobro {
   position: sticky;
   top: 0;
-  padding: 1rem;
+  padding: var(--esp-4);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
+  border-top: 3px solid var(--color-marca);
 }
 
 .venta__total {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin: 0.5rem 0 1rem;
-  padding: 0.75rem 0;
-  border-top: 1px solid var(--color-borde);
-  border-bottom: 1px solid var(--color-borde);
+  margin: var(--esp-3) calc(-1 * var(--esp-4)) var(--esp-4);
+  padding: var(--esp-3) var(--esp-4);
+  color: var(--marco-texto);
+  background: var(--marco);
 }
 
 .venta__total dt {
+  font-size: 11.5px;
   font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
 }
 
 .venta__total dd {
   margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 32px;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
 }
 
 .venta__efectivo,
@@ -2206,6 +2232,7 @@ kbd {
 }
 
 .estructura__contenido a.tabla__codigo {
+  color: #3b3f45;
   text-decoration: none;
 }
 
@@ -2914,6 +2941,16 @@ kbd {
   gap: var(--esp-3);
 }
 
+/* La tabla, su paginación y lo demás van en la primera columna; la ficha ocupa la segunda de arriba abajo. */
+.con-ficha > * {
+  grid-column: 1;
+}
+
+.con-ficha > .ficha {
+  grid-row: 1 / span 4;
+  grid-column: 2;
+}
+
 .ficha {
   position: sticky;
   top: 0;
@@ -2994,7 +3031,63 @@ kbd {
   overflow-wrap: anywhere;
 }
 
+/* Las fechas no se parten: «7/11/2026, 7:46 p. m.» en una línea, en letra un poco menor. */
+.ficha__fecha {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.estructura__contenido .ficha__subtitulo {
+  margin: 0;
+  padding: var(--esp-3) 0 var(--esp-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+  border-top: 1px solid var(--linea-suave);
+}
+
+.ficha__lineas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ficha__lineas li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--esp-3);
+  padding: var(--esp-1) 0;
+  font-size: 12.5px;
+  border-bottom: 1px dashed var(--linea-suave);
+}
+
+.ficha__lineas li:last-child {
+  border-bottom: 0;
+}
+
+.ficha__linea-texto {
+  min-width: 0;
+}
+
+.ficha__linea-detalle {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-secundario);
+}
+
+.ficha__linea-monto {
+  flex-shrink: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .ficha__cifra {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
   margin: 0;
   padding: var(--esp-3) 0;
   font-size: 24px;

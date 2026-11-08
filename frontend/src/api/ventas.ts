@@ -76,6 +76,7 @@ export interface FiltrosDeDevoluciones {
   date_from?: string
   date_to?: string
   page?: number
+  page_size?: number
 }
 
 export const listarDevoluciones = (filtros: FiltrosDeDevoluciones = {}, signal?: AbortSignal) =>
@@ -87,6 +88,7 @@ export const listarDevoluciones = (filtros: FiltrosDeDevoluciones = {}, signal?:
       date_from: filtros.date_from,
       date_to: filtros.date_to,
       page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+      page_size: filtros.page_size,
     },
     signal,
   })

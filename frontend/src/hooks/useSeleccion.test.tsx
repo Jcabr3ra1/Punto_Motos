@@ -48,4 +48,13 @@ describe('useSeleccion', () => {
 
     expect(result.current.elegido).toEqual({ id: 1, n: 'b' })
   })
+
+  it('Esc sobre la tabla cierra la ficha', () => {
+    const { result } = renderHook(() => useSeleccion(filas, (f) => f.id))
+    act(() => result.current.elegir(filas[0]))
+
+    act(() => result.current.alTeclear(tecla('Escape')))
+
+    expect(result.current.elegido).toBeNull()
+  })
 })

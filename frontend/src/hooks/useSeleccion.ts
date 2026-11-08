@@ -3,7 +3,7 @@ import { useState, type KeyboardEvent } from 'react'
 /**
  * La fila elegida de una lista con ficha. Se guarda solo su id: si la fila deja de estar en la lista (al filtrar o
  * cambiar de página) la ficha se cierra, y si vuelve con datos nuevos se muestran los nuevos. Las flechas mueven la
- * selección sobre la tabla.
+ * selección sobre la tabla y Esc cierra la ficha.
  */
 export function useSeleccion<T>(elementos: readonly T[] | undefined, idDe: (elemento: T) => number) {
   const [id, setId] = useState<number | null>(null)
@@ -15,6 +15,11 @@ export function useSeleccion<T>(elementos: readonly T[] | undefined, idDe: (elem
   const cerrar = () => setId(null)
 
   const alTeclear = (evento: KeyboardEvent) => {
+    if (evento.key === 'Escape' && id !== null) {
+      evento.preventDefault()
+      setId(null)
+      return
+    }
     if (evento.key !== 'ArrowDown' && evento.key !== 'ArrowUp') return
     if (lista.length === 0) return
     evento.preventDefault()
