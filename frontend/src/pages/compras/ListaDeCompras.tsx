@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Link, useLocation, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { listarCompras, listarProveedores, type FiltrosDeCompras } from '../../api/compras'
 import { claves } from '../../api/consultas'
 import type { PaymentStatus, PurchaseStatus } from '../../api/types'
@@ -8,9 +8,13 @@ import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
-import { Titulo } from '../../components/Titulo'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
+import { useAtajo } from '../../hooks/useAtajo'
+import { useConteo } from '../../hooks/useConteo'
+import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora } from '../../utilidades/fechas'
+import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { ESTADO_DE_PAGO } from './etiquetas'
 
@@ -68,16 +72,47 @@ export function ListaDeCompras() {
     placeholderData: keepPreviousData,
   })
   const hayFiltros = Boolean(filtros.supplier || filtros.status || filtros.payment_status || filtros.date_from || filtros.date_to)
+  const navegar = useNavigate()
+  useAtajo('n', () => navegar('/compras/lista/nueva'))
+
+  // Cifras exactas: el total de cada consulta. El mes empieza el día 1 en hora de Colombia.
+  const inicioDelMes = `${hoyEnColombia().slice(0, 8)}01`
+  const borradores = useConteo([...claves.compras, 'borradores'], (signal) => listarCompras({ status: 'draft', page_size: 1 }, signal))
+  const recibidas = useConteo([...claves.compras, 'recibidas', inicioDelMes], (signal) =>
+    listarCompras({ status: 'received', date_from: inicioDelMes, page_size: 1 }, signal),
+  )
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Compras</Titulo>
-        <Link to="/compras/lista/nueva" className="boton boton--auto boton--enlace-de-accion">
-          <Plus aria-hidden="true" size={16} />
-          Nueva compra
-        </Link>
-      </div>
+      <EncabezadoDePantalla
+        icono={DESTINOS.comprasLista.icono}
+        titulo="Compras"
+        descripcion="Mercancía que llega de los proveedores: borradores y compras recibidas."
+        acciones={
+          <Link
+            to="/compras/lista/nueva"
+            className="boton boton--auto boton--con-icono boton--enlace-de-accion"
+            aria-keyshortcuts="Control+N"
+          >
+            <Plus aria-hidden="true" size={16} />
+            Nueva compra
+            <kbd className="atajo-visible" aria-hidden="true">
+              Ctrl+N
+            </kbd>
+          </Link>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Borradores', valor: formatearNumero(borradores.data ?? 0), cargando: borradores.isPending, error: borradores.isError },
+          {
+            rotulo: 'Recibidas este mes',
+            valor: formatearNumero(recibidas.data ?? 0),
+            cargando: recibidas.isPending,
+            error: recibidas.isError,
+          },
+        ]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}

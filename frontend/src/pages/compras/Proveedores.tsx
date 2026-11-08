@@ -8,9 +8,14 @@ import { Campo } from '../../components/Campo'
 import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { PanelLateral } from '../../components/PanelLateral'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
+import { useAtajo } from '../../hooks/useAtajo'
+import { DESTINOS } from '../../navegacion/destinos'
 import { useDebounce } from '../../hooks/useDebounce'
 import { formatearPesos } from '../../utilidades/dinero'
+import { useDeudaConProveedores } from './useDeudaConProveedores'
 import { EstadoDeCuenta } from './EstadoDeCuenta'
 import { FormularioDeAbono } from './FormularioDeAbono'
 import { FormularioDeProveedor } from './FormularioDeProveedor'
@@ -61,6 +66,10 @@ export function Proveedores() {
     ) : null
   const fondo: Vista = vista.tipo === 'abonar' && vista.desde === 'cuenta' ? { tipo: 'cuenta', proveedor: vista.proveedor } : vista
 
+  const deuda = useDeudaConProveedores()
+  // Ctrl+N solo en la lista: en el estado de cuenta no hay «Nuevo proveedor».
+  useAtajo('n', () => ir({ tipo: 'crear' }), fondo.tipo !== 'cuenta')
+
   if (fondo.tipo === 'cuenta') {
     return (
       <>
@@ -86,13 +95,31 @@ export function Proveedores() {
 
   return (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Proveedores</Titulo>
-        <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
-          <Plus aria-hidden="true" size={16} />
-          Nuevo proveedor
-        </button>
-      </div>
+      <EncabezadoDePantalla
+        icono={DESTINOS.proveedores.icono}
+        titulo="Proveedores"
+        descripcion="Datos de contacto y lo que se le debe a cada uno."
+        acciones={
+          <button
+            type="button"
+            className="boton boton--auto boton--con-icono"
+            onClick={() => ir({ tipo: 'crear' })}
+            aria-keyshortcuts="Control+N"
+          >
+            <Plus aria-hidden="true" size={16} />
+            Nuevo proveedor
+            <kbd className="atajo-visible" aria-hidden="true">
+              Ctrl+N
+            </kbd>
+          </button>
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Debo en total', valor: formatearPesos(deuda.total), cargando: deuda.cargando, error: deuda.error, alerta: deuda.total > 0 },
+          { rotulo: 'Proveedores con saldo', valor: String(deuda.conSaldo), cargando: deuda.cargando, error: deuda.error },
+        ]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
