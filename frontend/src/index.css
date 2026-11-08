@@ -478,7 +478,7 @@ summary {
   flex-shrink: 0;
   align-items: center;
   gap: 12px;
-  height: 56px;
+  height: 64px;
   padding: 0 16px;
   border-bottom: 1px solid var(--marco-separador);
 }
@@ -486,8 +486,8 @@ summary {
 .menu-lateral__logo {
   display: block;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
 }
 
@@ -788,8 +788,9 @@ summary {
   gap: var(--esp-5);
   align-items: center;
   justify-content: space-between;
-  min-height: 3.25rem;
-  padding: 0 var(--esp-4) 0 var(--esp-5);
+  /* 64px: la misma altura del encabezado del menú lateral, así la línea lima continúa. */
+  min-height: 64px;
+  padding: 0 var(--esp-5) 0 var(--esp-6);
   color: var(--marco-texto);
   background: var(--marco);
   /* Una línea lima muy fina une la barra con la marca sin cargarla. */
@@ -798,27 +799,45 @@ summary {
 
 .navbar__ubicacion {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  overflow: hidden;
 }
 
 .navbar__migas {
   display: flex;
+  min-width: 0;
+  overflow: hidden;
   gap: var(--esp-1);
   align-items: center;
-  font-size: 1.05rem;
+  font-size: 18px;
+  line-height: 24px;
   color: var(--color-plata);
   white-space: nowrap;
 }
 
 .navbar__seccion {
+  flex-shrink: 0;
   font-weight: 700;
   color: #ffffff;
 }
 
 .navbar__separador {
+  flex-shrink: 0;
   color: var(--color-marca);
+}
+
+/* La pantalla actual se corta con puntos suspensivos antes de quedar debajo del buscador. */
+.navbar__migas > span:last-child:not(.navbar__seccion) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar__lado {
+  flex-shrink: 0;
 }
 
 .navbar__lado {
@@ -832,8 +851,9 @@ summary {
   gap: var(--esp-2);
   align-items: center;
   margin: 0;
-  padding: var(--esp-1) var(--esp-3);
-  font-size: 0.8125rem;
+  height: 32px;
+  padding: 0 var(--esp-4);
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
@@ -843,8 +863,8 @@ summary {
 
 .navbar__caja::before {
   content: '';
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 8px;
+  height: 8px;
   background: currentColor;
   border-radius: 50%;
 }
@@ -864,16 +884,18 @@ a.navbar__caja:hover {
 
 .navbar__reloj {
   display: flex;
+  white-space: nowrap;
   flex-direction: column;
   align-items: flex-end;
   margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.2;
+  font-size: 12.5px;
+  line-height: 1.25;
   color: var(--color-plata);
 }
 
 .navbar__reloj strong {
-  font-size: 0.9375rem;
+  font-size: 18px;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
   /* La hora en lima, como la aguja de un tablero. */
   color: var(--color-marca);
@@ -882,8 +904,8 @@ a.navbar__caja:hover {
 .navbar__salir {
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 36px;
+  height: 36px;
   padding: 0;
   color: var(--marco-texto-suave);
   background: transparent;
@@ -901,11 +923,11 @@ a.navbar__caja:hover {
   display: inline-flex;
   gap: var(--esp-2);
   align-items: center;
-  width: 14rem;
-  height: 2rem;
-  padding: 0 var(--esp-1) 0 var(--esp-2);
+  width: 240px;
+  height: 36px;
+  padding: 0 var(--esp-2) 0 var(--esp-3);
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 14px;
   color: var(--marco-texto-suave);
   text-align: left;
   background: var(--marco-elevado);
@@ -933,8 +955,8 @@ kbd {
   opacity: 0.85;
 }
 
-/* Ventana angosta: la barra conserva lo esencial. */
-@media (max-width: 1150px) {
+/* Por debajo de 1400px el buscador queda en su icono y Ctrl+K: así cabe completa la pantalla actual. */
+@media (max-width: 1400px) {
   .navbar__buscar {
     width: auto;
   }
@@ -942,6 +964,10 @@ kbd {
   .navbar__buscar span {
     display: none;
   }
+}
+
+/* Ventana angosta: la barra conserva lo esencial. */
+@media (max-width: 1150px) {
 
   .navbar__datos {
     display: none;
@@ -954,7 +980,7 @@ kbd {
 
 .navbar__negocio {
   margin: 0;
-  font-size: 0.6875rem;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -975,9 +1001,9 @@ kbd {
 .navbar__iniciales {
   display: grid;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  font-size: 0.75rem;
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-sobre-marca);
   background: var(--color-marca);
@@ -990,13 +1016,14 @@ kbd {
 
 .navbar__nombre {
   margin: 0;
+  font-size: 15px;
   font-weight: 600;
   color: #ffffff;
 }
 
 .navbar__rol {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 12.5px;
   color: var(--color-plata);
 }
 
@@ -2489,6 +2516,11 @@ kbd {
 
 .panel-lateral--ancho {
   width: 36rem;
+}
+
+/* Formularios con tabla de productos: más espacio, sin tapar todo el menú en ventanas angostas. */
+.panel-lateral--amplio {
+  width: min(720px, calc(100vw - 80px));
 }
 
 /* Filete lima: el mismo lenguaje del marco. */

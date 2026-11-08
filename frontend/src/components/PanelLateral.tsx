@@ -10,8 +10,9 @@ interface Props {
   /** Módulo desde donde se abrió, en la cabecera: «Productos», «Caja». */
   modulo: string
   descripcion?: string
-  /** «ancho» para formularios con varias líneas, como una devolución. */
-  ancho?: 'normal' | 'ancho'
+  /** «ancho» para formularios con varias líneas, como una devolución; «amplio» para tablas de productos con
+   * cantidad y costo, como una compra, una entrega o un reporte. */
+  ancho?: 'normal' | 'ancho' | 'amplio'
   onCerrar: () => void
   children: ReactNode
 }

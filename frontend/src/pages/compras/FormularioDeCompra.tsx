@@ -31,6 +31,8 @@ interface Props {
   onGuardada?: (aviso: string) => void
   /** Se recibió la compra: trae los precios que subieron. */
   onRecibida?: (recibida: ReceivedPurchase) => void
+  /** Cancelar una compra nueva; sin él, vuelve a la lista. */
+  onCancelar?: () => void
 }
 
 const lineasDe = (compra?: PurchaseDetail): Linea[] =>
@@ -45,7 +47,7 @@ const huella = (proveedor: string, documento: string, notas: string, lineas: Lin
   JSON.stringify([proveedor, documento.trim(), notas.trim(), lineas.map((l) => [l.producto.id, l.cantidad, l.costo])])
 
 // Borrador de compra (solo el dueño). No toca el inventario hasta recibirla.
-export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibida }: Props) {
+export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibida, onCancelar }: Props) {
   const clienteDeConsultas = useQueryClient()
   const navegar = useNavigate()
   const editando = compra !== undefined
@@ -285,7 +287,11 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
           <button type="submit" className="boton boton--auto" disabled={guardar.isPending || (editando && !hayCambios)}>
             {guardar.isPending ? 'Guardando…' : editando ? 'Guardar cambios' : 'Guardar borrador'}
           </button>
-          <button type="button" className="boton boton--secundario boton--auto" onClick={() => navegar('/compras/lista')}>
+          <button
+            type="button"
+            className="boton boton--secundario boton--auto"
+            onClick={() => (onCancelar ? onCancelar() : navegar('/compras/lista'))}
+          >
             {editando ? 'Volver a la lista' : 'Cancelar'}
           </button>
           {editando && (

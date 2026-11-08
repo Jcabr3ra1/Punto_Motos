@@ -62,7 +62,7 @@ export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
             <span className="navbar__seccion">{seccion}</span>
             {pestana && (
               <>
-                <ChevronRight className="navbar__separador" aria-hidden="true" size={14} />
+                <ChevronRight className="navbar__separador" aria-hidden="true" size={18} strokeWidth={2.25} />
                 <span>{pestana}</span>
               </>
             )}

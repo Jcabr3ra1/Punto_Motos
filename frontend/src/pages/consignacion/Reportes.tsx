@@ -9,9 +9,9 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
-import { Titulo } from '../../components/Titulo'
 import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearNumero } from '../../utilidades/numeros'
@@ -38,21 +38,6 @@ export function Reportes() {
   const delMes = useConteo([...claves.consignacion, 'reportes', 'mes', inicioDelMes], (signal) =>
     listarReportes({ date_from: inicioDelMes, page_size: 1 }, signal),
   )
-
-  if (nuevo) {
-    return (
-      <>
-        <Titulo nivel={2}>Nuevo reporte</Titulo>
-        <FormularioDeReporte
-          onTerminar={(m) => {
-            setAviso(m)
-            setNuevo(false)
-          }}
-          onCancelar={() => setNuevo(false)}
-        />
-      </>
-    )
-  }
 
   return (
     <>
@@ -141,6 +126,23 @@ export function Reportes() {
             />
           </>
         ))}
+      {nuevo && (
+        <PanelLateral
+          titulo="Nuevo reporte"
+          modulo="Consignación"
+          descripcion="Lo que el local vendió o devolvió de lo que tiene en consignación."
+          ancho="amplio"
+          onCerrar={() => setNuevo(false)}
+        >
+          <FormularioDeReporte
+            onTerminar={(m) => {
+              setAviso(m)
+              setNuevo(false)
+            }}
+            onCancelar={() => setNuevo(false)}
+          />
+        </PanelLateral>
+      )}
     </>
   )
 }

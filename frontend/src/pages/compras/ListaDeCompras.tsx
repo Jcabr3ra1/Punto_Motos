@@ -9,6 +9,7 @@ import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { PanelLateral } from '../../components/PanelLateral'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { useAtajo } from '../../hooks/useAtajo'
 import { useConteo } from '../../hooks/useConteo'
@@ -18,6 +19,7 @@ import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { ESTADO_DE_PAGO } from './etiquetas'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { FormularioDeCompra } from './FormularioDeCompra'
 
 const ESTADOS = [
   { valor: '', texto: 'Todas' },
@@ -48,7 +50,8 @@ function leerFiltros(params: URLSearchParams): FiltrosDeCompras {
   }
 }
 
-export function ListaDeCompras() {
+/** Con `nueva`, la lista se muestra con el panel de compra nueva abierto (ruta `/compras/lista/nueva`). */
+export function ListaDeCompras({ nueva = false }: { nueva?: boolean }) {
   const [params, setParams] = useSearchParams()
   const aviso = (useLocation().state as { aviso?: string } | null)?.aviso
   const filtros = leerFiltros(params)
@@ -229,6 +232,17 @@ export function ListaDeCompras() {
             </>
           )}
         </>
+      )}
+      {nueva && (
+        <PanelLateral
+          titulo="Nueva compra"
+          modulo="Compras"
+          descripcion="Se guarda como borrador: no toca el inventario hasta que la recibas."
+          ancho="amplio"
+          onCerrar={() => navegar('/compras/lista')}
+        >
+          <FormularioDeCompra onCancelar={() => navegar('/compras/lista')} />
+        </PanelLateral>
       )}
     </>
   )

@@ -9,7 +9,6 @@ import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
 import { Abonos } from './pages/compras/Abonos'
 import { DetalleDeCompra } from './pages/compras/DetalleDeCompra'
 import { ListaDeCompras } from './pages/compras/ListaDeCompras'
-import { NuevaCompra } from './pages/compras/NuevaCompra'
 import { Proveedores } from './pages/compras/Proveedores'
 import { Catalogo } from './pages/configuracion/catalogo/Catalogo'
 import { Usuarios } from './pages/configuracion/usuarios/Usuarios'
@@ -93,7 +92,7 @@ export function Rutas() {
         >
           <Route index element={<Navigate to="lista" replace />} />
           <Route path="lista" element={<ListaDeCompras />} />
-          <Route path="lista/nueva" element={<NuevaCompra />} />
+          <Route path="lista/nueva" element={<ListaDeCompras nueva />} />
           <Route path="lista/:id" element={<DetalleDeCompra />} />
           <Route path="proveedores" element={<Proveedores />} />
           <Route path="abonos" element={<Abonos />} />
