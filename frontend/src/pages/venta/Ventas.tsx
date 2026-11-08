@@ -163,7 +163,7 @@ export function Ventas() {
                         key={venta.id}
                         className={`tabla__fila--elegible${venta.is_voided ? ' tabla__fila--inactiva' : ''}`}
                         aria-selected={seleccion.elegido?.id === venta.id}
-                        onClick={() => seleccion.elegir(venta)}
+                        onClick={seleccion.alHacerClic(venta)}
                       >
                         <th scope="row">
                           <Link to={`/venta/historial/${venta.id}`} className="tabla__codigo">

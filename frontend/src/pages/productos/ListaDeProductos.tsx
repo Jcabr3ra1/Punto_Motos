@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router'
 import { listarMotos, listarTipos } from '../../api/catalogo'
 import { isApiError } from '../../api/client'
@@ -204,7 +204,7 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
                 productos={productos.data.results}
                 esDueno={esDueno}
                 elegido={seleccion.elegido}
-                onElegir={seleccion.elegir}
+                onElegir={seleccion.alHacerClic}
                 onTeclear={seleccion.alTeclear}
                 onEditar={onEditar}
                 onEliminar={(producto) => {
@@ -246,7 +246,7 @@ function TablaDeProductos({
   productos: Product[]
   esDueno: boolean
   elegido: Product | null
-  onElegir: (producto: Product) => void
+  onElegir: (producto: Product) => (evento: MouseEvent) => void
   onTeclear: (evento: KeyboardEvent) => void
   onEditar: (producto: Product) => void
   onEliminar: (producto: Product) => void
@@ -291,7 +291,7 @@ function TablaDeProductos({
               key={producto.id}
               className={`tabla__fila--elegible${producto.is_active ? '' : ' tabla__fila--inactiva'}`}
               aria-selected={elegido?.id === producto.id}
-              onClick={() => onElegir(producto)}
+              onClick={onElegir(producto)}
             >
               <th scope="row">
                 <span className="tabla__codigo">{producto.code}</span>

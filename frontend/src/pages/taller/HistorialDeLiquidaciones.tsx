@@ -107,7 +107,7 @@ export function HistorialDeLiquidaciones() {
                       key={l.id}
                       className="tabla__fila--elegible"
                       aria-selected={seleccion.elegido?.id === l.id}
-                      onClick={() => seleccion.elegir(l)}
+                      onClick={seleccion.alHacerClic(l)}
                     >
                       <th scope="row">
                         <Link to={`/taller/historial/${l.id}`}>{formatearDia(l.date)}</Link>

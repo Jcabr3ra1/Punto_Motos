@@ -73,7 +73,7 @@ export function CajasAnteriores() {
                       key={caja.id}
                       className="tabla__fila--elegible"
                       aria-selected={seleccion.elegido?.id === caja.id}
-                      onClick={() => seleccion.elegir(caja)}
+                      onClick={seleccion.alHacerClic(caja)}
                     >
                       <th scope="row">
                         <Link to={`/caja/historial/${caja.id}`}>{formatearFechaHora(caja.opened_at)}</Link>

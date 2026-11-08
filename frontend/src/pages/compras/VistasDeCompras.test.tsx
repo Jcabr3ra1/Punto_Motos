@@ -32,13 +32,14 @@ async function cifras() {
 }
 
 describe('vistas de compras', () => {
-  it('compras cuenta los borradores y lo recibido este mes', async () => {
+  it('compras cuenta los borradores y las recibidas por pagar', async () => {
     const api = abrir('/compras/lista')
 
     const leer = await cifras()
     await waitFor(() => expect(leer()).toEqual(['3', '14']))
-    const recibidas = api.llamadas.find((l) => l.clave.includes('status=received') && l.clave.includes('page_size=1'))
-    expect(recibidas?.clave).toMatch(/date_from=\d{4}-\d{2}-01/)
+    const porPagar = api.llamadas.find((l) => l.clave.includes('status=received') && l.clave.includes('page_size=1'))
+    expect(porPagar?.clave).toContain('payment_status=pending%2Cpartial')
+    expect(porPagar?.clave).not.toContain('date_from')
   })
 
   it('proveedores suma lo que se debe y cuenta a quién', async () => {

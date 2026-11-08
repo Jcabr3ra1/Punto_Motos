@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 
 /**
  * La fila elegida de una lista con ficha. Se guarda solo su id: si la fila deja de estar en la lista (al filtrar o
@@ -12,6 +12,11 @@ export function useSeleccion<T>(elementos: readonly T[] | undefined, idDe: (elem
   const elegido = posicion === -1 ? null : lista[posicion]
 
   const elegir = (elemento: T) => setId(idDe(elemento))
+  // Clic en la fila: los botones y enlaces de la fila hacen lo suyo, no abren la ficha.
+  const alHacerClic = (elemento: T) => (evento: MouseEvent) => {
+    if ((evento.target as Element).closest('a, button, input, select, textarea, label')) return
+    elegir(elemento)
+  }
   const cerrar = () => setId(null)
 
   const alTeclear = (evento: KeyboardEvent) => {
@@ -28,5 +33,5 @@ export function useSeleccion<T>(elementos: readonly T[] | undefined, idDe: (elem
     setId(idDe(lista[siguiente]))
   }
 
-  return { elegido, elegir, cerrar, alTeclear }
+  return { elegido, elegir, alHacerClic, cerrar, alTeclear }
 }

@@ -222,4 +222,15 @@ describe('menú recogido', () => {
     expect(screen.getByRole('group', { name: 'Compras' })).toBeInTheDocument()
     expect(within(screen.getByRole('group', { name: 'Compras' })).getByRole('link', { name: 'Proveedores' })).toHaveFocus()
   })
+
+  it('pasar el ratón por otra sección no reemplaza la ventanita que tiene el foco', async () => {
+    mostrarRutas(dueno)
+    const u = userEvent.setup()
+    await u.hover(seccion('Compras'))
+    within(screen.getByRole('group', { name: 'Compras' })).getByRole('link', { name: 'Proveedores' }).focus()
+
+    await u.hover(seccion('Caja'))
+
+    expect(within(screen.getByRole('group', { name: 'Compras' })).getByRole('link', { name: 'Proveedores' })).toHaveFocus()
+  })
 })

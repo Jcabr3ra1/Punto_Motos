@@ -148,7 +148,7 @@ export function Devoluciones() {
                         key={d.id}
                         className="tabla__fila--elegible"
                         aria-selected={seleccion.elegido?.id === d.id}
-                        onClick={() => seleccion.elegir(d)}
+                        onClick={seleccion.alHacerClic(d)}
                       >
                         <th scope="row">
                           <Link to={`/venta/devoluciones/${d.id}`} className="tabla__codigo">

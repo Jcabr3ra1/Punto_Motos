@@ -18,7 +18,6 @@ import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { ESTADO_DE_PAGO } from './etiquetas'
 import { EstadoVacio } from '../../components/EstadoVacio'
-import { useHoy } from '../../hooks/useHoy'
 
 const ESTADOS = [
   { valor: '', texto: 'Todas' },
@@ -77,11 +76,11 @@ export function ListaDeCompras() {
   const navegar = useNavigate()
   useAtajo('n', () => navegar('/compras/lista/nueva'))
 
-  // Cifras exactas: el total de cada consulta. El mes empieza el día 1 en hora de Colombia.
-  const inicioDelMes = `${useHoy().slice(0, 8)}01`
+  // Cifras exactas: el total de cada consulta. La API filtra las fechas por el día de creación, no el de recepción,
+  // así que se cuenta lo recibido que falta por pagar, que sí es exacto.
   const borradores = useConteo([...claves.compras, 'borradores'], (signal) => listarCompras({ status: 'draft', page_size: 1 }, signal))
-  const recibidas = useConteo([...claves.compras, 'recibidas', inicioDelMes], (signal) =>
-    listarCompras({ status: 'received', date_from: inicioDelMes, page_size: 1 }, signal),
+  const porPagar = useConteo([...claves.compras, 'por-pagar'], (signal) =>
+    listarCompras({ status: 'received', payment_status: ['pending', 'partial'], page_size: 1 }, signal),
   )
 
   return (
@@ -108,10 +107,10 @@ export function ListaDeCompras() {
         indicadores={[
           { rotulo: 'Borradores', valor: formatearNumero(borradores.data ?? 0), cargando: borradores.isPending, error: borradores.isError },
           {
-            rotulo: 'Recibidas este mes',
-            valor: formatearNumero(recibidas.data ?? 0),
-            cargando: recibidas.isPending,
-            error: recibidas.isError,
+            rotulo: 'Recibidas por pagar',
+            valor: formatearNumero(porPagar.data ?? 0),
+            cargando: porPagar.isPending,
+            error: porPagar.isError,
           },
         ]}
       />

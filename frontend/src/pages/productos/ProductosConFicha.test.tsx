@@ -90,4 +90,14 @@ describe('productos', () => {
 
     expect(await screen.findByRole('dialog', { name: 'Nuevo producto' })).toBeInTheDocument()
   })
+
+  it('Editar abre solo el formulario, no la ficha', async () => {
+    abrir()
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Editar Pastillas de freno Pulsar 180' }))
+
+    expect(await screen.findByRole('dialog', { name: /Editar Pastillas/ })).toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: 'Pastillas de freno Pulsar 180' })).not.toBeInTheDocument()
+  })
 })
