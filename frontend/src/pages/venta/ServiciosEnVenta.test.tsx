@@ -161,6 +161,7 @@ describe('servicios en la venta', () => {
     expect(await screen.findByText('2 servicios')).toBeInTheDocument()
     await u.selectOptions(screen.getByLabelText('Mecánico'), 'Carlos Ruiz')
 
-    await waitFor(() => expect(api.llamadas.some((l) => l.clave === 'GET /sales?mechanic=1')).toBe(true))
+    // Ventas abre en Hoy: la consulta lleva también el rango del día y las 20 por página.
+    await waitFor(() => expect(api.llamadas.some((l) => l.clave.startsWith('GET /sales?mechanic=1&date_from='))).toBe(true))
   })
 })

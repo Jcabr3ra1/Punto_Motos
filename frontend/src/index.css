@@ -4541,3 +4541,360 @@ a.navbar__caja:hover .navbar__valor {
     gap: var(--esp-4);
   }
 }
+
+/* Libro con registro: una lista con su detalle en el panel negro de la derecha, como la caja registradora de Vender y
+   el cajón de Caja. Base de las pantallas de listas (empezó en Ventas). Ocupa todo el alto: solo se desplaza la tabla. */
+/* La sección que contiene el libro toma todo el alto del área para que la lista y el registro lleguen hasta abajo. */
+.estructura__contenido:has(.vista-libro) > .seccion {
+  height: 100%;
+  min-height: 0;
+}
+
+.vista-libro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.vista-libro > * {
+  flex-shrink: 0;
+}
+
+.vista-libro > .encabezado-pantalla,
+.vista-libro .indicadores,
+.vista-libro > .barra-de-filtros {
+  margin: 0;
+}
+
+.libro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--esp-3);
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
+.libro__lista {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+}
+
+.libro__lista > .tabla-contenedor {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.libro__lista > .estado-vacio {
+  flex: 1;
+  border: 0;
+}
+
+.libro__lista > .aviso,
+.libro__lista > .cargando {
+  margin: var(--esp-3) var(--esp-4);
+}
+
+/* Alturas fijas para que quepan filas enteras (useFilasQueCaben): cabecera de 36px, filas de 48px con dos líneas
+   de texto y pie de 48px. Si cambian, hay que cambiar también MEDIDAS_DEL_LIBRO en la pantalla. */
+.libro__lista .tabla thead th {
+  box-sizing: border-box;
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+  vertical-align: middle;
+}
+
+.libro__lista .tabla tbody th,
+.libro__lista .tabla tbody td {
+  box-sizing: border-box;
+  height: 48px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  line-height: 18px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.libro__lista .tabla .tabla__detalle {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* Textos largos de una celda (el motivo de una devolución): una línea con puntos suspensivos y el texto completo en
+   el title, para que la fila no crezca. */
+.libro__lista .tabla .libro__recortado,
+.libro__lista .tabla .libro__recortado .tabla__detalle {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* «Anulada» como texto rojo bajo el número, sin recuadro, para que la fila no se corra. */
+.libro__anulada {
+  font-weight: 600;
+  color: var(--color-error);
+}
+
+/* Pie fijo con Atrás y Siguiente: siempre a la vista, aunque haya una sola página. */
+.libro__lista > .paginacion {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  height: 48px;
+  margin: auto 0 0;
+  padding: 0 var(--esp-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+/* Partes del registro. Fuera del panel negro (en el panel lateral de un área angosta) usan los colores claros. */
+.registro__cifra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+  padding-bottom: var(--esp-3);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.registro__total {
+  font-size: 32px;
+  font-weight: 650;
+  line-height: 36px;
+  color: var(--color-acento);
+  font-variant-numeric: tabular-nums;
+}
+
+.registro__total--anulado {
+  text-decoration: line-through;
+}
+
+.registro__datos {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.registro__datos > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--esp-3);
+}
+
+.registro__datos dt,
+.registro__detalle,
+.registro__nota {
+  color: var(--texto-secundario);
+}
+
+.registro__datos dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.registro__subtitulo {
+  margin: 0;
+  padding-top: var(--esp-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+  border-top: 1px dashed var(--color-borde);
+}
+
+.registro__lineas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  list-style: none;
+}
+
+.registro__lineas li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--esp-3);
+}
+
+.registro__detalle {
+  display: block;
+  font-size: 12px;
+}
+
+.registro__monto {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.registro__nota {
+  margin: 0;
+}
+
+/* El panel negro. */
+.registro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--esp-3) var(--esp-4);
+  overflow-y: auto;
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-left: 3px solid var(--color-marca);
+}
+
+.registro--vacio {
+  justify-content: center;
+  font-size: 13px;
+  text-align: center;
+  color: #b1b1ad;
+}
+
+.registro--vacio p {
+  margin: 0;
+}
+
+.registro__cabecera {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.registro .registro__titulo {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #b1b1ad;
+}
+
+.registro__cerrar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--marco-texto);
+  background: transparent;
+  border: 1px solid #4a4a48;
+  border-radius: var(--radio);
+}
+
+.registro__cerrar:hover {
+  background: var(--marco-elevado);
+}
+
+.registro__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.registro .registro__cifra,
+.registro .registro__subtitulo {
+  border-color: #3a3b3e;
+}
+
+.registro .registro__total {
+  color: var(--color-marca);
+}
+
+.registro .registro__total--anulado {
+  color: #b1b1ad;
+}
+
+.registro .registro__datos dt,
+.registro .registro__detalle,
+.registro .registro__nota,
+.registro .registro__subtitulo {
+  color: #b1b1ad;
+}
+
+.registro__pie {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  margin-top: auto;
+  padding-top: var(--esp-3);
+}
+
+.registro__pie > .boton {
+  height: 40px;
+}
+
+/* Filtros agrupados en la barra: período, fechas y estado, separados por una línea fina. */
+.barra-de-filtros__grupo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+  padding-right: var(--esp-2);
+  border-right: 1px solid var(--color-borde);
+}
+
+.filtro-fecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--texto-secundario);
+}
+
+.filtro-fecha input {
+  height: 28px;
+  padding: 0 var(--esp-2);
+  font: inherit;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+/* Una lista desplegable con forma de botón de filtro: «Mecánico: Todos ▾». */
+.filtro--lista {
+  padding-right: var(--esp-1);
+}
+
+.filtro--lista > span {
+  color: var(--texto-secundario);
+}
+
+.filtro--lista select {
+  height: 26px;
+  padding: 0 var(--esp-1);
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+
+@container area (max-width: 959px) {
+  .libro {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .libro__secundaria {
+    display: none;
+  }
+}

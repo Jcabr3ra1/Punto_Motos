@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { claves } from '../../api/consultas'
 import { obtenerDevolucion } from '../../api/ventas'
-import { Ficha } from '../../components/Ficha'
+import { Registro } from '../../components/Registro'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 
-/** Detalle de una devolución junto a la lista: qué se devolvió y en qué estado. */
+/** Detalle de una devolución en el registro negro: qué se devolvió y en qué estado. */
 export function FichaDeDevolucion({ id, numero, onCerrar }: { id: number; numero: number; onCerrar: () => void }) {
   const devolucion = useQuery({
     queryKey: [...claves.devoluciones, 'detalle', id],
@@ -15,22 +15,24 @@ export function FichaDeDevolucion({ id, numero, onCerrar }: { id: number; numero
   })
   const datos = devolucion.data
   return (
-    <Ficha
+    <Registro
       titulo={`Devolución N.º ${numero}`}
       modulo="Devoluciones"
       onCerrar={onCerrar}
       acciones={
-        <Link to={`${DESTINOS.devoluciones.ruta}/${id}`} className="boton boton--auto">
+        <Link to={`${DESTINOS.devoluciones.ruta}/${id}`} className="boton">
           Abrir el comprobante
         </Link>
       }
     >
-      {devolucion.isPending && <p className="texto-suave">Cargando la devolución…</p>}
-      {devolucion.isError && <p className="texto-suave">No se pudo cargar la devolución.</p>}
+      {devolucion.isPending && <p className="registro__nota">Cargando la devolución…</p>}
+      {devolucion.isError && <p className="registro__nota">No se pudo cargar la devolución.</p>}
       {datos && (
         <>
-          <p className="ficha__cifra">{formatearPesos(datos.total)}</p>
-          <dl className="ficha__datos">
+          <p className="registro__cifra">
+            <span className="registro__total">{formatearPesos(datos.total)}</span>
+          </p>
+          <dl className="registro__datos">
             <div>
               <dt>Venta</dt>
               <dd>N.º {datos.sale_number}</dd>
@@ -45,23 +47,23 @@ export function FichaDeDevolucion({ id, numero, onCerrar }: { id: number; numero
             </div>
             <div>
               <dt>Fecha</dt>
-              <dd className="ficha__fecha">{formatearFechaHora(datos.created_at)}</dd>
+              <dd>{formatearFechaHora(datos.created_at)}</dd>
             </div>
           </dl>
-          <h4 className="ficha__subtitulo">Lo devuelto</h4>
-          <ul className="ficha__lineas">
+          <h4 className="registro__subtitulo">Lo devuelto</h4>
+          <ul className="registro__lineas">
             {datos.items.map((linea) => (
               <li key={linea.id}>
-                <span className="ficha__linea-texto">
+                <span>
                   {linea.quantity} × {linea.product.name}
-                  <span className="ficha__linea-detalle">{linea.condition_label}</span>
+                  <span className="registro__detalle">{linea.condition_label}</span>
                 </span>
-                <span className="ficha__linea-monto">{formatearPesos(linea.subtotal)}</span>
+                <span className="registro__monto">{formatearPesos(linea.subtotal)}</span>
               </li>
             ))}
           </ul>
         </>
       )}
-    </Ficha>
+    </Registro>
   )
 }
