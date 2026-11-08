@@ -50,7 +50,7 @@ export const pagarAMecanico = (datos: SettleInput) =>
   api<MechanicSettlementDetail>('/mechanic-settlements/daily', { method: 'POST', body: datos })
 
 export const listarLiquidaciones = (
-  filtros: { mechanic?: number; date_from?: string; date_to?: string; page?: number } = {},
+  filtros: { mechanic?: number; date_from?: string; date_to?: string; page?: number; page_size?: number } = {},
   signal?: AbortSignal,
 ) =>
   api<Paginated<MechanicSettlement>>('/mechanic-settlements', {
@@ -59,6 +59,7 @@ export const listarLiquidaciones = (
       date_from: filtros.date_from,
       date_to: filtros.date_to,
       page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+      page_size: filtros.page_size,
     },
     signal,
   })

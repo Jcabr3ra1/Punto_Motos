@@ -1176,6 +1176,11 @@ kbd {
   margin-bottom: var(--esp-1);
 }
 
+/* Un solo filtro no se estira a todo el ancho. */
+.filtros:has(> :only-child) {
+  grid-template-columns: minmax(168px, 240px);
+}
+
 /* Todos los controles de una barra de filtros miden lo mismo. */
 .filtros input:not([type='checkbox']),
 .filtros select {

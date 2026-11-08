@@ -10,8 +10,11 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
 import { useCajaActual } from '../../hooks/useCajaActual'
+import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { hoyEnColombia } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
@@ -68,10 +71,23 @@ export function LiquidacionDelDia() {
 
   return (
     <>
-      <Titulo nivel={2}>Liquidación del día</Titulo>
-      <p className="texto-suave">
-        A cada mecánico se le paga su porcentaje de la mano de obra; los repuestos son del local. Cada servicio se paga una sola vez.
-      </p>
+      <EncabezadoDePantalla
+        icono={DESTINOS.liquidacion.icono}
+        titulo="Liquidación del día"
+        descripcion="A cada mecánico se le paga su porcentaje de la mano de obra. Cada servicio se paga una sola vez."
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Total por pagar', valor: formatearPesos(dia.data?.total ?? 0), cargando: dia.isPending && fecha !== '', error: dia.isError },
+          { rotulo: 'Mecánicos con pendiente', valor: String(dia.data?.mechanics.length ?? 0), cargando: dia.isPending && fecha !== '', error: dia.isError },
+          {
+            rotulo: 'Servicios',
+            valor: String(dia.data?.mechanics.reduce((suma, fila) => suma + fila.services_count, 0) ?? 0),
+            cargando: dia.isPending && fecha !== '',
+            error: dia.isError,
+          },
+        ]}
+      />
       {cajaCerrada && (
         <p role="status" className="aviso aviso--advertencia">
           La caja está cerrada: el pago sale de la caja abierta de hoy. <Link to="/caja/actual">Abrir la caja</Link>
