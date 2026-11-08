@@ -1,13 +1,15 @@
-# Punto Moto 0.4.0
+# Punto Moto 0.5.0
 
 ## Cambios de esta versión
 
-- **Entrar en una ventana pequeña:** el programa abre en una ventana de 760 × 500 con el logo y el estado de la conexión; al iniciar sesión crece al tamaño de trabajo (1280 × 800) y al salir vuelve a la ventana pequeña. La contraseña se puede mostrar u ocultar.
-- **Menú por secciones:** cada sección (Mostrador, Inventario, Taller, Compras, Caja, Consignación) se despliega con sus pantallas debajo; solo queda abierta la de la pantalla actual. Tipos, marcas y motos pasa a Inventario; Mecánicos y Tipos de servicio, a Taller. Configuración queda al pie con Datos del negocio, Usuarios y **Actualizar programa** (antes en Inicio). Con `Ctrl+B` el menú queda en iconos y cada sección muestra sus pantallas al pasar el ratón o el teclado.
-- **Inicio con el resumen del día:** el dueño ve la caja, las ventas de hoy con un gráfico por hora, lo que se les debe a los mecánicos, lo que se debe a proveedores y lo que deben los locales, y las últimas ventas. El vendedor puede consultar precio y existencia sin entrar a Productos.
-- **Pantallas renovadas:** cada pantalla tiene su encabezado, cifras clave exactas (por ejemplo, ventas de hoy, productos activos, borradores o lo que se debe), y en Ventas, Devoluciones, Productos, Historial de liquidaciones y Cajas anteriores una ficha a la derecha con el detalle del elemento elegido (flechas para recorrer, `Esc` para cerrar). La existencia se ve como un medidor que se pone naranja cuando hay que reponer.
-- **`Ctrl+N`** abre «Nueva venta» o el formulario «Nuevo…» de la pantalla en la que estás.
-- **Logo sin fondo** y diseño alineado que se adapta a ventanas desde 900 × 560 hasta pantallas grandes.
+- **Inicio como panorama del negocio:** el dueño ve primero cómo va todo: lo vendido hoy frente a ayer, los últimos 7 días y el mes frente al mes anterior, lo que hay en caja, la tendencia de ventas, lo que deben los locales y lo que se debe a proveedores y mecánicos, y un bloque **Necesita tu atención** (caja sin abrir o de otro día, mecánicos por liquidar, compras en borrador y productos agotados), con la caja de hoy, las existencias por reponer y las devoluciones del día.
+- **Vender como punto de venta:** buscador y venta en curso a la izquierda y caja registradora negra a la derecha, con billetes rápidos y vuelto. Los servicios se agregan en una ventana propia, el pago puede ser mixto (efectivo y transferencia o Nequi) y la venta registrada se muestra en una ventana emergente.
+- **Listas más cómodas:** Ventas, Devoluciones, Productos, Movimientos, Compras, Proveedores, Abonos, Historial de liquidaciones, Cajas anteriores, Locales, Entregas, Reportes, Pagos de los locales, Usuarios y los catálogos muestran las filas que caben en la pantalla, con **Atrás** y **Siguiente** siempre abajo, filtros como botones (período, estado y listas) y búsqueda con la tecla `/`. Donde cada fila tiene detalle, un panel negro a la derecha lo muestra al elegirla.
+- **Documentos sin salir de la lista:** el recibo de una venta, el comprobante de una devolución, la hoja de liquidación, el estado de cuenta de un proveedor y una caja anterior se abren en una ventana emergente. Abrir una compra la muestra en un panel amplio, donde se edita, se recibe o se le abona.
+- **Caja de hoy renovada:** el cajón con el efectivo esperado y su desglose, los movimientos paginados y el resumen por tipo en el panel negro.
+- **Liquidación del día** con un panel de pago a la derecha; Nueva compra, Nueva entrega y Nuevo reporte se abren en un panel amplio sobre su lista y «Cancelar» pregunta antes de descartar.
+- **Locales** muestran lo que debe cada uno y la mercancía que tiene, y se puede registrar su pago desde ahí.
+- **Ventana de acceso** con el logo centrado y un saludo; la ventana ya no se desplaza entera al usar la rueda: solo se desplaza su contenido.
 
 No cambian el contrato de la API ni el esquema de datos.
 
