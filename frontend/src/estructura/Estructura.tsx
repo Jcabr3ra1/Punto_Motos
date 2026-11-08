@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
 import { useUsuario } from '../auth/useUsuario'
 import { hayVentanaAbierta } from '../components/useFocoAtrapado'
 import { useSalud } from '../hooks/useSalud'
 import { useConteoInicial } from '../pages/inventario/useConteoInicial'
 import { BarraSuperior } from './BarraSuperior'
 import { Buscador } from './Buscador'
+import { DESTINOS } from '../navegacion/destinos'
 import { MenuLateral } from './MenuLateral'
 import { useEstadoDelMenu } from './useMenuRecogido'
 
@@ -15,7 +16,8 @@ import { useEstadoDelMenu } from './useMenuRecogido'
 export function Estructura() {
   const usuario = useUsuario()
   const salud = useSalud()
-  const { recogido, alternar } = useEstadoDelMenu()
+  // En Vender el menú se recoge solo: el mostrador necesita todo el ancho.
+  const { recogido, alternar } = useEstadoDelMenu(useLocation().pathname === DESTINOS.vender.ruta)
   // Solo el dueño ve la entrada del inventario inicial, y únicamente mientras el conteo siga abierto.
   const conteo = useConteoInicial(usuario.role === 'owner')
   const [buscando, setBuscando] = useState(false)
