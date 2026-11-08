@@ -36,9 +36,10 @@ export function MenuLateral({ rol, conteoAbierto, recogido, onAlternar }: Props)
 
   const mostrar = (ruta: string, elemento: HTMLElement, cuantas: number) => {
     if (!recogido || flotante?.ruta === ruta) return
-    // Si el teclado está dentro de otra ventanita, el ratón no la reemplaza: se perdería el foco.
-    const conFoco = document.activeElement?.closest('.menu-lateral__grupo')
-    if (conFoco && conFoco !== elemento && conFoco.querySelector('.menu-lateral__flotante')) return
+    // Si el teclado está dentro de otra ventanita, el ratón no la reemplaza: se perdería el foco. Con el foco en el
+    // botón de una sección sí se puede cambiar, porque el botón no desaparece.
+    const ventanitaConFoco = document.activeElement?.closest('.menu-lateral__flotante')
+    if (ventanitaConFoco && !elemento.contains(ventanitaConFoco)) return
     // Sale a la altura de la sección, pero sin pasarse del borde de abajo (Configuración está al pie).
     const alto = ALTO_TITULO + cuantas * ALTO_PANTALLA
     const arriba = Math.max(0, Math.min(elemento.getBoundingClientRect().top, window.innerHeight - alto - MARGEN))
