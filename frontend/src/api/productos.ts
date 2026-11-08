@@ -13,6 +13,7 @@ export interface FiltrosDeProductos {
   include_inactive?: boolean
   ordering?: OrdenDeProductos
   page?: number
+  page_size?: number
 }
 
 export const listarProductos = (filtros: FiltrosDeProductos, signal?: AbortSignal) =>
@@ -25,6 +26,7 @@ export const listarProductos = (filtros: FiltrosDeProductos, signal?: AbortSigna
       include_inactive: filtros.include_inactive ? true : undefined,
       ordering: filtros.ordering,
       page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+      page_size: filtros.page_size,
     },
     signal,
   })

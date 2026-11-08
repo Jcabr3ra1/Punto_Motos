@@ -27,7 +27,7 @@ export function EncabezadoDeInicio({ subtitulo, acciones }: { subtitulo: string;
           <Link to={DESTINOS.vender.ruta} className="boton boton--auto boton--con-icono" aria-keyshortcuts="Control+N">
             <Plus aria-hidden="true" size={16} />
             Nueva venta
-            <kbd className="atajo-visible">Ctrl+N</kbd>
+            <kbd className="atajo-visible" aria-hidden="true">Ctrl+N</kbd>
           </Link>
         </>
       }

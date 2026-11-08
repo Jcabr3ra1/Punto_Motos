@@ -1,6 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { TipoDeCatalogo } from '../../../api/catalogo'
-import { Titulo } from '../../../components/Titulo'
+import { listarMarcas, listarMotos, listarTipos, type TipoDeCatalogo } from '../../../api/catalogo'
+import { claves } from '../../../api/consultas'
+import { EncabezadoDePantalla } from '../../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../../components/FranjaDeIndicadores'
+import { DESTINOS } from '../../../navegacion/destinos'
 import { ListaDeCatalogo, type SeccionDeCatalogo } from './ListaDeCatalogo'
 
 const SECCIONES: readonly SeccionDeCatalogo[] = [
@@ -37,10 +41,25 @@ const SECCIONES: readonly SeccionDeCatalogo[] = [
 export function Catalogo() {
   const [tipo, setTipo] = useState<TipoDeCatalogo>('categories')
   const seccion = SECCIONES.find((s) => s.tipo === tipo) ?? SECCIONES[0]
+  // Cuántos hay activos de cada uno: listas sin paginar, la cifra es exacta.
+  const tipos = useQuery({ queryKey: claves.catalogoActivo('categories'), queryFn: ({ signal }) => listarTipos(signal) })
+  const marcas = useQuery({ queryKey: claves.catalogoActivo('brands'), queryFn: ({ signal }) => listarMarcas(signal) })
+  const motos = useQuery({ queryKey: claves.catalogoActivo('motos'), queryFn: ({ signal }) => listarMotos(signal) })
+  const cifra = (consulta: typeof tipos | typeof marcas | typeof motos, rotulo: string) => ({
+    rotulo,
+    valor: String(consulta.data?.length ?? 0),
+    cargando: consulta.isPending,
+    error: consulta.isError,
+  })
 
   return (
     <section>
-      <Titulo nivel={2}>Tipos, marcas y motos</Titulo>
+      <EncabezadoDePantalla
+        icono={DESTINOS.catalogo.icono}
+        titulo="Tipos, marcas y motos"
+        descripcion="La clasificación de los productos. No se borran: se desactivan."
+      />
+      <FranjaDeIndicadores indicadores={[cifra(tipos, 'Tipos'), cifra(marcas, 'Marcas'), cifra(motos, 'Motos')]} />
       <div role="group" aria-label="Sección del catálogo" className="selector-de-seccion">
         {SECCIONES.map((s) => (
           <button

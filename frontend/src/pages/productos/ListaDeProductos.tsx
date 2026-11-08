@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router'
 import { listarMotos, listarTipos } from '../../api/catalogo'
 import { isApiError } from '../../api/client'
@@ -15,6 +15,8 @@ import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { useDebounce } from '../../hooks/useDebounce'
+import { useSeleccion } from '../../hooks/useSeleccion'
+import { FichaDeProducto } from './FichaDeProducto'
 import type { EstadoDeFiltros } from './filtros'
 import { formatearPesos } from '../../utilidades/dinero'
 
@@ -64,6 +66,7 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
   })
 
   const hayFiltros = Boolean(busqueda || filtros.tipo || filtros.moto || filtros.insumos)
+  const seleccion = useSeleccion(productos.data?.results, (producto) => producto.id)
 
   const invalidarProducto = async (id: number) => {
     await Promise.all(
@@ -161,7 +164,7 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
                   : 'Todavía no hay productos.'}
             </p>
           ) : (
-            <>
+            <div className={seleccion.elegido ? 'con-ficha' : undefined}>
               {eliminando && (
                 <DialogoDeConfirmacion
                   titulo={`¿Eliminar «${eliminando.name}»?`}
@@ -201,6 +204,9 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
               <TablaDeProductos
                 productos={productos.data.results}
                 esDueno={esDueno}
+                elegido={seleccion.elegido}
+                onElegir={seleccion.elegir}
+                onTeclear={seleccion.alTeclear}
                 onEditar={onEditar}
                 onEliminar={(producto) => {
                   onAviso?.(null)
@@ -218,7 +224,10 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
                 haySiguiente={Boolean(productos.data.next)}
                 onCambiar={(pagina) => onCambiarFiltros({ ...filtros, pagina })}
               />
-            </>
+              {seleccion.elegido && (
+                <FichaDeProducto producto={seleccion.elegido} esDueno={esDueno} onEditar={onEditar} onCerrar={seleccion.cerrar} />
+              )}
+            </div>
           )}
         </>
       )}
@@ -229,16 +238,30 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
 function TablaDeProductos({
   productos,
   esDueno,
+  elegido,
+  onElegir,
+  onTeclear,
   onEditar,
   onEliminar,
 }: {
   productos: Product[]
   esDueno: boolean
+  elegido: Product | null
+  onElegir: (producto: Product) => void
+  onTeclear: (evento: KeyboardEvent) => void
   onEditar: (producto: Product) => void
   onEliminar: (producto: Product) => void
 }) {
   return (
-    <div className="tabla-contenedor">
+    <div
+      className={`tabla-contenedor${elegido ? ' tabla--con-ficha' : ''}`}
+      tabIndex={0}
+      onKeyDown={onTeclear}
+      aria-describedby="ayuda-productos"
+    >
+      <p id="ayuda-productos" className="solo-lectores">
+        Usa las flechas para ver la ficha de cada producto.
+      </p>
       <table className="tabla">
         <caption className="solo-lectores">Productos</caption>
         <thead>
@@ -247,19 +270,32 @@ function TablaDeProductos({
             <th scope="col">Producto</th>
             <th scope="col">Tipo</th>
             {/* El vendedor no recibe el costo: la columna no existe para él. */}
-            {esDueno && <th scope="col">Costo</th>}
-            <th scope="col">Precio</th>
-            <th scope="col">Existencia</th>
-            <th scope="col">
+            {esDueno && (
+              <th scope="col" className="tabla__numero col-secundaria">
+                Costo
+              </th>
+            )}
+            <th scope="col" className="tabla__numero">
+              Precio
+            </th>
+            <th scope="col" className="tabla__numero">
+              Existencia
+            </th>
+            <th scope="col" className="tabla__acciones">
               <span className="solo-lectores">Acciones</span>
             </th>
           </tr>
         </thead>
         <tbody>
           {productos.map((producto) => (
-            <tr key={producto.id} className={producto.is_active ? undefined : 'tabla__fila--inactiva'}>
-              <th scope="row" className="tabla__codigo">
-                {producto.code}
+            <tr
+              key={producto.id}
+              className={`tabla__fila--elegible${producto.is_active ? '' : ' tabla__fila--inactiva'}`}
+              aria-selected={elegido?.id === producto.id}
+              onClick={() => onElegir(producto)}
+            >
+              <th scope="row">
+                <span className="tabla__codigo">{producto.code}</span>
               </th>
               <td>
                 {producto.name}
@@ -270,15 +306,22 @@ function TablaDeProductos({
                   {!producto.is_active && ' · Desactivado'}
                 </span>
               </td>
-              <td>{producto.category.name}</td>
-              {esDueno && <td>{producto.cost_price === undefined ? '—' : formatearPesos(producto.cost_price)}</td>}
               <td>
+                <span className="etiqueta etiqueta--tipo">{producto.category.name}</span>
+              </td>
+              {esDueno && (
+                <td className="tabla__numero col-secundaria">
+                  {producto.cost_price === undefined ? '—' : formatearPesos(producto.cost_price)}
+                </td>
+              )}
+              <td className="tabla__numero">
                 {formatearPesos(producto.sale_price)}
                 {producto.sells_below_cost && <span className="etiqueta etiqueta--alerta">Bajo el costo</span>}
               </td>
-              <td>
-                {producto.stock}
-                {producto.is_low_stock && <span className="etiqueta etiqueta--alerta">Reponer</span>}
+              <td className="tabla__numero">
+                <Medidor actual={producto.stock} minimo={producto.min_stock} alerta={producto.is_low_stock} />
+                {/* El color del medidor ya avisa; el texto queda para el lector de pantalla. */}
+                {producto.is_low_stock && <span className="solo-lectores">Reponer</span>}
               </td>
               <td className="tabla__acciones">
                 {/* Todos pueden ver el kárdex de un producto; solo el dueño lo edita. */}
@@ -315,5 +358,18 @@ function TablaDeProductos({
         </tbody>
       </table>
     </div>
+  )
+}
+
+/** Existencia como un medidor: llena al doble del mínimo, naranja cuando hay que reponer. */
+function Medidor({ actual, minimo, alerta }: { actual: number; minimo: number; alerta: boolean }) {
+  const lleno = Math.max(0, Math.min(1, actual / Math.max(minimo * 2, 1)))
+  return (
+    <span className={`medidor${alerta ? ' medidor--alerta' : ''}`}>
+      <span className="medidor__barra" aria-hidden="true">
+        <span style={{ width: `${Math.round(lleno * 100)}%` }} />
+      </span>
+      <span>{minimo > 0 ? `${actual} / ${minimo}` : actual}</span>
+    </span>
   )
 }

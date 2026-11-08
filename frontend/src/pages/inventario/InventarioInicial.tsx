@@ -8,6 +8,7 @@ import { terminarConteoInicial } from '../../api/inventario'
 import type { InitialCountStatus } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { Titulo } from '../../components/Titulo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearFechaHora } from '../../utilidades/fechas'
@@ -23,7 +24,11 @@ export function InventarioInicial() {
   if (conteo.isPending) {
     return (
       <section>
-        <Titulo nivel={2}>Inventario inicial</Titulo>
+        <EncabezadoDePantalla
+          icono={DESTINOS.inventarioInicial.icono}
+          titulo="Inventario inicial"
+          descripcion="Cuenta lo que hay en el negocio y cárgalo producto por producto. Mientras el conteo esté abierto no se vende."
+        />
         <Cargando />
       </section>
     )
@@ -31,7 +36,11 @@ export function InventarioInicial() {
   if (conteo.isError) {
     return (
       <section>
-        <Titulo nivel={2}>Inventario inicial</Titulo>
+        <EncabezadoDePantalla
+          icono={DESTINOS.inventarioInicial.icono}
+          titulo="Inventario inicial"
+          descripcion="Cuenta lo que hay en el negocio y cárgalo producto por producto. Mientras el conteo esté abierto no se vende."
+        />
         <ErrorDeCarga error={conteo.error} onReintentar={() => void conteo.refetch()} />
       </section>
     )
@@ -46,11 +55,11 @@ function ConteoAbierto({ estado }: { estado: InitialCountStatus }) {
 
   return (
     <section>
-      <Titulo nivel={2}>Inventario inicial</Titulo>
-      <p className="texto-suave">
-        Cuenta todo lo que hay en el negocio y cárgalo producto por producto. Mientras el conteo esté abierto no se debe
-        vender.
-      </p>
+      <EncabezadoDePantalla
+        icono={DESTINOS.inventarioInicial.icono}
+        titulo="Inventario inicial"
+        descripcion="Cuenta lo que hay en el negocio y cárgalo producto por producto. Mientras el conteo esté abierto no se vende."
+      />
       <dl className="avance" aria-label="Avance del conteo">
         <div>
           <dt>Productos cargados</dt>
@@ -151,7 +160,11 @@ function TerminarConteo({ estado }: { estado: InitialCountStatus }) {
 function ConteoTerminado({ estado }: { estado: InitialCountStatus }) {
   return (
     <section>
-      <Titulo nivel={2}>Inventario inicial</Titulo>
+      <EncabezadoDePantalla
+        icono={DESTINOS.inventarioInicial.icono}
+        titulo="Inventario inicial"
+        descripcion="Cuenta lo que hay en el negocio y cárgalo producto por producto. Mientras el conteo esté abierto no se vende."
+      />
       <p role="status" className="aviso aviso--exito">
         El inventario inicial ya terminó
         {estado.finished_at ? ` el ${formatearFechaHora(estado.finished_at)}` : ''}

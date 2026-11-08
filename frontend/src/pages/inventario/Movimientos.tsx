@@ -13,8 +13,11 @@ import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { PanelLateral } from '../../components/PanelLateral'
-import { Titulo } from '../../components/Titulo'
-import { formatearFechaHora } from '../../utilidades/fechas'
+import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
+import { useConteo } from '../../hooks/useConteo'
+import { DESTINOS } from '../../navegacion/destinos'
+import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearConSigno, formatearNumero } from '../../utilidades/numeros'
 import { ConsumoDelTaller } from './ConsumoDelTaller'
@@ -77,42 +80,51 @@ export function Movimientos() {
   })
 
   const hayFiltros = Boolean(filtros.product || filtros.kind || filtros.date_from || filtros.date_to)
+  const hoy = hoyEnColombia()
+  const deHoy = useConteo([...claves.movimientos, 'hoy', hoy], (signal) =>
+    listarMovimientos({ date_from: hoy, date_to: hoy, page_size: 1 }, signal),
+  )
 
   return (
     <section>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Movimientos de inventario</Titulo>
-        {esDueno && (
-          <div className="acciones">
-            <button
-              type="button"
-              className="boton boton--secundario boton--auto"
-              onClick={() => {
-                setAviso(null)
-                setConsumiendo(true)
-              }}
-            >
-              <Wrench aria-hidden="true" size={16} />
-              Consumo del taller
-            </button>
-            <button
-              type="button"
-              className="boton boton--auto"
-              onClick={() => {
-                setAviso(null)
-                setAjustando(true)
-              }}
-            >
-              <SlidersHorizontal aria-hidden="true" size={16} />
-              Ajustar existencia
-            </button>
-          </div>
-        )}
-      </div>
-      <p className="texto-suave">
-        Cada entrada o salida de unidades queda registrada, del más reciente al más antiguo. Los movimientos no se
-        editan: un error se corrige con otro movimiento.
-      </p>
+      <EncabezadoDePantalla
+        icono={DESTINOS.movimientos.icono}
+        titulo="Movimientos de inventario"
+        descripcion="Entradas y salidas de unidades. Un error se corrige con otro movimiento."
+        acciones={
+          esDueno && (
+            <div className="acciones">
+              <button
+                type="button"
+                className="boton boton--secundario boton--auto"
+                onClick={() => {
+                  setAviso(null)
+                  setConsumiendo(true)
+                }}
+              >
+                <Wrench aria-hidden="true" size={16} />
+                Consumo del taller
+              </button>
+              <button
+                type="button"
+                className="boton boton--auto"
+                onClick={() => {
+                  setAviso(null)
+                  setAjustando(true)
+                }}
+              >
+                <SlidersHorizontal aria-hidden="true" size={16} />
+                Ajustar existencia
+              </button>
+            </div>
+          )
+        }
+      />
+      <FranjaDeIndicadores
+        indicadores={[
+          { rotulo: 'Movimientos de hoy', valor: formatearNumero(deHoy.data ?? 0), cargando: deHoy.isPending, error: deHoy.isError },
+        ]}
+      />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}

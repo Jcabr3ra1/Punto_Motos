@@ -66,7 +66,9 @@ describe('lista de movimientos', () => {
     const { api } = await abrir(dueno)
 
     await screen.findByRole('table')
-    expect(llamadas(api).map((l) => l.clave)).toEqual(['GET /inventory/movements'])
+    // La otra llamada es la del indicador «Movimientos de hoy» (una página de un registro).
+    const deLaLista = llamadas(api).filter((l) => !l.clave.includes('page_size=1'))
+    expect(deLaLista.map((l) => l.clave)).toEqual(['GET /inventory/movements'])
   })
 
   it('avisa si no hay movimientos, con y sin filtros', async () => {

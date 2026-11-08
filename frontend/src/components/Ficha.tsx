@@ -45,8 +45,9 @@ export function Ficha({ titulo, modulo, onCerrar, acciones, children }: Props) {
           <X aria-hidden="true" size={16} strokeWidth={1.75} />
         </button>
       </div>
+      {/* Las acciones van arriba, bajo el título: siempre a la vista aunque la ficha sea larga. */}
+      {acciones && <div className="ficha__acciones">{acciones}</div>}
       <div className="ficha__cuerpo">{children}</div>
-      {acciones && <div className="ficha__pie">{acciones}</div>}
     </aside>
   )
 }
