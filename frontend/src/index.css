@@ -1524,14 +1524,18 @@ kbd {
   margin: 0;
 }
 
+/* Los resultados salen pegados al campo (rótulo de 16px + 4px + campo de 52px + 2px), tapando la ayuda de abajo,
+   para que se lean como parte del buscador y no como algo suelto sobre la venta. */
 .venta__buscador .buscador__lista {
   position: absolute;
-  top: 100%;
+  top: calc(16px + var(--esp-1) + 52px + 2px);
   right: 0;
   left: 0;
   z-index: 20;
   max-height: 360px;
+  margin: 0;
   overflow-y: auto;
+  border-color: var(--color-acento);
   box-shadow: 0 12px 28px rgb(0 0 0 / 0.18);
 }
 
@@ -1545,6 +1549,7 @@ kbd {
 
 .venta__buscador label {
   font-size: 12px;
+  line-height: 16px;
   font-weight: 600;
   color: var(--texto-secundario);
 }
@@ -1557,36 +1562,57 @@ kbd {
   box-shadow: 0 0 0 3px var(--color-acento-fondo);
 }
 
-.venta__servicios-rapidos {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--esp-2);
+/* Buscador y «Agregar servicio» en una sola fila: los rótulos arriba a la misma altura y los dos de 52px. */
+.venta__entrada {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  align-items: start;
+  gap: var(--esp-3);
 }
 
-.venta__servicios-rapidos .filtro {
-  height: 32px;
-  border-radius: 16px;
+.venta__servicio-rotulo {
+  display: block;
+  margin-bottom: var(--esp-1);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--texto-secundario);
 }
 
-.venta__servicios-rapidos .campo {
-  width: 220px;
-  margin: 0;
+.venta__boton-servicio {
+  height: 52px;
+  font-size: 15px;
+  border-width: 2px;
 }
 
-/* El rótulo «Agregar servicio» queda para lectores de pantalla: la lista ya dice «Elige un servicio». */
-.venta__servicios-rapidos .campo label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+/* Ventana para agregar un servicio: más ancha que una confirmación y con la lista desplazable si hay muchos. */
+.ventana-de-servicios {
+  width: min(36rem, 100%);
 }
 
-.venta__servicios-rapidos select {
-  height: 32px;
-  min-height: 32px;
+.ventana-de-servicios__cuerpo {
+  padding: var(--esp-4) var(--esp-4) 0;
+}
+
+.ventana-de-servicios__lista {
+  max-height: min(360px, 50vh);
+  overflow-y: auto;
+}
+
+.ventana-de-servicios__opcion {
+  grid-template-columns: 4rem 1fr auto;
+}
+
+/* En los resultados el código es una pastilla de su tamaño, con el número centrado, y no una barra de toda la columna. */
+.buscador__opcion > .tabla__codigo {
+  justify-self: start;
+  min-width: 5ch;
+  text-align: center;
+}
+
+.ventana-de-servicios__estado {
+  margin: var(--esp-3) 0 0;
+  color: var(--color-texto-suave);
 }
 
 .venta__mensaje:empty {
@@ -3907,6 +3933,10 @@ kbd {
   .venta {
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: var(--esp-3);
+  }
+
+  .venta__entrada {
+    grid-template-columns: minmax(0, 1fr) 180px;
   }
 
   .venta__lineas .tabla {

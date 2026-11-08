@@ -61,12 +61,64 @@ describe('punto de venta', () => {
     expect(screen.getByLabelText('Efectivo que entrega el cliente')).toHaveValue(25000)
   })
 
-  it('un servicio del taller se agrega con un clic en su botón', async () => {
+  it('«Agregar servicio» abre una ventana; al elegir uno entra en la venta y el foco vuelve al buscador', async () => {
     const { u } = abrir()
+    const buscador = await screen.findByRole('combobox', { name: 'Buscar producto o servicio' })
 
-    await u.click(await screen.findByRole('button', { name: /^Agregar 101 · Cambio de aceite/ }))
+    await u.click(screen.getByRole('button', { name: 'Agregar servicio' }))
+    const ventana = await screen.findByRole('dialog', { name: 'Agregar servicio' })
+    expect(within(ventana).getByRole('combobox', { name: 'Buscar servicio' })).toHaveFocus()
+    await u.click(await within(ventana).findByRole('option', { name: /Cambio de aceite/ }))
 
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Cambio de aceite/ })).toBeInTheDocument()
+    expect(buscador).toHaveFocus()
+  })
+
+  it('la ventana filtra por nombre sin tildes o por código, y se elige con flechas y Enter', async () => {
+    const revision = tipoDeServicio({ id: 2, code: 990, name: 'Revisión general', suggested_price: 40000 })
+    const { u } = abrir(vendedor, { 'GET /service-types*': () => ({ cuerpo: [tipoDeServicio(), revision] }) })
+    await u.click(await screen.findByRole('button', { name: 'Agregar servicio' }))
+    const ventana = await screen.findByRole('dialog', { name: 'Agregar servicio' })
+    await within(ventana).findByRole('option', { name: /Cambio de aceite/ })
+
+    await u.keyboard('REVISION')
+    expect(within(ventana).getAllByRole('option')).toHaveLength(1)
+    expect(within(ventana).getByRole('option', { name: /Revisión general/, selected: true })).toBeInTheDocument()
+    await u.clear(within(ventana).getByRole('combobox', { name: 'Buscar servicio' }))
+    await u.keyboard('10')
+    expect(within(ventana).getAllByRole('option')).toHaveLength(1)
+    expect(within(ventana).getByRole('option', { name: /Cambio de aceite/, selected: true })).toBeInTheDocument()
+    await u.keyboard('{Backspace}{Backspace}{ArrowDown}{Enter}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /Revisión general/ })).toBeInTheDocument()
+    expect(screen.queryByRole('row', { name: /Cambio de aceite/ })).not.toBeInTheDocument()
+  })
+
+  it('sin coincidencias lo dice; Esc cierra sin agregar y devuelve el foco al botón', async () => {
+    const { u } = abrir()
+    const boton = await screen.findByRole('button', { name: 'Agregar servicio' })
+    await u.click(boton)
+    const ventana = await screen.findByRole('dialog', { name: 'Agregar servicio' })
+    await within(ventana).findByRole('option', { name: /Cambio de aceite/ })
+
+    await u.keyboard('llantas')
+    expect(within(ventana).getByText('No hay servicios con «llantas».')).toBeInTheDocument()
+    await u.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('row', { name: /Cambio de aceite/ })).not.toBeInTheDocument()
+    expect(boton).toHaveFocus()
+  })
+
+  it('no muestra botones sueltos de servicios ni una lista desplegable', async () => {
+    abrir()
+    await screen.findByRole('button', { name: 'Agregar servicio' })
+
+    expect(screen.queryByRole('group', { name: 'Servicios rápidos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Agregar 101/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Elige un servicio' })).not.toBeInTheDocument()
   })
 
   it('F2 lleva el foco al buscador', async () => {

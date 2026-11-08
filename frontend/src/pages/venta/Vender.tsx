@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { X } from 'lucide-react'
+import { Wrench, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { isApiError } from '../../api/client'
@@ -12,13 +12,13 @@ import { useUsuario } from '../../auth/useUsuario'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { BuscadorDeProductos, type OpcionAdicional } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
-import { CampoSelector } from '../../components/CampoSelector'
 import { hayVentanaAbierta } from '../../components/useFocoAtrapado'
 import { useAtajo } from '../../hooks/useAtajo'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos } from '../../utilidades/dinero'
 import { useConteoInicial } from '../inventario/useConteoInicial'
 import { SelectorDeCliente, type ClienteElegido } from './SelectorDeCliente'
+import { VentanaDeServicios } from './VentanaDeServicios'
 import { VentanaDeVenta } from './VentanaDeVenta'
 
 /**
@@ -35,8 +35,6 @@ const MEDIOS: readonly { valor: Medio; texto: string }[] = [
   { valor: 'mixto', texto: 'Mixto' },
 ]
 
-/** Servicios del taller con botón propio junto al buscador; el resto se elige en la lista. */
-const SERVICIOS_A_LA_VISTA = 6
 /** Billetes rápidos para lo que entrega el cliente. */
 const BILLETES = [50_000, 100_000, 200_000] as const
 
@@ -83,6 +81,8 @@ export function Vender() {
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [clave, setClave] = useState(nuevaClaveDeReintento)
   const [vendida, setVendida] = useState<{ venta: SaleDetail; vuelto: number } | null>(null)
+  const [eligiendoServicio, setEligiendoServicio] = useState(false)
+  const enfocarBuscador = useRef(false)
 
   const total =
     lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0) + servicios.reduce((suma, s) => suma + s.precio, 0)
@@ -258,6 +258,14 @@ export function Vender() {
     return () => window.removeEventListener('keydown', alTeclear)
   }, [vendida])
 
+  // Al elegir un servicio en su ventana, el foco sigue en el buscador para agregar lo siguiente. Corre después de que
+  // la ventana devuelva el foco al botón que la abrió; Esc o Cancelar sí lo dejan en ese botón.
+  useEffect(() => {
+    if (eligiendoServicio || !enfocarBuscador.current) return
+    enfocarBuscador.current = false
+    document.querySelector<HTMLInputElement>('.venta__buscador input')?.focus()
+  }, [eligiendoServicio])
+
   // Al cerrar la ventana de la venta registrada, el foco vuelve al buscador para atender al siguiente cliente.
   const habiaVenta = useRef(false)
   useEffect(() => {
@@ -288,39 +296,25 @@ export function Vender() {
         <AvisoDeError
           mensajes={[...(error?.generales ?? []), ...(error?.campos.items ?? []), ...(error?.campos.services ?? []), ...(error?.campos.payments ?? [])]}
         />
-        <div className="venta__buscador">
-          <BuscadorDeProductos
-            etiqueta="Buscar producto o servicio"
-            onElegir={agregar}
-            opcionesAdicionales={serviciosPorCodigo}
-            ayuda="Escribe 2 letras para buscar productos, o el código de un servicio (por ejemplo 101). Flechas y Enter para elegir; Esc borra. F2 vuelve aquí."
-          />
-        </div>
-        <div className="venta__servicios-rapidos" role="group" aria-label="Servicios rápidos">
-          {(tipos.data ?? []).slice(0, SERVICIOS_A_LA_VISTA).map((tipo) => (
-            <button
-              key={tipo.id}
-              type="button"
-              className="filtro"
-              aria-label={`Agregar ${tipo.code} · ${tipo.name}`}
-              onClick={() => agregarServicio(tipo)}
-            >
-              <span className="tabla__codigo">{tipo.code}</span>
-              {tipo.name}
+        <div className="venta__entrada">
+          <div className="venta__buscador">
+            <BuscadorDeProductos
+              etiqueta="Buscar producto o servicio"
+              onElegir={agregar}
+              opcionesAdicionales={serviciosPorCodigo}
+              ayuda="Escribe 2 letras para buscar productos, o el código de un servicio (por ejemplo 101). Flechas y Enter para elegir; Esc borra. F2 vuelve aquí."
+            />
+          </div>
+          <div className="venta__servicio">
+            {/* Rótulo solo visual, con la misma medida que el del buscador, para que el botón quede a la altura del campo. */}
+            <span className="venta__servicio-rotulo" aria-hidden="true">
+              Taller
+            </span>
+            <button type="button" className="boton boton--secundario venta__boton-servicio" onClick={() => setEligiendoServicio(true)}>
+              <Wrench aria-hidden="true" size={18} />
+              Agregar servicio
             </button>
-          ))}
-          <CampoSelector
-            etiqueta="Agregar servicio"
-            value=""
-            onChange={(e) => {
-              const tipo = tipos.data?.find((t) => String(t.id) === e.target.value)
-              if (tipo) agregarServicio(tipo)
-            }}
-            opciones={[
-              { valor: '', texto: tipos.isPending ? 'Cargando…' : 'Elige un servicio' },
-              ...(tipos.data ?? []).map((t) => ({ valor: String(t.id), texto: `${t.code} · ${t.name}` })),
-            ]}
-          />
+          </div>
         </div>
         <div role="status" className="venta__mensaje">
           {mensaje}
@@ -669,6 +663,18 @@ export function Vender() {
         <p className="campo__ayuda">El total es orientativo: el programa confirma los precios al cobrar.</p>
       </section>
       {vendida && <VentanaDeVenta venta={vendida.venta} vuelto={vendida.vuelto} onNuevaVenta={nuevaVenta} />}
+      {eligiendoServicio && (
+        <VentanaDeServicios
+          tipos={tipos.data ?? []}
+          cargando={tipos.isPending}
+          onElegir={(tipo) => {
+            agregarServicio(tipo)
+            enfocarBuscador.current = true
+            setEligiendoServicio(false)
+          }}
+          onCerrar={() => setEligiendoServicio(false)}
+        />
+      )}
     </form>
   )
 }

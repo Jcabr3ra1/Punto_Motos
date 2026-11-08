@@ -34,6 +34,12 @@ async function elegirAna(u: ReturnType<typeof userEvent.setup>) {
   await u.click(await screen.findByRole('option', { name: /Ana Gómez/ }))
 }
 
+async function agregarServicio(u: ReturnType<typeof userEvent.setup>, nombre: RegExp) {
+  await u.click(await screen.findByRole('button', { name: 'Agregar servicio' }))
+  const ventana = await screen.findByRole('dialog', { name: 'Agregar servicio' })
+  await u.click(await within(ventana).findByRole('option', { name: nombre }))
+}
+
 const ventas = (api: { llamadas: { clave: string; cuerpo: unknown }[] }) =>
   api.llamadas.filter((l) => l.clave === 'POST /sales').map((l) => l.cuerpo as Record<string, unknown>)
 
@@ -41,7 +47,6 @@ describe('servicios en la venta', () => {
   it('escribir el código del servicio y Enter lo agrega; sin mecánico no se cobra', async () => {
     const { u } = abrir()
     const buscador = await screen.findByRole('combobox', { name: 'Buscar producto o servicio' })
-    await waitFor(() => expect(screen.getByRole('option', { name: 'Elige un servicio' })).toBeInTheDocument())
 
     await u.type(buscador, '10')
     expect(await screen.findByRole('option', { name: /Servicio: Cambio de aceite/, selected: true })).toBeInTheDocument()
@@ -58,8 +63,7 @@ describe('servicios en la venta', () => {
 
   it('cobra una venta solo de servicios con su mecánico, sin enviar items', async () => {
     const { api, u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta({ items: [], total: 15000 }) }) })
-    await screen.findByRole('option', { name: '101 · Cambio de aceite' })
-    await u.selectOptions(screen.getByLabelText('Agregar servicio'), '1')
+    await agregarServicio(u, /Cambio de aceite/)
     await u.selectOptions(screen.getByLabelText('Mecánico de Cambio de aceite (1)'), 'Carlos Ruiz')
     expect(screen.queryByLabelText('Placa de Cambio de aceite (1)')).not.toBeInTheDocument()
     await elegirAna(u)
@@ -79,8 +83,7 @@ describe('servicios en la venta', () => {
       'GET /mechanics': () => ({ cuerpo: [carlos] }),
       'POST /sales': () => ({ estado: 201, cuerpo: venta() }),
     })
-    await screen.findByRole('option', { name: '101 · Cambio de aceite' })
-    await u.selectOptions(screen.getByLabelText('Agregar servicio'), '1')
+    await agregarServicio(u, /Cambio de aceite/)
     await u.type(screen.getByRole('combobox', { name: 'Buscar producto o servicio' }), 'pas')
     await waitFor(() => expect(screen.getAllByRole('option').some((o) => o.getAttribute('aria-selected') === 'true')).toBe(true))
     await u.keyboard('{Enter}')
@@ -108,9 +111,8 @@ describe('servicios en la venta', () => {
           services: [{}, { details: ['Escribe qué se hizo en el servicio «Otro».'] }],
         }),
     })
-    await screen.findByRole('option', { name: '101 · Cambio de aceite' })
-    await u.selectOptions(screen.getByLabelText('Agregar servicio'), '1')
-    await u.selectOptions(screen.getByLabelText('Agregar servicio'), '2')
+    await agregarServicio(u, /Cambio de aceite/)
+    await agregarServicio(u, /Otro/)
     expect(screen.getByLabelText('Qué se hizo en Otro (2)')).toHaveAttribute('placeholder', 'Opcional')
     await u.selectOptions(screen.getByLabelText('Mecánico de Cambio de aceite (1)'), 'Carlos Ruiz')
     await u.selectOptions(screen.getByLabelText('Mecánico de Otro (2)'), 'Carlos Ruiz')
