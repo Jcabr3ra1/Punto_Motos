@@ -313,7 +313,7 @@ function FormularioDeEntrega({ onTerminar, onCancelar }: { onTerminar: (aviso: s
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending || lineas.length === 0}>
           {guardar.isPending ? 'Registrando…' : 'Registrar entrega'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>

@@ -178,7 +178,7 @@ export function FormularioDeAbono({ proveedorId, compraId, onTerminar, onCancela
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>
           {guardar.isPending ? 'Guardando…' : 'Registrar abono'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>

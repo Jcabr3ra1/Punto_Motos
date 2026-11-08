@@ -104,7 +104,10 @@ export function SelectorDeCliente({ valor, onCambiar, errores = [] }: Props) {
 
   return (
     <div className="campo buscador">
-      <label htmlFor={`${id}-cliente`}>Cliente</label>
+      <div className="campo__cabecera">
+        <label htmlFor={`${id}-cliente`}>Cliente</label>
+        <span className="campo__opcional">Opcional</span>
+      </div>
       <input
         id={`${id}-cliente`}
         type="search"

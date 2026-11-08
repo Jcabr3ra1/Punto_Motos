@@ -2144,6 +2144,53 @@ kbd {
   font-weight: 700;
 }
 
+/* Las listas de sugerencias (cliente) flotan sobre la caja negra con su propio fondo claro y texto oscuro. */
+.venta__cobro .buscador__lista {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  margin-top: var(--esp-1);
+  color: var(--color-texto);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
+}
+
+.venta__cobro .buscador {
+  position: relative;
+  max-width: none;
+  margin: 0;
+}
+
+.campo__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.campo__opcional {
+  font-size: 11.5px;
+  color: var(--texto-secundario);
+}
+
+.venta__cobro .campo__opcional {
+  color: var(--marco-texto-suave);
+}
+
+/* Pago mixto: las dos partes lado a lado, con los campos alineados aunque un rótulo ocupe dos líneas. */
+.venta__partes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--esp-2);
+}
+
+.venta__cobro .venta__partes .campo input[type='number'] {
+  min-height: 40px;
+  font-size: 17px;
+}
+
 /* Deshabilitado sigue siendo opaco: al quedar fijo al pie no debe dejar ver lo que pasa por detrás. */
 .venta__cobrar:disabled {
   color: #a6a6a3;

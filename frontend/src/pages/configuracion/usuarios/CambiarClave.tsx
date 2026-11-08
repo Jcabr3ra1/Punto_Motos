@@ -74,7 +74,7 @@ export function CambiarClave({ usuario, onTerminar, onCancelar }: Props) {
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>
           {guardar.isPending ? 'Guardando…' : 'Cambiar contraseña'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>

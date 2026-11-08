@@ -303,7 +303,7 @@ function FormularioDeReporte({ onTerminar, onCancelar }: { onTerminar: (aviso: s
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending || !pendientes.data?.length}>
           {guardar.isPending ? 'Registrando…' : 'Registrar reporte'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>

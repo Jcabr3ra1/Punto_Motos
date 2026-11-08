@@ -290,6 +290,7 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
           <button
             type="button"
             className="boton boton--secundario boton--auto"
+            data-cancelar={onCancelar ? true : undefined}
             onClick={() => (onCancelar ? onCancelar() : navegar('/compras/lista'))}
           >
             {editando ? 'Volver a la lista' : 'Cancelar'}

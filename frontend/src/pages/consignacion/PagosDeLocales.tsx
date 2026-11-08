@@ -196,7 +196,7 @@ function FormularioDePago({ onTerminar, onCancelar }: { onTerminar: (aviso: stri
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>
           {guardar.isPending ? 'Guardando…' : 'Registrar pago'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>

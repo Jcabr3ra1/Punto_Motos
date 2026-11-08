@@ -109,7 +109,8 @@ export function BuscadorDeProductos({
         moverMarca(-1)
         break
       case 'Enter':
-        if (!seleccionable) break
+        // Ctrl+Enter es de quien contiene el buscador (cobrar, guardar): no agrega el resultado marcado.
+        if (!seleccionable || evento.ctrlKey || evento.metaKey) break
         evento.preventDefault()
         if (activo >= 0) elegirIndice(activo)
         break

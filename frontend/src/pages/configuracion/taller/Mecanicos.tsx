@@ -189,7 +189,7 @@ function FormularioDeMecanico({
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>
           {guardar.isPending ? 'Guardando…' : editando ? 'Guardar cambios' : 'Crear mecánico'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>

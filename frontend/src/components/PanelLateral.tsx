@@ -99,6 +99,13 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
             if (enviando && boton && boton.type !== 'submit') {
               evento.preventDefault()
               evento.stopPropagation()
+              return
+            }
+            // «Cancelar» de un formulario cierra igual que Esc: si hay algo escrito, pregunta antes de descartarlo.
+            if (boton?.hasAttribute('data-cancelar')) {
+              evento.preventDefault()
+              evento.stopPropagation()
+              intentarCerrar()
             }
           }}
         >

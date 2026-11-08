@@ -336,7 +336,7 @@ function Campos({ producto, onTerminar, onCancelar, conteoInicial = false, ...ca
           {guardar.isPending ? 'Guardando…' : conteoInicial ? 'Cargar producto' : editando ? 'Guardar cambios' : 'Crear producto'}
         </button>
         {onCancelar && (
-          <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+          <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
             Cancelar
           </button>
         )}

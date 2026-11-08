@@ -603,17 +603,30 @@ export function Vender() {
                 ))}
               </div>
             </fieldset>
-            <Campo
-              etiqueta={canal === 'nequi' ? 'Valor por Nequi' : 'Valor por transferencia'}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={1}
-              value={transferencia}
-              onChange={(e) => setTransferencia(e.target.value)}
-              errores={transferenciaDeMas ? ['No puede ser mayor que el total.'] : undefined}
-              ayuda="El resto se cobra en efectivo."
-            />
+            {/* Las dos partes a la vista: al escribir una, la otra se completa con lo que falta del total. */}
+            <div className="venta__partes">
+              <Campo
+                etiqueta="En efectivo"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={transferencia === '' ? '' : String(enEfectivo)}
+                onChange={(e) =>
+                  setTransferencia(e.target.value === '' ? '' : String(Math.max(0, total - (Number(e.target.value) || 0))))
+                }
+              />
+              <Campo
+                etiqueta={canal === 'nequi' ? 'Valor por Nequi' : 'Valor por transferencia'}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={transferencia}
+                onChange={(e) => setTransferencia(e.target.value)}
+                errores={transferenciaDeMas ? ['No puede ser mayor que el total.'] : undefined}
+              />
+            </div>
           </>
         )}
         {(medio === 'transferencia' || medio === 'nequi') && (

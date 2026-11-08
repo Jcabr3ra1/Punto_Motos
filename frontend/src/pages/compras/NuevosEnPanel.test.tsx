@@ -55,4 +55,27 @@ describe('formularios nuevos en panel lateral', () => {
     expect(await screen.findByRole('dialog', { name: accion })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: lista })).toBeInTheDocument()
   })
+
+  it('Cancelar con algo escrito pregunta antes de descartar', async () => {
+    abrir('/consignacion/entregas')
+    const u = userEvent.setup()
+    await u.click(await screen.findByRole('button', { name: 'Nueva entrega' }))
+    const panel = await screen.findByRole('dialog', { name: 'Nueva entrega' })
+
+    await u.type(within(panel).getByLabelText('Notas'), 'Para el viernes')
+    await u.click(within(panel).getByRole('button', { name: 'Cancelar' }))
+
+    expect(await screen.findByRole('alertdialog', { name: '¿Descartar los cambios?' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Nueva entrega' })).toBeInTheDocument()
+  })
+
+  it('Cancelar sin cambios cierra de una vez', async () => {
+    abrir('/consignacion/reportes')
+    const u = userEvent.setup()
+    await u.click(await screen.findByRole('button', { name: 'Nuevo reporte' }))
+
+    await u.click(within(await screen.findByRole('dialog', { name: 'Nuevo reporte' })).getByRole('button', { name: 'Cancelar' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Nuevo reporte' })).not.toBeInTheDocument()
+  })
 })

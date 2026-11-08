@@ -107,4 +107,37 @@ describe('punto de venta', () => {
 
     await waitFor(() => expect(document.querySelector('.menu-lateral--recogido')).toBeNull())
   })
+
+  it('en el pago mixto se ven las dos partes y al escribir una se calcula la otra', async () => {
+    const { u } = abrir()
+    await agregarPastillas(u)
+    await u.click(screen.getByLabelText('Mixto'))
+
+    await u.type(screen.getByLabelText('En efectivo'), '10000')
+    expect(screen.getByLabelText('Valor por transferencia')).toHaveValue(15000)
+
+    await u.clear(screen.getByLabelText('Valor por transferencia'))
+    await u.type(screen.getByLabelText('Valor por transferencia'), '5000')
+    expect(screen.getByLabelText('En efectivo')).toHaveValue(20000)
+  })
+
+  it('el cliente dice que es opcional', async () => {
+    abrir()
+
+    expect(await screen.findByRole('combobox', { name: 'Cliente' })).toHaveAttribute('placeholder', expect.stringMatching(/opcional/i))
+    expect(screen.getByText('Opcional')).toBeInTheDocument()
+  })
+
+  it('Ctrl+Enter con resultados abiertos cobra sin agregar otra unidad', async () => {
+    const { api, u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta({ total: 25000 }) }) })
+    await agregarPastillas(u)
+    await u.type(screen.getByRole('combobox', { name: 'Buscar producto o servicio' }), 'pas')
+    await waitFor(() => expect(screen.getAllByRole('option').some((o) => o.getAttribute('aria-selected') === 'true')).toBe(true))
+
+    await u.keyboard('{Control>}{Enter}{/Control}')
+
+    await screen.findByRole('heading', { name: 'Venta registrada' })
+    const [enviada] = api.llamadas.filter((l) => l.clave === 'POST /sales').map((l) => l.cuerpo as { items: { quantity: number }[] })
+    expect(enviada.items).toEqual([{ product: 1, quantity: 1 }])
+  })
 })
