@@ -270,12 +270,12 @@ summary {
 /* Formularios */
 
 .campo {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--esp-3);
 }
 
 .campo label {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--esp-1);
   font-weight: 600;
 }
 
@@ -285,7 +285,7 @@ summary {
   display: block;
   width: 100%;
   min-height: 2rem;
-  padding: 0.25rem 0.625rem;
+  padding: var(--esp-1) var(--esp-2);
   font: inherit;
   color: inherit;
   background: var(--color-superficie);
@@ -298,13 +298,13 @@ summary {
 }
 
 .campo__ayuda {
-  margin: 0.25rem 0 0;
+  margin: var(--esp-1) 0 0;
   font-size: 0.875rem;
   color: var(--color-texto-suave);
 }
 
 .campo__errores {
-  margin: 0.25rem 0 0;
+  margin: var(--esp-1) 0 0;
   padding: 0;
   list-style: none;
   font-size: 0.875rem;
@@ -314,14 +314,14 @@ summary {
 .campos-en-fila {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: var(--esp-3);
 }
 
 /* Avisos */
 
 .aviso {
-  margin: 0 0 0.75rem;
-  padding: 0.5rem 0.75rem 0.5rem 0.875rem;
+  margin: 0 0 var(--esp-3);
+  padding: var(--esp-2) var(--esp-3) var(--esp-2) var(--esp-3);
   border-left: 3px solid currentColor;
   border-radius: 0 var(--radio) var(--radio) 0;
 }
@@ -354,12 +354,12 @@ summary {
 
 .boton {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   justify-content: center;
   width: 100%;
   min-height: 2rem;
-  padding: 0.25rem 0.875rem;
+  padding: var(--esp-1) var(--esp-3);
   text-decoration: none;
   font: inherit;
   font-weight: 600;
@@ -412,11 +412,11 @@ summary {
 
 .barra-de-estado {
   display: flex;
-  gap: 1rem;
+  gap: var(--esp-4);
   align-items: center;
   justify-content: space-between;
   min-height: 1.75rem;
-  padding: 0 1rem;
+  padding: 0 var(--esp-4);
   font-size: 0.8125rem;
   color: var(--color-plata);
   background: var(--color-negro);
@@ -432,7 +432,7 @@ summary {
   display: inline-block;
   width: 0.5rem;
   height: 0.5rem;
-  margin-right: 0.5rem;
+  margin-right: var(--esp-2);
   background: currentColor;
   border-radius: 50%;
 }
@@ -768,13 +768,13 @@ summary {
 }
 
 .estructura__contenido h1 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--esp-3);
   font-size: 1.35rem;
   line-height: 1.25;
 }
 
 .estructura__contenido h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--esp-2);
   font-size: 1.1rem;
   line-height: 1.25;
 }
@@ -785,11 +785,11 @@ summary {
 
 .navbar {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--esp-5);
   align-items: center;
   justify-content: space-between;
   min-height: 3.25rem;
-  padding: 0 1rem 0 1.5rem;
+  padding: 0 var(--esp-4) 0 var(--esp-5);
   color: var(--marco-texto);
   background: var(--marco);
   /* Una línea lima muy fina une la barra con la marca sin cargarla. */
@@ -805,7 +805,7 @@ summary {
 
 .navbar__migas {
   display: flex;
-  gap: 0.375rem;
+  gap: var(--esp-1);
   align-items: center;
   font-size: 1.05rem;
   color: var(--color-plata);
@@ -823,16 +823,16 @@ summary {
 
 .navbar__lado {
   display: flex;
-  gap: 1.25rem;
+  gap: var(--esp-4);
   align-items: center;
 }
 
 .navbar__caja {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   margin: 0;
-  padding: 0.25rem 0.75rem;
+  padding: var(--esp-1) var(--esp-3);
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
@@ -899,11 +899,11 @@ a.navbar__caja:hover {
 
 .navbar__buscar {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   width: 14rem;
   height: 2rem;
-  padding: 0 0.375rem 0 0.625rem;
+  padding: 0 var(--esp-1) 0 var(--esp-2);
   font: inherit;
   font-size: 0.8125rem;
   color: var(--marco-texto-suave);
@@ -923,7 +923,7 @@ a.navbar__caja:hover {
 }
 
 kbd {
-  padding: 0.0625rem 0.375rem;
+  padding: 2px var(--esp-1);
   font: inherit;
   font-size: 0.6875rem;
   line-height: 1.4;
@@ -948,7 +948,7 @@ kbd {
   }
 
   .navbar__usuario {
-    padding-left: 1rem;
+    padding-left: var(--esp-4);
   }
 }
 
@@ -966,9 +966,9 @@ kbd {
 
 .navbar__usuario {
   display: flex;
-  gap: 0.625rem;
+  gap: var(--esp-2);
   align-items: center;
-  padding-left: 1.25rem;
+  padding-left: var(--esp-4);
   border-left: 1px solid #2b2c2e;
 }
 
@@ -1008,7 +1008,7 @@ kbd {
   position: absolute;
   left: 0.5rem;
   top: -4rem;
-  padding: 0.5rem 1rem;
+  padding: var(--esp-2) var(--esp-4);
   font: inherit;
   color: var(--color-texto);
   background: var(--color-superficie);
@@ -1034,14 +1034,14 @@ kbd {
 
 .campo--casilla {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--esp-3);
   align-items: flex-start;
 }
 
 .campo--casilla input {
   width: 1.25rem;
   height: 1.25rem;
-  margin-top: 0.125rem;
+  margin-top: 2px;
 }
 
 .campo--casilla label {
@@ -1052,15 +1052,15 @@ kbd {
 .acciones {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--esp-3);
 }
 
 /* En los formularios los botones quedan fijos al pie de la ventana, como en un cuadro de diálogo. */
 .formulario .acciones {
   position: sticky;
   bottom: 0;
-  margin-top: 1rem;
-  padding: 0.75rem 0;
+  margin-top: var(--esp-4);
+  padding: var(--esp-3) 0;
   background: var(--color-fondo);
   border-top: 1px solid var(--color-borde);
 }
@@ -1068,10 +1068,10 @@ kbd {
 .barra-de-acciones {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--esp-4);
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: var(--esp-4);
 }
 
 .barra-de-acciones p {
@@ -1093,7 +1093,7 @@ kbd {
 
 .tabla th,
 .tabla td {
-  padding: 0.4375rem 0.75rem;
+  padding: var(--esp-2) var(--esp-3);
   border-bottom: 1px solid #e6e4de;
 }
 
@@ -1101,8 +1101,8 @@ kbd {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-top: var(--esp-2);
+  padding-bottom: var(--esp-2);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1135,11 +1135,11 @@ kbd {
 }
 
 .tabla__acciones .boton-enlace + .boton-enlace {
-  margin-left: 1rem;
+  margin-left: var(--esp-4);
 }
 
 .boton-enlace {
-  padding: 0.25rem 0;
+  padding: var(--esp-1) 0;
   font: inherit;
   color: var(--color-acento);
   text-decoration: underline;
@@ -1158,7 +1158,7 @@ kbd {
 }
 
 .estructura__contenido h3 {
-  margin: 1.25rem 0 0.5rem;
+  margin: var(--esp-4) 0 var(--esp-2);
   font-size: 1rem;
 }
 
@@ -1199,14 +1199,14 @@ kbd {
 .filtros__casillas {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 1.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0 var(--esp-5);
+  margin-bottom: var(--esp-2);
 }
 
 .etiqueta {
   display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.125rem 0.5rem;
+  margin-left: var(--esp-2);
+  padding: 2px var(--esp-2);
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
@@ -1230,22 +1230,22 @@ kbd {
 
 .paginacion {
   display: flex;
-  gap: 1rem;
+  gap: var(--esp-4);
   align-items: center;
   justify-content: center;
-  margin-top: 1rem;
+  margin-top: var(--esp-4);
 }
 
 .selector-de-seccion {
   display: inline-flex;
-  margin: 0.5rem 0 1rem;
+  margin: var(--esp-2) 0 var(--esp-4);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
   overflow: hidden;
 }
 
 .selector-de-seccion__opcion {
-  padding: 0.35rem 1rem;
+  padding: var(--esp-1) var(--esp-4);
   font: inherit;
   color: var(--color-texto);
   background: var(--color-superficie);
@@ -1265,7 +1265,7 @@ kbd {
 }
 
 .conjunto {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--esp-4);
   padding: 0;
   border: 0;
 }
@@ -1276,21 +1276,21 @@ kbd {
 }
 
 .conjunto .campo__ayuda {
-  margin: 0.125rem 0 0.5rem;
+  margin: 2px 0 var(--esp-2);
 }
 
 .conjunto__opciones {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-  column-gap: 1rem;
+  column-gap: var(--esp-4);
 }
 
 .conjunto__opciones .campo {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--esp-2);
 }
 
 .sugerencia {
-  margin: -0.5rem 0 1rem;
+  margin: 2px 0 var(--esp-4);
   font-size: 0.875rem;
   color: var(--color-texto-suave);
 }
@@ -1300,12 +1300,12 @@ kbd {
 .buscador {
   position: relative;
   max-width: 48rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--esp-4);
 }
 
 .buscador__etiqueta {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--esp-1);
   font-weight: 600;
 }
 
@@ -1313,7 +1313,7 @@ kbd {
   display: block;
   width: 100%;
   min-height: 2.75rem;
-  padding: 0.375rem 0.75rem;
+  padding: var(--esp-1) var(--esp-3);
   font: inherit;
   font-size: 1.0625rem;
   color: inherit;
@@ -1323,7 +1323,7 @@ kbd {
 }
 
 .buscador__lista {
-  margin: 0.5rem 0 0;
+  margin: var(--esp-2) 0 0;
   padding: 0;
   list-style: none;
   background: var(--color-superficie);
@@ -1343,9 +1343,9 @@ kbd {
 .buscador__opcion {
   display: grid;
   grid-template-columns: 9rem 1fr auto 8rem;
-  gap: 1rem;
+  gap: var(--esp-4);
   align-items: center;
-  padding: 0.625rem 1rem;
+  padding: var(--esp-2) var(--esp-4);
   border-bottom: 1px solid var(--color-borde);
   cursor: pointer;
 }
@@ -1381,7 +1381,7 @@ kbd {
 
 .buscador__estado {
   min-height: 1.5rem;
-  margin-top: 0.25rem;
+  margin-top: var(--esp-1);
   font-size: 0.875rem;
 }
 
@@ -1436,13 +1436,13 @@ kbd {
 
 .terminar {
   max-width: 44rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-top: 28px;
+  padding-top: var(--esp-5);
   border-top: 1px solid var(--color-borde);
 }
 
 .confirmacion {
-  padding: 1rem 1.25rem;
+  padding: var(--esp-4) var(--esp-4);
   background: var(--color-alerta-fondo);
   border: 1px solid var(--color-alerta);
   border-radius: var(--radio);
@@ -1475,18 +1475,18 @@ kbd {
 
 .filtro-de-producto__etiqueta {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--esp-1);
   font-weight: 600;
 }
 
 .filtro-de-producto {
   display: flex;
-  gap: 1rem;
+  gap: var(--esp-4);
   align-items: center;
   justify-content: space-between;
   margin: 0;
   min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
+  padding: var(--esp-2) var(--esp-3);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
@@ -1499,13 +1499,13 @@ kbd {
 .opciones-en-fila {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin-top: 0.5rem;
+  gap: var(--esp-2) var(--esp-5);
+  margin-top: var(--esp-2);
 }
 
 .opcion {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   font-weight: 500;
 }
@@ -1605,7 +1605,7 @@ kbd {
 .celda-numero {
   width: 5.5rem;
   min-height: 2rem;
-  padding: 0.125rem 0.5rem;
+  padding: 2px var(--esp-2);
   font: inherit;
   text-align: right;
   border: 1px solid var(--color-texto-suave);
@@ -1617,19 +1617,19 @@ kbd {
 }
 
 .lista-simple {
-  margin: 0.25rem 0 0;
-  padding-left: 1.25rem;
+  margin: var(--esp-1) 0 0;
+  padding-left: var(--esp-4);
 }
 
 .confirmacion-en-linea {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   font-weight: 600;
 }
 
 .tabla-contenedor + .campo {
-  margin-top: 1rem;
+  margin-top: var(--esp-4);
 }
 
 /* Venta de mostrador */
@@ -1689,7 +1689,7 @@ kbd {
 
 .venta__efectivo,
 .venta__vuelto {
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--esp-3);
 }
 
 .venta__vuelto {
@@ -1716,20 +1716,20 @@ kbd {
 }
 
 .acciones--arriba {
-  margin: 0.5rem 0 1rem;
+  margin: var(--esp-2) 0 var(--esp-4);
 }
 
 .recibo {
   max-width: 40rem;
-  margin-bottom: 1rem;
-  padding: 1rem 1.25rem;
+  margin-bottom: var(--esp-4);
+  padding: var(--esp-4) var(--esp-4);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
 }
 
 .recibo__encabezado p {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--esp-1);
 }
 
 .recibo__numero {
@@ -1763,16 +1763,16 @@ kbd {
 .selector-de-pago {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
+  gap: var(--esp-2);
+  margin-top: var(--esp-1);
 }
 
 .selector-de-pago__opcion {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   min-height: 2.5rem;
-  padding: 0.375rem 0.625rem;
+  padding: var(--esp-1) var(--esp-2);
   font-weight: 600;
   background: var(--color-superficie);
   border: 1px solid var(--color-texto-suave);
@@ -1794,7 +1794,7 @@ kbd {
 /* Servicios del taller en la venta */
 
 .venta__servicios {
-  margin-top: 1.25rem;
+  margin-top: var(--esp-4);
 }
 
 .venta__servicios h3 {
@@ -1810,7 +1810,7 @@ kbd {
 .celda-selector,
 .celda-texto {
   min-height: 2rem;
-  padding: 0.125rem 0.5rem;
+  padding: 2px var(--esp-2);
   font: inherit;
   background: var(--color-superficie);
   border: 1px solid var(--color-texto-suave);
@@ -1829,7 +1829,7 @@ kbd {
 /* Actualizaciones: solo desde Inicio, con confirmación modal antes de cerrar. */
 .actualizaciones {
   grid-column: span 2;
-  padding: 1rem 1.125rem;
+  padding: var(--esp-4) var(--esp-4);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-top: 3px solid var(--color-marca);
@@ -1867,9 +1867,9 @@ kbd {
 
 .buscador-pantallas__campo {
   display: flex;
-  gap: 0.625rem;
+  gap: var(--esp-2);
   align-items: center;
-  padding: 0 0.875rem;
+  padding: 0 var(--esp-3);
   color: var(--marco-texto-suave);
   border-bottom: 1px solid var(--marco-separador);
 }
@@ -1892,16 +1892,16 @@ kbd {
 
 .buscador-pantallas__lista {
   margin: 0;
-  padding: 0.375rem;
+  padding: var(--esp-1);
   overflow-y: auto;
   list-style: none;
 }
 
 .buscador-pantallas__opcion {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--esp-3);
   align-items: center;
-  padding: 0.5rem 0.625rem;
+  padding: var(--esp-2) var(--esp-2);
   border-radius: var(--radio);
 }
 
@@ -1953,16 +1953,16 @@ kbd {
 
 .buscador-pantallas__vacio {
   margin: 0;
-  padding: 1.25rem 1rem;
+  padding: var(--esp-4) var(--esp-4);
   color: var(--marco-texto-suave);
   text-align: center;
 }
 
 .buscador-pantallas__ayuda {
   display: flex;
-  gap: 1rem;
+  gap: var(--esp-4);
   margin: 0;
-  padding: 0.5rem 0.875rem;
+  padding: var(--esp-2) var(--esp-3);
   font-size: 0.75rem;
   color: var(--marco-texto-suave);
   border-top: 1px solid var(--marco-separador);
@@ -1971,7 +1971,7 @@ kbd {
 /* Botón con icono y texto (también un enlace con aspecto de botón). */
 .boton--con-icono {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   justify-content: center;
   text-decoration: none;
@@ -2450,7 +2450,7 @@ kbd {
 /* Cargando: una rueda discreta junto al texto. */
 .cargando {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
 }
 
@@ -2509,15 +2509,15 @@ kbd {
 
 .panel-lateral__cabecera {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--esp-3);
   align-items: flex-start;
   justify-content: space-between;
-  padding: 1rem 1rem 0.875rem 1.375rem;
+  padding: var(--esp-4) var(--esp-4) var(--esp-3) var(--esp-5);
   border-bottom: 1px solid var(--color-borde);
 }
 
 .panel-lateral__modulo {
-  margin: 0 0 0.125rem;
+  margin: 0 0 2px;
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -2532,7 +2532,7 @@ kbd {
 }
 
 .panel-lateral__descripcion {
-  margin: 0.25rem 0 0;
+  margin: var(--esp-1) 0 0;
   font-size: 0.8125rem;
   color: var(--texto-secundario);
 }
@@ -2560,7 +2560,7 @@ kbd {
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding: 1rem 1rem 0 1.375rem;
+  padding: var(--esp-4) var(--esp-4) 0 var(--esp-5);
   overflow-y: auto;
 }
 
@@ -2577,7 +2577,7 @@ kbd {
 
 /* Aire entre el último campo y los botones cuando el formulario llena el panel. */
 .panel-lateral__cuerpo > form > :not(.acciones):nth-last-child(2) {
-  margin-bottom: 1rem;
+  margin-bottom: var(--esp-4);
 }
 
 /* Los botones del formulario quedan siempre a la vista, al pie del panel. */
@@ -2585,8 +2585,8 @@ kbd {
   position: sticky;
   bottom: 0;
   justify-content: flex-end;
-  margin: auto -1rem 0 -1.375rem;
-  padding: 0.75rem 1rem 0.75rem 1.375rem;
+  margin: auto 2px 0 2px;
+  padding: var(--esp-3) var(--esp-4) var(--esp-3) var(--esp-5);
   background: var(--color-superficie);
   border-top: 1px solid var(--color-borde);
 }
@@ -2598,9 +2598,9 @@ kbd {
 
 .panel-lateral__ayuda {
   display: flex;
-  gap: 1rem;
+  gap: var(--esp-4);
   margin: 0;
-  padding: 0.375rem 1rem 0.375rem 1.375rem;
+  padding: var(--esp-1) var(--esp-4) var(--esp-1) var(--esp-5);
   font-size: 0.75rem;
   color: var(--texto-secundario);
   background: var(--fondo-trabajo);
@@ -2614,7 +2614,7 @@ kbd {
   z-index: 60;
   display: grid;
   place-items: center;
-  padding: 1rem;
+  padding: var(--esp-4);
   background: rgb(8 8 9 / 0.55);
   animation: velo 120ms ease-out;
 }
@@ -2630,9 +2630,9 @@ kbd {
 
 .dialogo__cabecera {
   display: flex;
-  gap: 0.625rem;
+  gap: var(--esp-2);
   align-items: center;
-  padding: 0.875rem 1.125rem;
+  padding: var(--esp-3) var(--esp-4);
   color: var(--marco-texto);
   background: var(--marco);
   border-bottom: 2px solid var(--color-marca);
@@ -2650,25 +2650,25 @@ kbd {
 }
 
 .dialogo__texto {
-  padding: 1rem 1.125rem 0;
+  padding: var(--esp-4) var(--esp-4) 0;
   line-height: 1.5;
 }
 
 .dialogo__texto p {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--esp-2);
 }
 
 .dialogo__acciones {
   display: flex;
-  gap: 0.625rem;
+  gap: var(--esp-2);
   justify-content: flex-end;
-  padding: 1rem 1.125rem;
+  padding: var(--esp-4) var(--esp-4);
 }
 
 /* Vista previa: cómo queda la cifra si se guarda. */
 .vista-previa {
-  margin: 1rem 0;
-  padding: 0.75rem 0.875rem;
+  margin: var(--esp-4) 0;
+  padding: var(--esp-3) var(--esp-3);
   color: var(--marco-texto);
   background: var(--marco);
   border-radius: var(--radio);
@@ -2676,7 +2676,7 @@ kbd {
 
 .vista-previa__linea {
   display: flex;
-  gap: 1rem;
+  gap: var(--esp-4);
   align-items: baseline;
   justify-content: space-between;
   margin: 0;
@@ -2689,7 +2689,7 @@ kbd {
 
 .vista-previa__cambio {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   align-items: center;
   font-variant-numeric: tabular-nums;
 }
@@ -2709,7 +2709,7 @@ kbd {
 }
 
 .vista-previa__nota {
-  margin: 0.375rem 0 0;
+  margin: var(--esp-1) 0 0;
   font-size: 0.8125rem;
   text-align: right;
   color: var(--marco-texto-suave);

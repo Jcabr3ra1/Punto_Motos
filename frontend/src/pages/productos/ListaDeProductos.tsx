@@ -325,8 +325,8 @@ function TablaDeProductos({
               <td className="tabla__acciones">
                 {/* Todos pueden ver el kárdex de un producto; solo el dueño lo edita. */}
                 <Link
-                  className="boton-enlace"
-                  to={`/inventario/movimientos?product=${producto.id}`}
+                  className="boton-enlace col-secundaria"
+                  to={`${DESTINOS.movimientos.ruta}?product=${producto.id}`}
                   aria-label={`Movimientos de ${producto.name}`}
                 >
                   Movimientos
