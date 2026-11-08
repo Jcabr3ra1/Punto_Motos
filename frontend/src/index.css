@@ -3703,7 +3703,7 @@ kbd {
   font-size: 12px;
 }
 
-:is(span, a).tabla__codigo:not(.tabla__detalle) {
+:is(span, a, button).tabla__codigo:not(.tabla__detalle) {
   display: inline-block;
   padding: 1px 6px;
   font-family: var(--fuente-maquina);
@@ -5050,4 +5050,128 @@ a.navbar__caja:hover .navbar__valor {
   width: 8px;
   height: 8px;
   border-radius: 2px;
+}
+
+/* Liquidación del día: la columna izquierda tiene varias partes (hoja recién pagada, lo que se debe y los saldos
+   por descontar) y se desplaza entera; las tablas no se estiran ni se desplazan por separado. */
+.libro__lista--desplazable {
+  overflow-y: auto;
+}
+
+.libro__lista--desplazable > .tabla-contenedor,
+.libro__lista--desplazable .tabla-contenedor {
+  flex: none;
+  overflow: visible;
+}
+
+.libro__lista--desplazable > .recibo {
+  margin: var(--esp-3) var(--esp-4);
+}
+
+.liquidacion__saldos {
+  padding: var(--esp-3) var(--esp-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+.liquidacion__saldos .tabla-contenedor {
+  border: 1px solid var(--color-borde);
+}
+
+/* El medio de pago dentro del panel negro. */
+.registro .conjunto {
+  margin: 0;
+  color: var(--marco-texto);
+  border-color: #3a3b3e;
+}
+
+.registro .conjunto legend {
+  color: #b1b1ad;
+}
+
+.registro input[type='radio'] {
+  accent-color: var(--color-marca);
+}
+
+/* Ventana emergente de un documento (hoja de liquidación, recibo): ancha, con el documento desplazable por dentro. */
+.ventana-de-documento {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+}
+
+.ventana-de-documento__cabecera {
+  justify-content: space-between;
+}
+
+.ventana-de-documento__x {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--marco-texto);
+  background: transparent;
+  border: 1px solid #4a4a48;
+  border-radius: var(--radio);
+}
+
+.ventana-de-documento__x:hover {
+  background: var(--marco-elevado);
+}
+
+.ventana-de-documento__cuerpo {
+  min-height: 0;
+  padding: var(--esp-4) var(--esp-5);
+  overflow-y: auto;
+}
+
+/* Dentro de la ventana, el documento ocupa todo el ancho sin un segundo recuadro: la ventana ya es su marco.
+   Su título ya está en la cabecera negra, así que solo se deja para lectores de pantalla. */
+.ventana-de-documento__cuerpo > .recibo {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.ventana-de-documento__cuerpo .recibo__numero {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* El pie con «Cerrar», separado por una línea y con el mismo margen lateral que el documento. */
+.ventana-de-documento > .dialogo__acciones {
+  padding: var(--esp-3) var(--esp-5);
+  border-top: 1px solid var(--color-borde);
+}
+
+/* El número de una venta o devolución en la tabla es un botón que abre su documento: se ve como la pastilla. */
+button.tabla__codigo {
+  line-height: inherit;
+  border: 0;
+  cursor: pointer;
+}
+
+button.tabla__codigo:hover {
+  text-decoration: underline;
+}
+
+/* Pie de la ventana de un documento: sus acciones (Devolver, Anular) a la izquierda y «Cerrar» a la derecha. */
+.ventana-de-documento__pie {
+  justify-content: space-between;
+}
+
+.ventana-de-documento__acciones {
+  display: flex;
+  gap: var(--esp-2);
+}
+
+.ventana-de-documento__pie > .boton:only-child {
+  margin-left: auto;
 }

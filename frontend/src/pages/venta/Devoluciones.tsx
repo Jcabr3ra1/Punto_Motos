@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Undo2 } from 'lucide-react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import type { ReturnCause } from '../../api/types'
@@ -12,9 +12,10 @@ import { EstadoVacio } from '../../components/EstadoVacio'
 import { FiltroDePeriodo } from '../../components/FiltroDePeriodo'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { RegistroVacio } from '../../components/Registro'
+import { VentanaDeDocumento } from '../../components/VentanaDeDocumento'
 import { Paginacion } from '../../components/Paginacion'
 import { useConteo } from '../../hooks/useConteo'
-import { useFilasQueCaben } from '../../hooks/useFilasQueCaben'
+import { MEDIDAS_DEL_LIBRO, useFilasQueCaben } from '../../hooks/useFilasQueCaben'
 import { useSeleccion } from '../../hooks/useSeleccion'
 import { DESTINOS } from '../../navegacion/destinos'
 import { Titulo } from '../../components/Titulo'
@@ -28,9 +29,6 @@ import { useHoy } from '../../hooks/useHoy'
 
 /** Las devoluciones son pocas: la lista abre con todas las fechas en lugar de solo hoy. */
 const PERIODO_INICIAL: Periodo = 'todas'
-
-/** Medidas del libro (ver Ventas): filas de 48px, cabecera de 36px, pie de 48px y bordes. */
-const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
 
 const CAUSAS: readonly { valor: ReturnCause | undefined; texto: string }[] = [
   { valor: undefined, texto: 'Todas' },
@@ -92,6 +90,8 @@ export function Devoluciones() {
     placeholderData: keepPreviousData,
   })
   const seleccion = useSeleccion(devoluciones.data?.results, (devolucion) => devolucion.id)
+  // El comprobante se abre en una ventana emergente sobre la lista, sin salir de ella.
+  const [comprobante, setComprobante] = useState<{ id: number; numero: number } | null>(null)
   const deHoy = useConteo([...claves.devoluciones, 'hoy', hoy], (signal) =>
     listarDevoluciones({ date_from: hoy, date_to: hoy, page_size: 1 }, signal),
   )
@@ -187,9 +187,14 @@ export function Devoluciones() {
                         onClick={seleccion.alHacerClic(d)}
                       >
                         <th scope="row">
-                          <Link to={`/venta/devoluciones/${d.id}`} className="tabla__codigo">
+                          <button
+                            type="button"
+                            className="tabla__codigo"
+                            aria-label={`Ver el comprobante de la devolución N.º ${d.number}`}
+                            onClick={() => setComprobante({ id: d.id, numero: d.number })}
+                          >
                             N.º {d.number}
-                          </Link>
+                          </button>
                           {/* La venta va debajo, como «Anulada» en Ventas, para no correr la fila. */}
                           <span className="tabla__detalle">
                             <Link to={`/venta/historial/${d.sale}`}>Venta n.º {d.sale_number}</Link>
@@ -227,12 +232,33 @@ export function Devoluciones() {
           )}
         </section>
         {seleccion.elegido ? (
-          <FichaDeDevolucion id={seleccion.elegido.id} numero={seleccion.elegido.number} onCerrar={seleccion.cerrar} />
+          <FichaDeDevolucion
+            id={seleccion.elegido.id}
+            numero={seleccion.elegido.number}
+            onCerrar={seleccion.cerrar}
+            onAbrirComprobante={() => seleccion.elegido && setComprobante({ id: seleccion.elegido.id, numero: seleccion.elegido.number })}
+          />
         ) : (
           <RegistroVacio mensaje="Elige una devolución para ver su detalle." />
         )}
       </div>
+      {comprobante && <VentanaDeComprobante {...comprobante} onCerrar={() => setComprobante(null)} />}
     </div>
+  )
+}
+
+/** El comprobante de una devolución en una ventana emergente, sin salir de la lista. */
+function VentanaDeComprobante({ id, numero, onCerrar }: { id: number; numero: number; onCerrar: () => void }) {
+  const devolucion = useQuery({
+    queryKey: [...claves.devoluciones, 'detalle', id],
+    queryFn: ({ signal }) => obtenerDevolucion(id, signal),
+  })
+  return (
+    <VentanaDeDocumento titulo={`Devolución n.º ${numero}`} onCerrar={onCerrar}>
+      {devolucion.isPending && <Cargando />}
+      {devolucion.isError && <ErrorDeCarga error={devolucion.error} onReintentar={() => void devolucion.refetch()} />}
+      {devolucion.data && <ComprobanteDeDevolucion devolucion={devolucion.data} />}
+    </VentanaDeDocumento>
   )
 }
 

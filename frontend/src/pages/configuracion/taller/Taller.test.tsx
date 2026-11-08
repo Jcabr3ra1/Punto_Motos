@@ -62,6 +62,27 @@ describe('mecánicos', () => {
     expect(screen.getByRole('dialog', { name: 'Nuevo mecánico' })).toBeInTheDocument()
   })
 
+  it('busca por nombre sin tildes, filtra por estado y deja el pie fijo', async () => {
+    simularApi({
+      'GET /mechanics?include_inactive=true': () => ({
+        cuerpo: [mecanico(), mecanico({ id: 2, name: 'Pedro Gómez', is_active: false })],
+      }),
+    })
+    mostrarRutas(dueno, '/configuracion/mecanicos')
+    const u = userEvent.setup()
+    await screen.findByRole('row', { name: /Carlos Ruiz/ })
+
+    await u.type(screen.getByLabelText('Buscar'), 'gomez')
+    expect(screen.queryByRole('row', { name: /Carlos Ruiz/ })).not.toBeInTheDocument()
+    expect(screen.getByText('1 mecánico')).toBeInTheDocument()
+    await u.clear(screen.getByLabelText('Buscar'))
+    await u.click(screen.getByRole('button', { name: 'Activos' }))
+    expect(screen.queryByRole('row', { name: /Pedro Gómez/ })).not.toBeInTheDocument()
+
+    const pie = screen.getByRole('navigation', { name: 'Páginas de mecánicos' })
+    expect(within(pie).getByRole('button', { name: 'Atrás' })).toBeDisabled()
+  })
+
   it('muestra el porcentaje con que se liquida y si es propio o el general', async () => {
     simularApi({
       'GET /mechanics?include_inactive=true': () => ({

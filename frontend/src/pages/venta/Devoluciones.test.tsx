@@ -323,7 +323,9 @@ describe('pestaña de devoluciones', () => {
       expect(api.llamadas.some((l) => l.clave === 'GET /sale-returns?cause=bad_service&date_from=2026-11-05&page_size=20')).toBe(true),
     )
 
-    await u.click(within(filaSinCliente).getByRole('link', { name: 'N.º 4' }))
-    expect(await screen.findByRole('article', { name: 'Devolución n.º 4' })).toHaveTextContent('Sin cliente')
+    // El comprobante se abre en una ventana emergente sobre la lista.
+    await u.click(within(filaSinCliente).getByRole('button', { name: 'Ver el comprobante de la devolución N.º 4' }))
+    const ventana = await screen.findByRole('dialog', { name: 'Devolución n.º 4' })
+    expect(await within(ventana).findByRole('article', { name: 'Devolución n.º 4' })).toHaveTextContent('Sin cliente')
   })
 })

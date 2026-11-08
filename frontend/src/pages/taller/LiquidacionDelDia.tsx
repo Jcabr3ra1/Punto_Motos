@@ -7,16 +7,17 @@ import { desglosarError } from '../../api/errors'
 import { consultarLiquidacionDelDia, listarDescuentosDeMecanicos, pagarAMecanico } from '../../api/taller'
 import type { MechanicSettlementDetail, PaymentMethod, SettlementPreviewRow } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
-import { Campo } from '../../components/Campo'
+import { BarraDeFiltros, BotonDeFiltro } from '../../components/BarraDeFiltros'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
+import { EstadoVacio } from '../../components/EstadoVacio'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
-import { hoyEnColombia } from '../../utilidades/fechas'
+import { hoyEnColombia, moverDia } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
 import { HojaDeLiquidacion } from './HojaDeLiquidacion'
 
@@ -69,8 +70,18 @@ export function LiquidacionDelDia() {
   const error = pagar.isError ? desglosarError(pagar.error) : null
   const cajaCerrada = caja.data?.is_open === false
 
+  const ayer = moverDia(hoyEnColombia(), -1)
+  const serviciosDelDia = dia.data?.mechanics.reduce((suma, fila) => suma + fila.services_count, 0) ?? 0
+
+  function cambiarDia(valor: string) {
+    setFecha(valor)
+    setPagando(null)
+    setHoja(null)
+    setAviso(null)
+  }
+
   return (
-    <>
+    <div className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.liquidacion.icono}
         titulo="Liquidación del día"
@@ -80,12 +91,7 @@ export function LiquidacionDelDia() {
         indicadores={[
           { rotulo: 'Total por pagar', valor: formatearPesos(dia.data?.total ?? 0), cargando: dia.isPending && fecha !== '', error: dia.isError },
           { rotulo: 'Mecánicos con pendiente', valor: String(dia.data?.mechanics.length ?? 0), cargando: dia.isPending && fecha !== '', error: dia.isError },
-          {
-            rotulo: 'Servicios',
-            valor: String(dia.data?.mechanics.reduce((suma, fila) => suma + fila.services_count, 0) ?? 0),
-            cargando: dia.isPending && fecha !== '',
-            error: dia.isError,
-          },
+          { rotulo: 'Servicios', valor: String(serviciosDelDia), cargando: dia.isPending && fecha !== '', error: dia.isError },
         ]}
       />
       {cajaCerrada && (
@@ -98,189 +104,210 @@ export function LiquidacionDelDia() {
           {aviso}
         </p>
       )}
-      <AvisoDeError mensajes={error?.generales ?? []} />
-      <div className="filtros">
-        <Campo
-          etiqueta="Día a liquidar"
-          type="date"
-          max={hoyEnColombia()}
-          value={fecha}
-          onChange={(e) => {
-            setFecha(e.target.value)
-            setPagando(null)
-            setHoja(null)
-            setAviso(null)
-          }}
-          errores={error?.campos.date}
-        />
-      </div>
-
-      {hoja && <HojaDeLiquidacion liquidacion={hoja} />}
-
-      {dia.isPending && fecha !== '' && <Cargando />}
-      {dia.isError && <ErrorDeCarga error={dia.error} onReintentar={() => void dia.refetch()} />}
-      {dia.isSuccess &&
-        (dia.data.mechanics.length === 0 ? (
-          <p className="texto-suave">No hay servicios sin pagar ese día.</p>
-        ) : (
-          <div className="tabla-contenedor">
-            <table className="tabla">
-              <caption className="solo-lectores">Lo que se le debe a cada mecánico</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Mecánico</th>
-                  <th scope="col" className="tabla__numero">
-                    Servicios
-                  </th>
-                  <th scope="col" className="tabla__numero">
-                    Mano de obra
-                  </th>
-                  <th scope="col" className="tabla__numero">
-                    Porcentaje
-                  </th>
-                  <th scope="col" className="tabla__numero">
-                    A pagar
-                  </th>
-                  <th scope="col">
-                    <span className="solo-lectores">Acciones</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {dia.data.mechanics.map((fila) => (
-                  <tr key={fila.mechanic.id}>
-                    <th scope="row">{fila.mechanic.name}</th>
-                    <td className="tabla__numero">{fila.services_count}</td>
-                    <td className="tabla__numero">{formatearPesos(fila.labor_total)}</td>
-                    <td className="tabla__numero">{fila.percentage} %</td>
-                    <td className="tabla__numero">
-                      <strong>{formatearPesos(fila.amount)}</strong>
-                      {fila.deductions_total > 0 && (
-                        <span className="tabla__detalle">
-                          Su parte {formatearPesos(fila.share)} − descuento {formatearPesos(fila.deductions_total)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="tabla__acciones">
-                      <button
-                        type="button"
-                        className="boton boton--auto"
-                        disabled={cajaCerrada || pagar.isPending}
-                        aria-label={`Pagar a ${fila.mechanic.name}`}
-                        onClick={() => {
-                          pagar.reset()
-                          setMedio('cash')
-                          setPagando(fila)
-                        }}
-                      >
-                        Pagar…
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row" colSpan={4}>
-                    Total que saldría de la caja
-                  </th>
-                  <td className="tabla__numero">
-                    <strong>{formatearPesos(dia.data.total)}</strong>
-                  </td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ))}
-
-      {pagando && (
-        <div role="group" aria-labelledby="titulo-pagar" className="confirmacion terminar">
-          <Titulo nivel={3}>
-            <span id="titulo-pagar">
-              ¿Pagarle {formatearPesos(pagando.amount)} a {pagando.mechanic.name}?
-            </span>
-          </Titulo>
-          <p>
-            Son {pagando.services_count === 1 ? '1 servicio' : `${pagando.services_count} servicios`} con{' '}
-            {formatearPesos(pagando.labor_total)} de mano de obra, al {pagando.percentage} %.
-            {pagando.deductions_total > 0
-              ? ` Su parte es ${formatearPesos(pagando.share)} y se le descuentan ${formatearPesos(pagando.deductions_total)} por mal servicio.`
-              : ' El dinero sale de la caja abierta de hoy.'}
-          </p>
-          <MedioDePago nombre="medio-liquidacion" valor={medio} onCambiar={setMedio} errores={error?.campos.method} />
-          <div className="acciones">
-            <button type="button" className="boton boton--auto" disabled={pagar.isPending} onClick={() => pagar.mutate(pagando)}>
-              {pagar.isPending ? 'Pagando…' : 'Sí, pagar'}
-            </button>
-            <button type="button" className="boton boton--secundario boton--auto" onClick={() => setPagando(null)} autoFocus>
-              Volver
-            </button>
-          </div>
+      <AvisoDeError mensajes={[...(error?.generales ?? []), ...(error?.campos.date ?? [])]} />
+      <BarraDeFiltros>
+        <div className="barra-de-filtros__grupo" role="group" aria-label="Día">
+          <BotonDeFiltro activo={fecha === hoyEnColombia()} onClick={() => cambiarDia(hoyEnColombia())}>
+            Hoy
+          </BotonDeFiltro>
+          <BotonDeFiltro activo={fecha === ayer} onClick={() => cambiarDia(ayer)}>
+            Ayer
+          </BotonDeFiltro>
+          <label className="filtro-fecha">
+            Día a liquidar
+            <input type="date" max={hoyEnColombia()} value={fecha} onChange={(e) => cambiarDia(e.target.value)} />
+          </label>
         </div>
-      )}
+      </BarraDeFiltros>
 
-      {(descuentosPendientes.isError || (descuentosPendientes.data && descuentosPendientes.data.results.length > 0)) && (
-        <section aria-label="Saldos pendientes por descontar" className="terminar">
-          <Titulo nivel={3}>Saldos pendientes por descontar</Titulo>
-          <p className="texto-suave">
-            Se restan automáticamente en las próximas liquidaciones de cada mecánico, los más antiguos primero.
-          </p>
-          {descuentosPendientes.isError && (
-            <ErrorDeCarga error={descuentosPendientes.error} onReintentar={() => void descuentosPendientes.refetch()} />
-          )}
-          {descuentosPendientes.data && descuentosPendientes.data.results.length > 0 && (
-            <>
+      <div className="libro">
+        <section className="libro__lista libro__lista--desplazable" aria-label="Por pagar">
+          {hoja && <HojaDeLiquidacion liquidacion={hoja} />}
+
+          {dia.isPending && fecha !== '' && <Cargando />}
+          {dia.isError && <ErrorDeCarga error={dia.error} onReintentar={() => void dia.refetch()} />}
+          {dia.isSuccess &&
+            (dia.data.mechanics.length === 0 ? (
+              <EstadoVacio icono={DESTINOS.liquidacion.icono} mensaje="No hay servicios sin pagar ese día." />
+            ) : (
               <div className="tabla-contenedor">
                 <table className="tabla">
-                  <caption className="solo-lectores">Descuentos pendientes de mecánicos</caption>
+                  <caption className="solo-lectores">Lo que se le debe a cada mecánico</caption>
                   <thead>
                     <tr>
                       <th scope="col">Mecánico</th>
-                      <th scope="col">Devolución y motivo</th>
                       <th scope="col" className="tabla__numero">
-                        Descuento total
+                        Servicios
                       </th>
                       <th scope="col" className="tabla__numero">
-                        Falta por descontar
+                        Mano de obra
+                      </th>
+                      <th scope="col" className="tabla__numero">
+                        Porcentaje
+                      </th>
+                      <th scope="col" className="tabla__numero">
+                        A pagar
+                      </th>
+                      <th scope="col">
+                        <span className="solo-lectores">Acciones</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {descuentosPendientes.data.results.map((d) => (
-                      <tr key={d.id}>
-                        <th scope="row">{d.mechanic.name}</th>
-                        <td>
-                          Devolución n.º {d.sale_return_number} · Venta n.º {d.sale_number} · {d.customer || 'Sin cliente'}
-                          {d.services.length > 0 && (
+                    {dia.data.mechanics.map((fila) => (
+                      <tr key={fila.mechanic.id} aria-selected={pagando?.mechanic.id === fila.mechanic.id}>
+                        <th scope="row">{fila.mechanic.name}</th>
+                        <td className="tabla__numero">{fila.services_count}</td>
+                        <td className="tabla__numero">{formatearPesos(fila.labor_total)}</td>
+                        <td className="tabla__numero">{fila.percentage} %</td>
+                        <td className="tabla__numero">
+                          <strong>{formatearPesos(fila.amount)}</strong>
+                          {fila.deductions_total > 0 && (
                             <span className="tabla__detalle">
-                              {d.services.map((s) => `${s.service_type.code} · ${s.service_type.name}`).join(', ')}
+                              Su parte {formatearPesos(fila.share)} − descuento {formatearPesos(fila.deductions_total)}
                             </span>
                           )}
-                          <span className="tabla__detalle">{d.reason}</span>
                         </td>
-                        <td className="tabla__numero">{formatearPesos(d.amount)}</td>
-                        <td className="tabla__numero">
-                          <strong>{formatearPesos(d.pending_amount)}</strong>
+                        <td className="tabla__acciones">
+                          <button
+                            type="button"
+                            className="boton boton--auto"
+                            disabled={cajaCerrada || pagar.isPending}
+                            aria-label={`Pagar a ${fila.mechanic.name}`}
+                            onClick={() => {
+                              pagar.reset()
+                              setMedio('cash')
+                              setPagando(fila)
+                            }}
+                          >
+                            Pagar…
+                          </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row" colSpan={4}>
+                        Total que saldría de la caja
+                      </th>
+                      <td className="tabla__numero">
+                        <strong>{formatearPesos(dia.data.total)}</strong>
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
-              <Paginacion
-                etiqueta="Páginas de saldos pendientes"
-                pagina={paginaDescuentos}
-                total={descuentosPendientes.data.count}
-                tamano={TAMANO_DE_PAGINA}
-                hayAnterior={Boolean(descuentosPendientes.data.previous)}
-                haySiguiente={Boolean(descuentosPendientes.data.next)}
-                onCambiar={setPaginaDescuentos}
-              />
-            </>
+            ))}
+
+          {(descuentosPendientes.isError || (descuentosPendientes.data && descuentosPendientes.data.results.length > 0)) && (
+            <section aria-label="Saldos pendientes por descontar" className="liquidacion__saldos">
+              <Titulo nivel={3}>Saldos pendientes por descontar</Titulo>
+              <p className="texto-suave">
+                Se restan automáticamente en las próximas liquidaciones de cada mecánico, los más antiguos primero.
+              </p>
+              {descuentosPendientes.isError && (
+                <ErrorDeCarga error={descuentosPendientes.error} onReintentar={() => void descuentosPendientes.refetch()} />
+              )}
+              {descuentosPendientes.data && descuentosPendientes.data.results.length > 0 && (
+                <>
+                  <div className="tabla-contenedor">
+                    <table className="tabla">
+                      <caption className="solo-lectores">Descuentos pendientes de mecánicos</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Mecánico</th>
+                          <th scope="col">Devolución y motivo</th>
+                          <th scope="col" className="tabla__numero">
+                            Descuento total
+                          </th>
+                          <th scope="col" className="tabla__numero">
+                            Falta por descontar
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {descuentosPendientes.data.results.map((d) => (
+                          <tr key={d.id}>
+                            <th scope="row">{d.mechanic.name}</th>
+                            <td className="libro__recortado" title={d.reason}>
+                              Devolución n.º {d.sale_return_number} · Venta n.º {d.sale_number} · {d.customer || 'Sin cliente'}
+                              {d.services.length > 0 && (
+                                <span className="tabla__detalle">
+                                  {d.services.map((s) => `${s.service_type.code} · ${s.service_type.name}`).join(', ')}
+                                </span>
+                              )}
+                              <span className="tabla__detalle">{d.reason}</span>
+                            </td>
+                            <td className="tabla__numero">{formatearPesos(d.amount)}</td>
+                            <td className="tabla__numero">
+                              <strong>{formatearPesos(d.pending_amount)}</strong>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Paginacion
+                    etiqueta="Páginas de saldos pendientes"
+                    pagina={paginaDescuentos}
+                    total={descuentosPendientes.data.count}
+                    tamano={TAMANO_DE_PAGINA}
+                    hayAnterior={Boolean(descuentosPendientes.data.previous)}
+                    haySiguiente={Boolean(descuentosPendientes.data.next)}
+                    onCambiar={setPaginaDescuentos}
+                  />
+                </>
+              )}
+            </section>
           )}
         </section>
-      )}
-    </>
+
+        {/* El pago, en el panel negro como el cajón de Caja: el total del día o la confirmación del mecánico elegido. */}
+        <aside className="registro" aria-label="Pago al mecánico">
+          {pagando ? (
+            <div role="group" aria-labelledby="titulo-pagar" className="registro__cuerpo">
+              <p className="registro__titulo">Pagar a {pagando.mechanic.name}</p>
+              <h3 id="titulo-pagar" className="solo-lectores">
+                ¿Pagarle {formatearPesos(pagando.amount)} a {pagando.mechanic.name}?
+              </h3>
+              <p className="registro__cifra">
+                <span className="registro__total">{formatearPesos(pagando.amount)}</span>
+              </p>
+              <p className="registro__nota">
+                Son {pagando.services_count === 1 ? '1 servicio' : `${pagando.services_count} servicios`} con{' '}
+                {formatearPesos(pagando.labor_total)} de mano de obra, al {pagando.percentage} %.
+                {pagando.deductions_total > 0
+                  ? ` Su parte es ${formatearPesos(pagando.share)} y se le descuentan ${formatearPesos(pagando.deductions_total)} por mal servicio.`
+                  : ' El dinero sale de la caja abierta de hoy.'}
+              </p>
+              <MedioDePago nombre="medio-liquidacion" valor={medio} onCambiar={setMedio} errores={error?.campos.method} />
+              <div className="registro__pie">
+                <button type="button" className="boton" disabled={pagar.isPending} onClick={() => pagar.mutate(pagando)}>
+                  {pagar.isPending ? 'Pagando…' : 'Sí, pagar'}
+                </button>
+                <button type="button" className="boton boton--secundario" onClick={() => setPagando(null)} autoFocus>
+                  Volver
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="registro__cuerpo">
+              <p className="registro__titulo">Total que saldría de la caja</p>
+              <p className="registro__cifra">
+                <span className="registro__total">{formatearPesos(dia.data?.total ?? 0)}</span>
+              </p>
+              <p className="registro__nota">
+                {dia.data && dia.data.mechanics.length > 0
+                  ? `${dia.data.mechanics.length === 1 ? '1 mecánico' : `${dia.data.mechanics.length} mecánicos`} · ${serviciosDelDia === 1 ? '1 servicio' : `${serviciosDelDia} servicios`}. Pulsa «Pagar…» en un mecánico para liquidarlo.`
+                  : 'Nada por pagar ese día.'}
+              </p>
+              {cajaCerrada && <p className="registro__alerta">La caja está cerrada: ábrela para poder pagar.</p>}
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
   )
 }

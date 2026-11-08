@@ -1,5 +1,11 @@
 import { useEffect, useState, type RefObject } from 'react'
 
+/**
+ * Medidas del libro: filas de 48px, más la cabecera de la tabla (36px), el pie con Atrás y Siguiente (48px) y los
+ * bordes. Sin poder medir, 20 por página. Si cambian, hay que cambiar también las alturas en index.css.
+ */
+export const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
+
 interface Medidas {
   /** Alto fijo de cada fila de la tabla. */
   fila: number

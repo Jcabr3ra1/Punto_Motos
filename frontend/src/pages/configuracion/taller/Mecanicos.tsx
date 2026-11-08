@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { claves } from '../../../api/consultas'
@@ -6,6 +6,7 @@ import { desglosarError } from '../../../api/errors'
 import { crearMecanico, editarMecanico, listarMecanicos } from '../../../api/taller'
 import type { Mechanic } from '../../../api/types'
 import { AvisoDeError } from '../../../components/AvisoDeError'
+import { BarraDeFiltros } from '../../../components/BarraDeFiltros'
 import { Campo } from '../../../components/Campo'
 import { Casilla } from '../../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
@@ -15,6 +16,9 @@ import { useAtajo } from '../../../hooks/useAtajo'
 import { DESTINOS } from '../../../navegacion/destinos'
 import { PanelLateral } from '../../../components/PanelLateral'
 import { EstadoVacio } from '../../../components/EstadoVacio'
+import { FiltroDeActivos } from '../../../components/FiltroDeActivos'
+import { Paginacion } from '../../../components/Paginacion'
+import { useListaLocal } from '../../../hooks/useListaLocal'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; mecanico: Mechanic }
 
@@ -27,6 +31,8 @@ export function Mecanicos() {
     queryKey: claves.mecanicos(true),
     queryFn: ({ signal }) => listarMecanicos(true, signal),
   })
+  const { lista, porPagina, busqueda, buscar, estado, filtrarEstado, visibles, enPagina, pagina, paginas, setPagina } =
+    useListaLocal(mecanicos.data ?? [], (m) => [m.name, m.phone ?? ''])
 
   function ir(siguiente: Vista, mensaje: string | null = null) {
     setAviso(mensaje)
@@ -42,7 +48,7 @@ export function Mecanicos() {
   )
 
   return (
-    <>
+    <section className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.mecanicos.icono}
         titulo="Mecánicos"
@@ -77,49 +83,81 @@ export function Mecanicos() {
           {aviso}
         </p>
       )}
-      {mecanicos.isPending && <Cargando />}
-      {mecanicos.isError && <ErrorDeCarga error={mecanicos.error} onReintentar={() => void mecanicos.refetch()} />}
-      {mecanicos.isSuccess &&
-        (mecanicos.data.length === 0 ? (
-          <EstadoVacio icono={DESTINOS.mecanicos.icono} mensaje="Todavía no hay mecánicos." />
-        ) : (
-          <div className="tabla-contenedor">
-            <table className="tabla">
-              <caption className="solo-lectores">Mecánicos</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Nombre</th>
-                  <th scope="col">Teléfono</th>
-                  <th scope="col">Porcentaje de la mano de obra</th>
-                  <th scope="col">Estado</th>
-                  <th scope="col">
-                    <span className="solo-lectores">Acciones</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {mecanicos.data.map((mecanico) => (
-                  <tr key={mecanico.id} className={mecanico.is_active ? undefined : 'tabla__fila--inactiva'}>
-                    <th scope="row">{mecanico.name}</th>
-                    <td>{mecanico.phone || '—'}</td>
-                    <td>
-                      {mecanico.effective_percentage ?? '—'} %
-                      <span className="tabla__detalle">{mecanico.labor_percentage == null ? 'El general' : 'Propio'}</span>
-                    </td>
-                    <td>{mecanico.is_active ? 'Activo' : 'Inactivo'}</td>
-                    <td className="tabla__acciones">
-                      <button type="button" className="boton-enlace" aria-label={`Editar a ${mecanico.name}`} onClick={() => ir({ tipo: 'editar', mecanico })}>
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
+      <BarraDeFiltros
+        busqueda={{ etiqueta: 'Buscar', placeholder: 'Nombre o teléfono', valor: busqueda, onCambiar: buscar }}
+      >
+        <FiltroDeActivos valor={estado} onCambiar={filtrarEstado} />
+        {mecanicos.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
+            {visibles.length === 1 ? '1 mecánico' : `${visibles.length} mecánicos`}
+          </p>
+        )}
+      </BarraDeFiltros>
+
+      {/* Sin detalle por fila: cada registro se edita en el panel lateral. */}
+      <div className="libro libro--sin-registro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de mecánicos">
+          {mecanicos.isPending && <Cargando />}
+          {mecanicos.isError && <ErrorDeCarga error={mecanicos.error} onReintentar={() => void mecanicos.refetch()} />}
+          {mecanicos.isSuccess &&
+            (visibles.length === 0 ? (
+              <EstadoVacio
+                icono={DESTINOS.mecanicos.icono}
+                mensaje={mecanicos.data.length === 0 ? 'Todavía no hay mecánicos.' : 'Ninguno coincide con los filtros.'}
+              />
+            ) : (
+              <div className="tabla-contenedor">
+                <table className="tabla">
+                  <caption className="solo-lectores">Mecánicos</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Nombre</th>
+                      <th scope="col">Teléfono</th>
+                      <th scope="col">Porcentaje de la mano de obra</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">
+                        <span className="solo-lectores">Acciones</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enPagina.map((mecanico) => (
+                      <tr key={mecanico.id} className={mecanico.is_active ? undefined : 'tabla__fila--inactiva'}>
+                        <th scope="row">{mecanico.name}</th>
+                        <td>{mecanico.phone || '—'}</td>
+                        <td>
+                          {mecanico.effective_percentage ?? '—'} %
+                          <span className="tabla__detalle">{mecanico.labor_percentage == null ? 'El general' : 'Propio'}</span>
+                        </td>
+                        <td>{mecanico.is_active ? 'Activo' : 'Inactivo'}</td>
+                        <td className="tabla__acciones">
+                          <button type="button" className="boton-icono" aria-label={`Editar a ${mecanico.name}`} title="Editar" onClick={() => ir({ tipo: 'editar', mecanico })}>
+                            <Pencil aria-hidden="true" size={16} strokeWidth={1.75} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          {mecanicos.isSuccess && (
+            <Paginacion
+              etiqueta="Páginas de mecánicos"
+              pagina={pagina}
+              total={visibles.length}
+              tamano={porPagina}
+              hayAnterior={pagina > 1}
+              haySiguiente={pagina < paginas}
+              onCambiar={setPagina}
+              mostrarSiempre
+              textoAnterior="Atrás"
+            />
+          )}
+        </section>
+      </div>
       {panel}
-    </>
+    </section>
   )
 }
 

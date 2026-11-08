@@ -14,14 +14,17 @@ import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { DialogoDeConfirmacion } from '../../components/DialogoDeConfirmacion'
 import { PanelLateral } from '../../components/PanelLateral'
 import { Titulo } from '../../components/Titulo'
+import { VentanaDeDocumento } from '../../components/VentanaDeDocumento'
 import { ComprobanteDeDevolucion } from './ComprobanteDeDevolucion'
 import { FormularioDeDevolucion } from './FormularioDeDevolucion'
 import { Recibo } from './Recibo'
 
-// Una venta, para consultarla. El dueño puede anularla con un motivo: no se borra, las unidades vuelven al
-// inventario y los pagos se reembolsan desde la caja abierta. También se pueden registrar devoluciones parciales o totales.
-export function DetalleDeVenta() {
-  const id = Number(useParams().id)
+/**
+ * Una venta, para consultarla. El dueño puede anularla con un motivo: no se borra, las unidades vuelven al inventario
+ * y los pagos se reembolsan desde la caja abierta. También se pueden registrar devoluciones parciales o totales.
+ * Devuelve las partes por separado (el recibo y sus botones) para usarlas en la página o en una ventana emergente.
+ */
+function useReciboConAcciones(id: number) {
   const esDueno = useUsuario().role === 'owner'
   const clienteDeConsultas = useQueryClient()
   const [anulando, setAnulando] = useState(false)
@@ -53,114 +56,153 @@ export function DetalleDeVenta() {
     },
   })
   const error = anular.isError ? desglosarError(anular.error) : null
-
-  if (venta.isPending) return <Cargando />
-  if (venta.isError) return <ErrorDeCarga error={venta.error} onReintentar={() => void venta.refetch()} />
+  const datos = venta.data
 
   const hayPorDevolver =
-    venta.data.items.some((i) => i.quantity - i.returned_quantity > 0) ||
-    venta.data.services.some((s) => !s.is_returned)
+    datos !== undefined &&
+    (datos.items.some((i) => i.quantity - i.returned_quantity > 0) || datos.services.some((s) => !s.is_returned))
 
-  return (
+  const contenido = venta.isPending ? (
+    <Cargando />
+  ) : venta.isError ? (
+    <ErrorDeCarga error={venta.error} onReintentar={() => void venta.refetch()} />
+  ) : (
     <>
-      <div className="barra-de-acciones">
-        <Titulo nivel={2}>Venta n.º {venta.data.number}</Titulo>
-        <Link to="/venta/historial">Volver a las ventas</Link>
-      </div>
       {aviso && (
         <p role="status" className="aviso aviso--exito">
           {aviso}
         </p>
       )}
       <Recibo venta={venta.data} />
-
       {devolucionRegistrada && (
         <section className="terminar" aria-label="Última devolución registrada">
           <ComprobanteDeDevolucion devolucion={devolucionRegistrada} />
         </section>
       )}
+    </>
+  )
 
-      {!venta.data.is_voided && (
+  const acciones =
+    datos && !datos.is_voided ? (
+      <>
+        {hayPorDevolver && (
+          <button
+            type="button"
+            className="boton boton--secundario boton--auto"
+            onClick={() => {
+              setAviso(null)
+              setDevolviendo(true)
+            }}
+          >
+            <Undo2 aria-hidden="true" size={16} />
+            Devolver…
+          </button>
+        )}
+        {esDueno && (
+          <button
+            type="button"
+            className="boton boton--secundario boton--auto"
+            onClick={() => {
+              setAviso(null)
+              setAnulando(true)
+            }}
+          >
+            <Ban aria-hidden="true" size={16} />
+            Anular venta…
+          </button>
+        )}
+      </>
+    ) : null
+
+  const ventanas = datos && (
+    <>
+      {devolviendo && (
+        <PanelLateral
+          titulo="Devolver productos o servicios"
+          modulo="Venta"
+          descripcion={`Venta n.º ${datos.number}: elige qué devuelve el cliente y cómo se le reembolsa.`}
+          ancho="ancho"
+          onCerrar={() => setDevolviendo(false)}
+        >
+          <FormularioDeDevolucion
+            venta={datos}
+            esDueno={esDueno}
+            onRegistrada={(registrada) => {
+              setDevolviendo(false)
+              setDevolucionRegistrada(registrada)
+              setAviso(`Devolución n.º ${registrada.number} registrada.`)
+              void clienteDeConsultas.invalidateQueries({ queryKey: clave })
+            }}
+            onCancelar={() => setDevolviendo(false)}
+          />
+        </PanelLateral>
+      )}
+      {esDueno && anulando && (
+        <DialogoDeConfirmacion
+          titulo={`¿Anular la venta n.º ${datos.number}?`}
+          accion={anular.isPending ? 'Anulando…' : 'Sí, anular la venta'}
+          cancelar="Volver"
+          peligro
+          ocupado={anular.isPending}
+          onConfirmar={() => anular.mutate()}
+          onCancelar={() => {
+            anular.reset()
+            setAnulando(false)
+          }}
+        >
+          <p>
+            No se borra: queda marcada como anulada, las unidades vuelven al inventario y cada pago se reembolsa por el
+            mismo medio desde la caja abierta.
+          </p>
+          <AvisoDeError mensajes={error?.generales ?? []} />
+          <Campo
+            etiqueta="Motivo"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            errores={error?.campos.reason}
+            ayuda="Obligatorio. Por ejemplo: «Se cobró al cliente equivocado»."
+            autoComplete="off"
+          />
+        </DialogoDeConfirmacion>
+      )}
+    </>
+  )
+
+  return { venta, contenido, acciones, ventanas }
+}
+
+/** La venta en su propia página (dirección directa `/venta/historial/:id`). */
+export function DetalleDeVenta() {
+  const id = Number(useParams().id)
+  const { venta, contenido, acciones, ventanas } = useReciboConAcciones(id)
+  return (
+    <>
+      {venta.data && (
+        <div className="barra-de-acciones">
+          <Titulo nivel={2}>Venta n.º {venta.data.number}</Titulo>
+          <Link to="/venta/historial">Volver a las ventas</Link>
+        </div>
+      )}
+      {contenido}
+      {acciones && (
         <section className="terminar" aria-label="Acciones de la venta">
-          <div className="acciones">
-            {hayPorDevolver && (
-              <button
-                type="button"
-                className="boton boton--secundario boton--auto"
-                onClick={() => {
-                  setAviso(null)
-                  setDevolviendo(true)
-                }}
-              >
-                <Undo2 aria-hidden="true" size={16} />
-                Devolver…
-              </button>
-            )}
-            {esDueno && (
-              <button
-                type="button"
-                className="boton boton--secundario boton--auto"
-                onClick={() => {
-                  setAviso(null)
-                  setAnulando(true)
-                }}
-              >
-                <Ban aria-hidden="true" size={16} />
-                Anular venta…
-              </button>
-            )}
-          </div>
-          {devolviendo && (
-            <PanelLateral
-              titulo="Devolver productos o servicios"
-              modulo="Venta"
-              descripcion={`Venta n.º ${venta.data.number}: elige qué devuelve el cliente y cómo se le reembolsa.`}
-              ancho="ancho"
-              onCerrar={() => setDevolviendo(false)}
-            >
-              <FormularioDeDevolucion
-                venta={venta.data}
-                esDueno={esDueno}
-                onRegistrada={(registrada) => {
-                  setDevolviendo(false)
-                  setDevolucionRegistrada(registrada)
-                  setAviso(`Devolución n.º ${registrada.number} registrada.`)
-                  void clienteDeConsultas.invalidateQueries({ queryKey: clave })
-                }}
-                onCancelar={() => setDevolviendo(false)}
-              />
-            </PanelLateral>
-          )}
-          {esDueno && anulando && (
-            <DialogoDeConfirmacion
-              titulo={`¿Anular la venta n.º ${venta.data.number}?`}
-              accion={anular.isPending ? 'Anulando…' : 'Sí, anular la venta'}
-              cancelar="Volver"
-              peligro
-              ocupado={anular.isPending}
-              onConfirmar={() => anular.mutate()}
-              onCancelar={() => {
-                anular.reset()
-                setAnulando(false)
-              }}
-            >
-              <p>
-                No se borra: queda marcada como anulada, las unidades vuelven al inventario y cada pago se reembolsa por
-                el mismo medio desde la caja abierta.
-              </p>
-              <AvisoDeError mensajes={error?.generales ?? []} />
-              <Campo
-                etiqueta="Motivo"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                errores={error?.campos.reason}
-                ayuda="Obligatorio. Por ejemplo: «Se cobró al cliente equivocado»."
-                autoComplete="off"
-              />
-            </DialogoDeConfirmacion>
-          )}
+          <div className="acciones">{acciones}</div>
         </section>
       )}
+      {ventanas}
+    </>
+  )
+}
+
+/** La venta en una ventana emergente sobre la lista: el recibo, y Devolver y Anular en el pie. */
+export function VentanaDeRecibo({ id, numero, onCerrar }: { id: number; numero: number; onCerrar: () => void }) {
+  const { contenido, acciones, ventanas } = useReciboConAcciones(id)
+  return (
+    <>
+      <VentanaDeDocumento titulo={`Venta n.º ${numero}`} onCerrar={onCerrar} acciones={acciones}>
+        {contenido}
+      </VentanaDeDocumento>
+      {ventanas}
     </>
   )
 }

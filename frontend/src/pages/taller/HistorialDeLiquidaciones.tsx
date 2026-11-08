@@ -1,36 +1,49 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { History } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import { listarLiquidaciones, listarMecanicos, obtenerLiquidacion } from '../../api/taller'
-import { Campo } from '../../components/Campo'
-import { CampoSelector } from '../../components/CampoSelector'
+import { BarraDeFiltros, ListaDeFiltro } from '../../components/BarraDeFiltros'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { FiltroDePeriodo } from '../../components/FiltroDePeriodo'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
+import { RegistroVacio } from '../../components/Registro'
+import { VentanaDeDocumento } from '../../components/VentanaDeDocumento'
 import { Paginacion } from '../../components/Paginacion'
 import { Titulo } from '../../components/Titulo'
 import { useConteo } from '../../hooks/useConteo'
+import { MEDIDAS_DEL_LIBRO, useFilasQueCaben } from '../../hooks/useFilasQueCaben'
+import { useHoy } from '../../hooks/useHoy'
 import { useSeleccion } from '../../hooks/useSeleccion'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearDia, formatearFechaHora } from '../../utilidades/fechas'
+import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
 import { FichaDeLiquidacion } from './FichaDeLiquidacion'
 import { HojaDeLiquidacion } from './HojaDeLiquidacion'
+
+/** Abre con todas las fechas, como antes: las liquidaciones son pocas al día. */
+const PERIODO_INICIAL: Periodo = 'todas'
 
 /** Liquidaciones pagadas (solo el dueño), de la más reciente a la más antigua. */
 export function HistorialDeLiquidaciones() {
   const [params, setParams] = useSearchParams()
+  const hoy = useHoy()
+  const lista = useRef<HTMLElement>(null)
+  const porPagina = useFilasQueCaben(lista, MEDIDAS_DEL_LIBRO)
   const numero = (clave: string) => {
     const valor = Number(params.get(clave))
     return Number.isInteger(valor) && valor > 0 ? valor : undefined
   }
+  const periodo = leerPeriodo(params, PERIODO_INICIAL)
   const filtros = {
     mechanic: numero('mechanic'),
-    date_from: params.get('date_from') || undefined,
-    date_to: params.get('date_to') || undefined,
+    ...rangoDePeriodo(periodo, hoy, { desde: params.get('date_from') || undefined, hasta: params.get('date_to') || undefined }),
     page: numero('page'),
+    page_size: porPagina,
   }
 
   function cambiar(parcial: Record<string, string | undefined>) {
@@ -43,6 +56,13 @@ export function HistorialDeLiquidaciones() {
     setParams(siguiente, { replace: true })
   }
 
+  function elegirPeriodo(valor: Periodo) {
+    cambiar({
+      periodo: valor === PERIODO_INICIAL ? undefined : valor,
+      ...(valor === 'fechas' ? {} : { date_from: undefined, date_to: undefined }),
+    })
+  }
+
   const mecanicos = useQuery({ queryKey: claves.mecanicos(true), queryFn: ({ signal }) => listarMecanicos(true, signal) })
   const liquidaciones = useQuery({
     queryKey: [...claves.liquidaciones, 'historial', filtros],
@@ -51,9 +71,11 @@ export function HistorialDeLiquidaciones() {
   })
   const seleccion = useSeleccion(liquidaciones.data?.results, (liquidacion) => liquidacion.id)
   const todas = useConteo([...claves.liquidaciones, 'cuantas'], (signal) => listarLiquidaciones({ page_size: 1 }, signal))
+  const hayFiltros = Boolean(filtros.mechanic || periodo !== PERIODO_INICIAL)
+  const [hojaAbierta, setHojaAbierta] = useState<{ id: number; mecanico: string } | null>(null)
 
   return (
-    <>
+    <div className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.historialDeLiquidaciones.icono}
         titulo="Historial de liquidaciones"
@@ -62,93 +84,134 @@ export function HistorialDeLiquidaciones() {
       <FranjaDeIndicadores
         indicadores={[{ rotulo: 'Liquidaciones', valor: String(todas.data ?? 0), cargando: todas.isPending, error: todas.isError }]}
       />
-      <div className="filtros" role="search" aria-label="Filtrar liquidaciones">
-        <CampoSelector
-          etiqueta="Mecánico"
-          value={filtros.mechanic ? String(filtros.mechanic) : ''}
-          onChange={(e) => cambiar({ mechanic: e.target.value || undefined })}
-          opciones={[{ valor: '', texto: 'Todos' }, ...(mecanicos.data ?? []).map((m) => ({ valor: String(m.id), texto: m.name }))]}
+      <BarraDeFiltros>
+        <FiltroDePeriodo
+          periodo={periodo}
+          desde={params.get('date_from') ?? ''}
+          hasta={params.get('date_to') ?? ''}
+          onPeriodo={elegirPeriodo}
+          onDesde={(dia) => cambiar({ date_from: dia || undefined })}
+          onHasta={(dia) => cambiar({ date_to: dia || undefined })}
         />
-        <Campo etiqueta="Desde" type="date" value={filtros.date_from ?? ''} onChange={(e) => cambiar({ date_from: e.target.value || undefined })} />
-        <Campo etiqueta="Hasta" type="date" value={filtros.date_to ?? ''} onChange={(e) => cambiar({ date_to: e.target.value || undefined })} />
-      </div>
-      {liquidaciones.isPending && <Cargando />}
-      {liquidaciones.isError && <ErrorDeCarga error={liquidaciones.error} onReintentar={() => void liquidaciones.refetch()} />}
-      {liquidaciones.isSuccess &&
-        (liquidaciones.data.count === 0 ? (
-          <EstadoVacio icono={History} mensaje="Todavía no hay liquidaciones." />
-        ) : (
-          <div className={seleccion.elegido ? 'con-ficha' : undefined}>
-            <div className="tabla-contenedor" tabIndex={0} onKeyDown={seleccion.alTeclear} aria-describedby="ayuda-liquidaciones">
-              <p id="ayuda-liquidaciones" className="solo-lectores">
-                Usa las flechas para ver el detalle de cada liquidación.
-              </p>
-              <table className="tabla">
-                <caption className="solo-lectores">Liquidaciones pagadas</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Día liquidado</th>
-                    <th scope="col">Mecánico</th>
-                    <th scope="col" className="tabla__numero">
-                      Servicios
-                    </th>
-                    <th scope="col" className="tabla__numero">
-                      Mano de obra
-                    </th>
-                    <th scope="col" className="tabla__numero">
-                      Pagado
-                    </th>
-                    <th scope="col">Pagó</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {liquidaciones.data.results.map((l) => (
-                    <tr
-                      key={l.id}
-                      className="tabla__fila--elegible"
-                      aria-selected={seleccion.elegido?.id === l.id}
-                      onClick={seleccion.alHacerClic(l)}
-                    >
-                      <th scope="row">
-                        <Link to={`/taller/historial/${l.id}`}>{formatearDia(l.date)}</Link>
+        <ListaDeFiltro etiqueta="Mecánico" valor={filtros.mechanic ? String(filtros.mechanic) : ''} onCambiar={(m) => cambiar({ mechanic: m || undefined })}>
+          <option value="">Todos</option>
+          {(mecanicos.data ?? []).map((m) => (
+            <option key={m.id} value={String(m.id)}>
+              {m.name}
+            </option>
+          ))}
+        </ListaDeFiltro>
+        {liquidaciones.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
+            {liquidaciones.data.count === 1 ? '1 liquidación' : `${liquidaciones.data.count} liquidaciones`}
+          </p>
+        )}
+      </BarraDeFiltros>
+
+      <div className="libro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de liquidaciones">
+          {liquidaciones.isPending && <Cargando />}
+          {liquidaciones.isError && <ErrorDeCarga error={liquidaciones.error} onReintentar={() => void liquidaciones.refetch()} />}
+          {liquidaciones.isSuccess &&
+            (liquidaciones.data.count === 0 ? (
+              <EstadoVacio icono={History} mensaje={hayFiltros ? 'Ninguna liquidación coincide con los filtros.' : 'Todavía no hay liquidaciones.'} />
+            ) : (
+              <div className="tabla-contenedor" tabIndex={0} onKeyDown={seleccion.alTeclear} aria-describedby="ayuda-liquidaciones">
+                <p id="ayuda-liquidaciones" className="solo-lectores">
+                  Usa las flechas para ver el detalle de cada liquidación.
+                </p>
+                <table className="tabla">
+                  <caption className="solo-lectores">Liquidaciones pagadas</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Día liquidado</th>
+                      <th scope="col">Mecánico</th>
+                      <th scope="col" className="tabla__numero">
+                        Servicios
                       </th>
-                      <td>{l.mechanic.name}</td>
-                      <td className="tabla__numero">{l.services_count}</td>
-                      <td className="tabla__numero">{formatearPesos(l.labor_total)}</td>
-                      <td className="tabla__numero">
-                        {formatearPesos(l.amount)}
-                        <span className="tabla__detalle">
-                          {l.percentage} % · {l.method_label}
-                          {l.deductions_total > 0 && ` · Descuento ${formatearPesos(l.deductions_total)}`}
-                        </span>
-                      </td>
-                      <td>
-                        {l.created_by}
-                        <span className="tabla__detalle">{formatearFechaHora(l.created_at)}</span>
-                      </td>
+                      <th scope="col" className="tabla__numero libro__secundaria">
+                        Mano de obra
+                      </th>
+                      <th scope="col" className="tabla__numero">
+                        Pagado
+                      </th>
+                      <th scope="col" className="libro__secundaria">
+                        Pagó
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {liquidaciones.data.results.map((l) => (
+                      <tr
+                        key={l.id}
+                        className="tabla__fila--elegible"
+                        aria-selected={seleccion.elegido?.id === l.id}
+                        onClick={seleccion.alHacerClic(l)}
+                      >
+                        <th scope="row">
+                          <button
+                            type="button"
+                            className="boton-enlace"
+                            aria-label={`Ver la hoja del ${formatearDia(l.date)} de ${l.mechanic.name}`}
+                            onClick={() => setHojaAbierta({ id: l.id, mecanico: l.mechanic.name })}
+                          >
+                            {formatearDia(l.date)}
+                          </button>
+                        </th>
+                        <td>{l.mechanic.name}</td>
+                        <td className="tabla__numero">{l.services_count}</td>
+                        <td className="tabla__numero libro__secundaria">{formatearPesos(l.labor_total)}</td>
+                        <td className="tabla__numero">
+                          {formatearPesos(l.amount)}
+                          <span className="tabla__detalle">
+                            {l.percentage} % · {l.method_label}
+                            {l.deductions_total > 0 && ` · Descuento ${formatearPesos(l.deductions_total)}`}
+                          </span>
+                        </td>
+                        <td className="libro__secundaria">
+                          {l.created_by}
+                          <span className="tabla__detalle">{formatearFechaHora(l.created_at)}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          {liquidaciones.isSuccess && (
             <Paginacion
               etiqueta="Páginas de liquidaciones"
               pagina={filtros.page ?? 1}
               total={liquidaciones.data.count}
+              tamano={porPagina}
               hayAnterior={Boolean(liquidaciones.data.previous)}
               haySiguiente={Boolean(liquidaciones.data.next)}
               onCambiar={(pagina) => cambiar({ page: String(pagina) })}
+              mostrarSiempre
+              textoAnterior="Atrás"
             />
-            {seleccion.elegido && (
-              <FichaDeLiquidacion
-                id={seleccion.elegido.id}
-                mecanico={seleccion.elegido.mechanic.name}
-                onCerrar={seleccion.cerrar}
-              />
-            )}
-          </div>
-        ))}
-    </>
+          )}
+        </section>
+        {seleccion.elegido ? (
+          <FichaDeLiquidacion id={seleccion.elegido.id} mecanico={seleccion.elegido.mechanic.name} onCerrar={seleccion.cerrar} />
+        ) : (
+          <RegistroVacio mensaje="Elige una liquidación para ver sus servicios." />
+        )}
+      </div>
+      {hojaAbierta && <VentanaDeHoja {...hojaAbierta} onCerrar={() => setHojaAbierta(null)} />}
+    </div>
+  )
+}
+
+/** La hoja de una liquidación del historial en una ventana emergente, sin salir de la lista. */
+function VentanaDeHoja({ id, mecanico, onCerrar }: { id: number; mecanico: string; onCerrar: () => void }) {
+  const liquidacion = useQuery({ queryKey: [...claves.liquidaciones, 'detalle', id], queryFn: ({ signal }) => obtenerLiquidacion(id, signal) })
+  return (
+    <VentanaDeDocumento titulo={`Liquidación de ${mecanico}`} onCerrar={onCerrar}>
+      {liquidacion.isPending && <Cargando />}
+      {liquidacion.isError && <ErrorDeCarga error={liquidacion.error} onReintentar={() => void liquidacion.refetch()} />}
+      {liquidacion.data && <HojaDeLiquidacion liquidacion={liquidacion.data} />}
+    </VentanaDeDocumento>
   )
 }
 

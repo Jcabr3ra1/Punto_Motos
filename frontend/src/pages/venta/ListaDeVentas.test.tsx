@@ -61,7 +61,13 @@ describe('ventas', () => {
 
     const ficha = await screen.findByRole('complementary', { name: 'Venta N.º 41' })
     await waitFor(() => expect(ficha).toHaveTextContent('Pastillas de freno Pulsar 180'))
-    expect(within(ficha).getByRole('link', { name: 'Abrir el recibo' })).toHaveAttribute('href', '/venta/historial/41')
+    // El recibo se abre en una ventana emergente sobre la lista, con Devolver y Anular en su pie.
+    await u.click(within(ficha).getByRole('button', { name: 'Abrir el recibo' }))
+    const ventana = await screen.findByRole('dialog', { name: 'Venta n.º 41' })
+    await waitFor(() => expect(ventana).toHaveTextContent('Pastillas de freno Pulsar 180'))
+    expect(within(ventana).getByRole('button', { name: /Anular venta/ })).toBeInTheDocument()
+    await u.click(within(ventana).getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('las flechas mueven la ficha y Esc la cierra', async () => {
