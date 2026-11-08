@@ -21,11 +21,11 @@ export const listarCajas = (filtros: { date_from?: string; date_to?: string; pag
 export const obtenerCaja = (id: number, signal?: AbortSignal) => api<CashSession>(`/cash-sessions/${id}`, { signal })
 
 export const listarMovimientosDeCaja = (
-  filtros: { session?: number; kind?: CashMovementKind; method?: PaymentMethod; page?: number } = {},
+  filtros: { session?: number; kind?: CashMovementKind; method?: PaymentMethod; page?: number; page_size?: number } = {},
   signal?: AbortSignal,
 ) =>
   api<Paginated<CashMovement>>('/cash-movements', {
-    query: { session: filtros.session, kind: filtros.kind, method: filtros.method, page: filtros.page && filtros.page > 1 ? filtros.page : undefined },
+    query: { session: filtros.session, kind: filtros.kind, method: filtros.method, page: filtros.page && filtros.page > 1 ? filtros.page : undefined, page_size: filtros.page_size },
     signal,
   })
 

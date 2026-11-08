@@ -1,16 +1,15 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Banknote } from 'lucide-react'
 import { listarMovimientosDeCaja } from '../../api/caja'
 import { claves } from '../../api/consultas'
 import type { CashSession } from '../../api/types'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
+import { EstadoVacio } from '../../components/EstadoVacio'
 import { Paginacion } from '../../components/Paginacion'
 import { Titulo } from '../../components/Titulo'
-import { formatearPesos } from '../../utilidades/dinero'
+import { formatearPesos, pesosConSigno } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
-
-/** Pesos con signo: `-3000` → `-$ 3.000`, `5000` → `+$ 5.000`. */
-const pesosConSigno = (valor: number) => (valor < 0 ? `-${formatearPesos(-valor)}` : valor > 0 ? `+${formatearPesos(valor)}` : formatearPesos(0))
 
 /** Cifras de una caja: inicial, esperado, transferencias y, si está cerrada, contado y diferencia. */
 export function CifrasDeCaja({ caja }: { caja: CashSession }) {
@@ -54,8 +53,11 @@ export function CifrasDeCaja({ caja }: { caja: CashSession }) {
 
 /** Resumen por tipo de movimiento, separado en efectivo y transferencia. */
 export function ResumenPorTipo({ caja }: { caja: CashSession }) {
-  if (!caja.summary || caja.summary.by_kind.length === 0) {
-    return <p className="texto-suave">Todavía no hay movimientos en esta caja.</p>
+  if (!caja.summary) {
+    return <p className="texto-suave">El resumen de esta caja no está disponible.</p>
+  }
+  if (caja.summary.by_kind.length === 0) {
+    return <EstadoVacio icono={Banknote} mensaje="Todavía no hay movimientos en esta caja." />
   }
   return (
     <div className="tabla-contenedor">
@@ -98,21 +100,25 @@ export function ResumenPorTipo({ caja }: { caja: CashSession }) {
 }
 
 /** Movimientos de una caja, del más reciente al más antiguo. */
-export function MovimientosDeCaja({ cajaId }: { cajaId: number }) {
+export function MovimientosDeCaja({ cajaId, deHoy = false }: { cajaId: number; deHoy?: boolean }) {
   const [pagina, setPagina] = useState(1)
+  const tamano = deHoy ? 10 : 50
   const movimientos = useQuery({
-    queryKey: [...claves.caja, 'movimientos', cajaId, pagina],
-    queryFn: ({ signal }) => listarMovimientosDeCaja({ session: cajaId, page: pagina }, signal),
+    queryKey: [...claves.caja, 'movimientos', cajaId, pagina, tamano],
+    queryFn: ({ signal }) => listarMovimientosDeCaja({ session: cajaId, page: pagina, page_size: deHoy ? tamano : undefined }, signal),
     placeholderData: keepPreviousData,
   })
   return (
-    <>
-      <Titulo nivel={3}>Movimientos</Titulo>
+    <section className="movimientos-caja" aria-label="Movimientos de la caja">
+      <header className="movimientos-caja__cabecera">
+        <Titulo nivel={3}>Movimientos</Titulo>
+        <span className="texto-suave">Más recientes primero</span>
+      </header>
       {movimientos.isPending && <Cargando />}
       {movimientos.isError && <ErrorDeCarga error={movimientos.error} onReintentar={() => void movimientos.refetch()} />}
       {movimientos.isSuccess &&
         (movimientos.data.count === 0 ? (
-          <p className="texto-suave">Sin movimientos.</p>
+          <EstadoVacio icono={Banknote} mensaje="Todavía no hay movimientos en esta caja." />
         ) : (
           <>
             <div className="tabla-contenedor">
@@ -123,39 +129,49 @@ export function MovimientosDeCaja({ cajaId }: { cajaId: number }) {
                     <th scope="col">Hora</th>
                     <th scope="col">Tipo</th>
                     <th scope="col">Detalle</th>
-                    <th scope="col">Medio</th>
+                    <th scope="col" className="movimientos-caja__secundaria">Medio</th>
                     <th scope="col" className="tabla__numero">
                       Valor
                     </th>
-                    <th scope="col">Registró</th>
+                    <th scope="col" className="movimientos-caja__secundaria">Registró</th>
                   </tr>
                 </thead>
                 <tbody>
                   {movimientos.data.results.map((m) => (
                     <tr key={m.id}>
-                      <td className="tabla__nowrap">{formatearFechaHora(m.created_at)}</td>
-                      <td>{m.kind_label}</td>
-                      <td>{m.reason || '—'}</td>
-                      <td>{m.method_label}</td>
-                      <td className={`tabla__numero ${m.amount > 0 ? 'cantidad--entra' : 'cantidad--sale'}`}>
-                        {m.amount < 0 ? `-${formatearPesos(-m.amount)}` : `+${formatearPesos(m.amount)}`}
+                      <td className="tabla__nowrap" title={formatearFechaHora(m.created_at)}>
+                        <span className="movimientos-caja__fecha">{formatearFechaHora(m.created_at)}</span>
+                        <time className="movimientos-caja__hora" dateTime={m.created_at}>
+                          {new Date(m.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                        </time>
                       </td>
-                      <td>{m.created_by}</td>
+                      <td title={m.kind_label}>{m.kind_label}</td>
+                      <td title={m.reason || '—'}>{m.reason || '—'}</td>
+                      <td className="movimientos-caja__secundaria" title={m.method_label}>{m.method_label}</td>
+                      <td title={pesosConSigno(m.amount)} className={`tabla__numero ${m.amount > 0 ? 'cantidad--entra' : 'cantidad--sale'}`}>
+                        {pesosConSigno(m.amount)}
+                      </td>
+                      <td className="movimientos-caja__secundaria" title={m.created_by}>{m.created_by}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <Paginacion
-              etiqueta="Páginas de movimientos de caja"
-              pagina={pagina}
-              total={movimientos.data.count}
-              hayAnterior={Boolean(movimientos.data.previous)}
-              haySiguiente={Boolean(movimientos.data.next)}
-              onCambiar={setPagina}
-            />
           </>
         ))}
-    </>
+      {movimientos.isSuccess && (
+        <Paginacion
+          etiqueta="Páginas de movimientos de caja"
+          pagina={pagina}
+          total={movimientos.data.count}
+          tamano={tamano}
+          hayAnterior={Boolean(movimientos.data.previous)}
+          haySiguiente={Boolean(movimientos.data.next)}
+          onCambiar={setPagina}
+          mostrarSiempre={deHoy}
+          textoAnterior={deHoy ? 'Atrás' : 'Anterior'}
+        />
+      )}
+    </section>
   )
 }

@@ -1,6 +1,6 @@
-import { Lock, Minus } from 'lucide-react'
+import { Banknote, Lock, Minus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { abrirCaja, cerrarCaja, registrarSalida } from '../../api/caja'
 import { isApiError } from '../../api/client'
 import { claves } from '../../api/consultas'
@@ -11,14 +11,16 @@ import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
-import { Titulo } from '../../components/Titulo'
+import { EstadoVacio } from '../../components/EstadoVacio'
+import { Ficha } from '../../components/Ficha'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { DESTINOS } from '../../navegacion/destinos'
 import { VistaPrevia } from '../../components/VistaPrevia'
 import { useCajaActual } from '../../hooks/useCajaActual'
-import { formatearPesos } from '../../utilidades/dinero'
+import { formatearPesos, pesosConSigno } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
-import { CifrasDeCaja, MovimientosDeCaja, ResumenPorTipo } from './ResumenDeCaja'
+import { MovimientosDeCaja, ResumenPorTipo } from './ResumenDeCaja'
 
 type Vista = 'resumen' | 'salida' | 'cerrar'
 
@@ -28,17 +30,38 @@ export function CajaDeHoy() {
   const actual = useCajaActual()
   const [aviso, setAviso] = useState<string | null>(null)
   const [vista, setVista] = useState<Vista>('resumen')
+  const [resumenAbierto, setResumenAbierto] = useState(false)
+  const botonResumen = useRef<HTMLButtonElement>(null)
+  const fichaResumen = useRef<HTMLDivElement>(null)
+  const resumenVisitado = useRef(false)
+
+  useEffect(() => {
+    if (resumenAbierto) {
+      resumenVisitado.current = true
+      // En área angosta PanelLateral administra su propio foco; aquí solo se enfoca la ficha integrada.
+      fichaResumen.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    } else if (resumenVisitado.current) {
+      botonResumen.current?.focus()
+    }
+  }, [resumenAbierto])
 
   if (actual.isPending) return <Cargando />
   if (actual.isError) return <ErrorDeCarga error={actual.error} onReintentar={() => void actual.refetch()} />
 
   const caja = actual.data.session
+  const abierta = actual.data.is_open && Boolean(caja)
+  // El resumen cubre toda la sesión; las páginas del diario no intervienen en el balance.
+  const efectivo = caja?.summary?.by_kind.reduce(
+    (total, fila) => ({ entradas: total.entradas + Math.max(0, fila.cash), salidas: total.salidas + Math.max(0, -fila.cash) }),
+    { entradas: 0, salidas: 0 },
+  )
   return (
-    <>
+    <div className={`caja-hoy${resumenAbierto ? ' caja-hoy--con-resumen' : ''}`}>
       <EncabezadoDePantalla
         icono={DESTINOS.cajaActual.icono}
         titulo="Caja de hoy"
-        descripcion="El efectivo del día: apertura, gastos, retiros y cierre."
+        descripcion={abierta && caja ? `Abierta el ${formatearFechaHora(caja.opened_at)} por ${caja.opened_by}.` : 'Abre la jornada con el efectivo del cajón.'}
+        acciones={<span className={`caja-hoy__estado${abierta ? ' caja-hoy__estado--abierta' : ''}`}>{abierta ? 'Abierta' : 'Cerrada'}</span>}
       />
       {aviso && (
         <p role="status" className="aviso aviso--exito">
@@ -46,59 +69,108 @@ export function CajaDeHoy() {
         </p>
       )}
       {!actual.data.is_open || !caja ? (
-        <AbrirCaja
-          sugerido={actual.data.suggested_opening_cash ?? 0}
-          onAbierta={(abierta) => {
-            setVista('resumen')
-            setAviso(`Caja abierta con ${formatearPesos(abierta.opening_cash)} en efectivo.`)
-          }}
-        />
+        <div className="caja-hoy__apertura">
+          <aside className="caja-hoy__antes-de-abrir">
+            <EstadoVacio icono={Banknote} mensaje="La caja está cerrada" />
+            <p>Cuenta el efectivo del cajón para empezar la jornada.</p>
+            <dl>
+              <dt>Efectivo sugerido</dt>
+              <dd>{formatearPesos(actual.data.suggested_opening_cash ?? 0)}</dd>
+            </dl>
+            <p>Lo que se contó en el último cierre.</p>
+          </aside>
+          <AbrirCaja
+            sugerido={actual.data.suggested_opening_cash ?? 0}
+            onAbierta={(abierta) => {
+              setVista('resumen')
+              setResumenAbierto(false)
+              setAviso(`Caja abierta con ${formatearPesos(abierta.opening_cash)} en efectivo.`)
+            }}
+          />
+        </div>
       ) : (
         <>
-          <p className="texto-suave">
-            Abierta el {formatearFechaHora(caja.opened_at)} por {caja.opened_by}.
-          </p>
-          <CifrasDeCaja caja={caja} />
-          <div className="acciones acciones--arriba">
-            <button
-              type="button"
-              className="boton boton--secundario boton--auto"
-              onClick={() => {
-                setAviso(null)
-                setVista('salida')
-              }}
-            >
-              <Minus aria-hidden="true" size={16} />
-              Registrar gasto o retiro
-            </button>
-            <button
-              type="button"
-              className="boton boton--auto"
-              onClick={() => {
-                setAviso(null)
-                setVista('cerrar')
-              }}
-            >
-              <Lock aria-hidden="true" size={16} />
-              Cerrar caja…
-            </button>
+          <FranjaDeIndicadores indicadores={[
+            { rotulo: 'Efectivo inicial', valor: formatearPesos(caja.opening_cash) },
+            { rotulo: 'Entró en efectivo', valor: efectivo ? <span className="cantidad--entra">{pesosConSigno(efectivo.entradas)}</span> : '—' },
+            { rotulo: 'Salió en efectivo', valor: efectivo ? <span className="cantidad--sale">{pesosConSigno(-efectivo.salidas)}</span> : '—' },
+            { rotulo: 'Transferencias · neto', valor: caja.summary ? formatearPesos(caja.summary.transfer_total) : '—' },
+          ]} />
+          <div className="caja-hoy__cuerpo">
+            <MovimientosDeCaja key={caja.id} cajaId={caja.id} deHoy />
+            <aside className="caja-hoy__cajon" aria-label="El cajón">
+              <dl className="caja-hoy__balance" aria-label="Cifras de la caja">
+                <div className="caja-hoy__esperado">
+                  <dt>Efectivo esperado en el cajón</dt>
+                  <dd title={formatearPesos(caja.expected_cash)}>{formatearPesos(caja.expected_cash)}</dd>
+                </div>
+                <div className="caja-hoy__desglose">
+                  <dt>Base al abrir</dt><dd>{formatearPesos(caja.opening_cash)}</dd>
+                </div>
+                <div className="caja-hoy__desglose">
+                  <dt>+ Entró en efectivo</dt><dd>{efectivo ? formatearPesos(efectivo.entradas) : '—'}</dd>
+                </div>
+                <div className="caja-hoy__desglose">
+                  <dt>− Salió en efectivo</dt><dd>{efectivo ? formatearPesos(efectivo.salidas) : '—'}</dd>
+                </div>
+                <div className="caja-hoy__transferencias">
+                  <dt>Transferencias</dt><dd>{caja.summary ? formatearPesos(caja.summary.transfer_total) : '—'}</dd>
+                </div>
+              </dl>
+              <button ref={botonResumen} type="button" className="boton boton--secundario" onClick={() => setResumenAbierto(true)}>
+                Ver resumen por tipo
+              </button>
+              <div className="caja-hoy__cierre">
+                <h3>Para cerrar</h3>
+                <p>Falta contar el efectivo.</p>
+                <p className="caja-hoy__ayuda-cierre">Si hay diferencia, explica el motivo.</p>
+                <button
+                  type="button"
+                  className="boton boton--secundario"
+                  onClick={() => {
+                    setAviso(null)
+                    setVista('salida')
+                  }}
+                >
+                  <Minus aria-hidden="true" size={16} />
+                  Registrar gasto o retiro
+                </button>
+                <button
+                  type="button"
+                  className="boton"
+                  onClick={() => {
+                    setAviso(null)
+                    setVista('cerrar')
+                  }}
+                >
+                  <Lock aria-hidden="true" size={16} />
+                  Cerrar caja
+                </button>
+              </div>
+            </aside>
+            {resumenAbierto && (
+              <div ref={fichaResumen} className="caja-hoy__resumen">
+                <Ficha titulo="Resumen por tipo" modulo="Caja de hoy" onCerrar={() => setResumenAbierto(false)}>
+                  <ResumenPorTipo caja={caja} />
+                  <p className="texto-suave">Las transferencias se suman aparte: no forman parte del efectivo del cajón.</p>
+                </Ficha>
+              </div>
+            )}
           </div>
-          <Titulo nivel={3}>Resumen</Titulo>
-          <ResumenPorTipo caja={caja} />
-          <MovimientosDeCaja cajaId={caja.id} />
         </>
       )}
       {caja && vista === 'salida' && (
         <PanelLateral
           titulo="Registrar gasto o retiro"
           modulo="Caja"
-          descripcion="Sale efectivo del cajón: queda en el resumen del día."
+          descripcion="Registra una salida en efectivo o por transferencia: queda en el resumen del día."
           onCerrar={() => setVista('resumen')}
         >
           <RegistrarSalida
             onTerminar={(mensaje) => {
               setAviso(mensaje)
               setVista('resumen')
+              setResumenAbierto(false)
             }}
             onCancelar={() => setVista('resumen')}
           />
@@ -125,7 +197,7 @@ export function CajaDeHoy() {
           />
         </PanelLateral>
       )}
-    </>
+    </div>
   )
 }
 

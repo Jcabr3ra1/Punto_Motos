@@ -8,12 +8,15 @@ interface Props {
   hayAnterior: boolean
   onCambiar: (pagina: number) => void
   etiqueta: string
+  /** Para mantener el pie de una tabla aunque todavía no tenga otra página. */
+  mostrarSiempre?: boolean
+  textoAnterior?: string
 }
 
-/** Anterior / Siguiente para los listados paginados. No se muestra si todo cabe en una sola página. */
-export function Paginacion({ pagina, total, tamano = 50, haySiguiente, hayAnterior, onCambiar, etiqueta }: Props) {
+/** Anterior / Siguiente para los listados paginados. Por defecto se oculta si todo cabe en una sola página. */
+export function Paginacion({ pagina, total, tamano = 50, haySiguiente, hayAnterior, onCambiar, etiqueta, mostrarSiempre = false, textoAnterior = 'Anterior' }: Props) {
   const totalDePaginas = Math.max(1, Math.ceil(total / tamano))
-  if (totalDePaginas <= 1) return null
+  if (totalDePaginas <= 1 && !mostrarSiempre) return null
   return (
     <nav aria-label={etiqueta} className="paginacion">
       <button
@@ -22,7 +25,7 @@ export function Paginacion({ pagina, total, tamano = 50, haySiguiente, hayAnteri
         disabled={!hayAnterior}
         onClick={() => onCambiar(pagina - 1)}
       >
-        Anterior
+        {textoAnterior}
       </button>
       <span>
         Página {pagina} de {totalDePaginas}
