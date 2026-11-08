@@ -1,6 +1,6 @@
 import { SlidersHorizontal, Wrench } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { listarMovimientos, type FiltrosDeMovimientos } from '../../api/inventario'
 import { claves } from '../../api/consultas'
@@ -8,18 +8,20 @@ import { obtenerProducto } from '../../api/productos'
 import type { InventoryMovement, MovementKind, Product } from '../../api/types'
 import { useUsuario } from '../../auth/useUsuario'
 import { BuscadorDeProductos } from '../../components/BuscadorDeProductos'
-import { Campo } from '../../components/Campo'
-import { CampoSelector } from '../../components/CampoSelector'
+import { BarraDeFiltros, ListaDeFiltro } from '../../components/BarraDeFiltros'
+import { FiltroDePeriodo } from '../../components/FiltroDePeriodo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { useConteo } from '../../hooks/useConteo'
+import { useFilasQueCaben } from '../../hooks/useFilasQueCaben'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearConSigno, formatearNumero } from '../../utilidades/numeros'
+import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
 import { ConsumoDelTaller } from './ConsumoDelTaller'
 import { FormularioDeAjuste } from './FormularioDeAjuste'
 import { EstadoVacio } from '../../components/EstadoVacio'
@@ -37,16 +39,24 @@ const TIPOS: readonly { valor: '' | MovementKind; texto: string }[] = [
   { valor: 'workshop_use', texto: 'Consumo del taller' },
 ]
 
+/** Abre con todas las fechas: el kárdex de un producto (enlace desde Productos) debe verse completo. */
+const PERIODO_INICIAL: Periodo = 'todas'
+
+/** Medidas del libro (ver Ventas): filas de 48px, cabecera de 36px, pie de 48px y bordes. */
+const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
+
 /** Los filtros viven en la dirección (`?product=7&kind=adjustment`): sirven los enlaces y el botón «atrás». */
-function leerFiltros(params: URLSearchParams): FiltrosDeMovimientos {
+function leerFiltros(params: URLSearchParams, hoy: string, porPagina: number): FiltrosDeMovimientos & { periodo: Periodo } {
   const producto = Number(params.get('product'))
   const pagina = Number(params.get('page'))
+  const periodo = leerPeriodo(params, PERIODO_INICIAL)
   return {
+    periodo,
     product: Number.isInteger(producto) && producto > 0 ? producto : undefined,
     kind: (params.get('kind') || undefined) as MovementKind | undefined,
-    date_from: params.get('date_from') || undefined,
-    date_to: params.get('date_to') || undefined,
+    ...rangoDePeriodo(periodo, hoy, { desde: params.get('date_from') || undefined, hasta: params.get('date_to') || undefined }),
     page: Number.isInteger(pagina) && pagina > 1 ? pagina : undefined,
+    page_size: porPagina,
   }
 }
 
@@ -57,7 +67,11 @@ export function Movimientos() {
   const [ajustando, setAjustando] = useState(false)
   const [consumiendo, setConsumiendo] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  const filtros = leerFiltros(params)
+  const hoy = useHoy()
+  const lista = useRef<HTMLElement>(null)
+  const porPagina = useFilasQueCaben(lista, MEDIDAS_DEL_LIBRO)
+  const filtros = leerFiltros(params, hoy, porPagina)
+  const { periodo, ...consulta } = filtros
 
   function cambiar(parcial: Record<string, string | undefined>) {
     const siguiente = new URLSearchParams(params)
@@ -70,9 +84,16 @@ export function Movimientos() {
     setParams(siguiente, { replace: true })
   }
 
+  function elegirPeriodo(valor: Periodo) {
+    cambiar({
+      periodo: valor === PERIODO_INICIAL ? undefined : valor,
+      ...(valor === 'fechas' ? {} : { date_from: undefined, date_to: undefined }),
+    })
+  }
+
   const movimientos = useQuery({
-    queryKey: [...claves.movimientos, filtros],
-    queryFn: ({ signal }) => listarMovimientos(filtros, signal),
+    queryKey: [...claves.movimientos, consulta],
+    queryFn: ({ signal }) => listarMovimientos(consulta, signal),
     placeholderData: keepPreviousData,
   })
   const producto = useQuery({
@@ -81,14 +102,13 @@ export function Movimientos() {
     enabled: filtros.product !== undefined,
   })
 
-  const hayFiltros = Boolean(filtros.product || filtros.kind || filtros.date_from || filtros.date_to)
-  const hoy = useHoy()
+  const hayFiltros = Boolean(filtros.product || filtros.kind || periodo !== PERIODO_INICIAL)
   const deHoy = useConteo([...claves.movimientos, 'hoy', hoy], (signal) =>
     listarMovimientos({ date_from: hoy, date_to: hoy, page_size: 1 }, signal),
   )
 
   return (
-    <section>
+    <section className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.movimientos.icono}
         titulo="Movimientos de inventario"
@@ -133,8 +153,8 @@ export function Movimientos() {
         </p>
       )}
 
-      <div className="filtros" role="search" aria-label="Filtrar movimientos">
-        <div>
+      <BarraDeFiltros>
+        <div className="barra-de-filtros__producto">
           {filtros.product ? (
             <FiltroDeProducto
               id={filtros.product}
@@ -150,54 +170,57 @@ export function Movimientos() {
             />
           )}
         </div>
-        <CampoSelector
-          etiqueta="Tipo"
-          value={filtros.kind ?? ''}
-          onChange={(e) => cambiar({ kind: e.target.value || undefined })}
-          opciones={TIPOS}
+        <FiltroDePeriodo
+          periodo={periodo}
+          desde={params.get('date_from') ?? ''}
+          hasta={params.get('date_to') ?? ''}
+          onPeriodo={elegirPeriodo}
+          onDesde={(dia) => cambiar({ date_from: dia || undefined })}
+          onHasta={(dia) => cambiar({ date_to: dia || undefined })}
         />
-        <Campo
-          etiqueta="Desde"
-          type="date"
-          value={filtros.date_from ?? ''}
-          onChange={(e) => cambiar({ date_from: e.target.value || undefined })}
-        />
-        <Campo
-          etiqueta="Hasta"
-          type="date"
-          value={filtros.date_to ?? ''}
-          onChange={(e) => cambiar({ date_to: e.target.value || undefined })}
-        />
-      </div>
-
-      {movimientos.isPending && <Cargando />}
-      {movimientos.isError && <ErrorDeCarga error={movimientos.error} onReintentar={() => void movimientos.refetch()} />}
-
-      {movimientos.isSuccess && (
-        <>
-          <p role="status" className="texto-suave">
+        <ListaDeFiltro etiqueta="Tipo" valor={filtros.kind ?? ''} onCambiar={(tipo) => cambiar({ kind: tipo || undefined })}>
+          {TIPOS.map((t) => (
+            <option key={t.valor} value={t.valor}>
+              {t.texto}
+            </option>
+          ))}
+        </ListaDeFiltro>
+        {movimientos.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
             {movimientos.data.count === 1 ? '1 movimiento' : `${formatearNumero(movimientos.data.count)} movimientos`}
           </p>
-          {movimientos.data.count === 0 ? (
-            <EstadoVacio
-              icono={DESTINOS.movimientos.icono}
-              mensaje={hayFiltros ? 'Ningún movimiento coincide con los filtros.' : 'Todavía no hay movimientos.'}
-            />
-          ) : (
-            <>
-              <TablaDeMovimientos movimientos={movimientos.data.results} esDueno={esDueno} />
-              <Paginacion
-                etiqueta="Páginas de movimientos"
-                pagina={filtros.page ?? 1}
-                total={movimientos.data.count}
-                hayAnterior={Boolean(movimientos.data.previous)}
-                haySiguiente={Boolean(movimientos.data.next)}
-                onCambiar={(pagina) => cambiar({ page: String(pagina) })}
+        )}
+      </BarraDeFiltros>
+
+      {/* Sin detalle por fila: el libro va sin registro, a todo el ancho. */}
+      <div className="libro libro--sin-registro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de movimientos">
+          {movimientos.isPending && <Cargando />}
+          {movimientos.isError && <ErrorDeCarga error={movimientos.error} onReintentar={() => void movimientos.refetch()} />}
+          {movimientos.isSuccess &&
+            (movimientos.data.count === 0 ? (
+              <EstadoVacio
+                icono={DESTINOS.movimientos.icono}
+                mensaje={hayFiltros ? 'Ningún movimiento coincide con los filtros.' : 'Todavía no hay movimientos.'}
               />
-            </>
+            ) : (
+              <TablaDeMovimientos movimientos={movimientos.data.results} esDueno={esDueno} />
+            ))}
+          {movimientos.isSuccess && (
+            <Paginacion
+              etiqueta="Páginas de movimientos"
+              pagina={filtros.page ?? 1}
+              total={movimientos.data.count}
+              tamano={porPagina}
+              hayAnterior={Boolean(movimientos.data.previous)}
+              haySiguiente={Boolean(movimientos.data.next)}
+              onCambiar={(pagina) => cambiar({ page: String(pagina) })}
+              mostrarSiempre
+              textoAnterior="Atrás"
+            />
           )}
-        </>
-      )}
+        </section>
+      </div>
       {consumiendo && (
         <PanelLateral
           titulo="Consumo del taller"
@@ -292,7 +315,9 @@ function TablaDeMovimientos({ movimientos, esDueno }: { movimientos: InventoryMo
               </th>
             )}
             <th scope="col">Motivo</th>
-            <th scope="col">Hecho por</th>
+            <th scope="col" className="libro__secundaria">
+              Hecho por
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -314,8 +339,10 @@ function TablaDeMovimientos({ movimientos, esDueno }: { movimientos: InventoryMo
                   {movimiento.unit_cost == null ? '—' : formatearPesos(movimiento.unit_cost)}
                 </td>
               )}
-              <td>{movimiento.reason || '—'}</td>
-              <td>{movimiento.created_by}</td>
+              <td className="libro__recortado" title={movimiento.reason || undefined}>
+                {movimiento.reason || '—'}
+              </td>
+              <td className="libro__secundaria">{movimiento.created_by}</td>
             </tr>
           ))}
         </tbody>

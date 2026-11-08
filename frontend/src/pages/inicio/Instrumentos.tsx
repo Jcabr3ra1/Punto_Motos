@@ -60,8 +60,10 @@ export function CajaDeHoy() {
       ) : abierta ? (
         <>
           <p className="instrumento__cifra instrumento__cifra--marca">{formatearPesos(sesion.expected_cash)}</p>
-          <p className="instrumento__detalle">
-            esperado en el cajón · Abrió con {formatearPesos(sesion.opening_cash)}
+          {/* Dos líneas que no se parten por dentro: qué es la cifra y cuándo abrió la caja. */}
+          <p className="instrumento__detalle">esperado en el cajón</p>
+          <p className="instrumento__detalle instrumento__detalle--entero">
+            Abrió con {formatearPesos(sesion.opening_cash)}
             {horaDe(sesion.opened_at) && ` a las ${horaDe(sesion.opened_at)}`}
           </p>
           {!resumen ? (
@@ -76,8 +78,16 @@ export function CajaDeHoy() {
                 fondoPista="#262728"
                 etiquetaAccesible={`Cobros de hoy: ${porcentajeEfectivo} % en efectivo (${formatearPesos(cobradoEfectivo)}) y ${porcentajeTransferencia} % por transferencia (${formatearPesos(cobradoTransferencia)})`}
               />
-              <p className="instrumento__detalle">
-                Cobrado: {porcentajeEfectivo} % efec. · {porcentajeTransferencia} % transf.
+              {/* Leyenda de la barra: cada parte con el color de su tramo y sin partirse por dentro. */}
+              <p className="instrumento__detalle leyenda-de-cobro">
+                <span className="leyenda-de-cobro__parte">
+                  <span className="leyenda-de-cobro__color" style={{ background: '#cde409' }} aria-hidden="true" />
+                  Efectivo {porcentajeEfectivo}&nbsp;%
+                </span>
+                <span className="leyenda-de-cobro__parte">
+                  <span className="leyenda-de-cobro__color" style={{ background: '#6e7552' }} aria-hidden="true" />
+                  Transferencia {porcentajeTransferencia}&nbsp;%
+                </span>
               </p>
             </>
           ) : (

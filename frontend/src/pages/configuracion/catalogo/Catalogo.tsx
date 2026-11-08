@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { listarMarcas, listarMotos, listarTipos, type TipoDeCatalogo } from '../../../api/catalogo'
 import { claves } from '../../../api/consultas'
@@ -40,6 +41,7 @@ const SECCIONES: readonly SeccionDeCatalogo[] = [
 // Administración de tipos, marcas y motos (solo el dueño). No se borran: se desactivan.
 export function Catalogo() {
   const [tipo, setTipo] = useState<TipoDeCatalogo>('categories')
+  const [creando, setCreando] = useState(false)
   const seccion = SECCIONES.find((s) => s.tipo === tipo) ?? SECCIONES[0]
   // Cuántos hay activos de cada uno: listas sin paginar, la cifra es exacta.
   const tipos = useQuery({ queryKey: claves.catalogoActivo('categories'), queryFn: ({ signal }) => listarTipos(signal) })
@@ -53,28 +55,31 @@ export function Catalogo() {
   })
 
   return (
-    <section>
+    <section className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.catalogo.icono}
         titulo="Tipos, marcas y motos"
         descripcion="La clasificación de los productos. No se borran: se desactivan."
+        acciones={
+          <button type="button" className="boton boton--auto boton--con-icono" onClick={() => setCreando(true)}>
+            <Plus aria-hidden="true" size={16} />
+            {seccion.nuevo}
+          </button>
+        }
       />
       <FranjaDeIndicadores indicadores={[cifra(tipos, 'Tipos'), cifra(marcas, 'Marcas'), cifra(motos, 'Motos')]} />
-      <div role="group" aria-label="Sección del catálogo" className="selector-de-seccion">
-        {SECCIONES.map((s) => (
-          <button
-            key={s.tipo}
-            type="button"
-            className="selector-de-seccion__opcion"
-            aria-pressed={s.tipo === tipo}
-            onClick={() => setTipo(s.tipo)}
-          >
-            {s.etiqueta}
-          </button>
-        ))}
-      </div>
-      {/* La clave reinicia la lista y sus formularios al cambiar de sección. */}
-      <ListaDeCatalogo key={seccion.tipo} seccion={seccion} />
+      {/* La clave reinicia la lista, sus filtros y sus formularios al cambiar de sección. */}
+      <ListaDeCatalogo
+        key={seccion.tipo}
+        seccion={seccion}
+        secciones={SECCIONES}
+        onSeccion={(nueva) => {
+          setCreando(false)
+          setTipo(nueva)
+        }}
+        creando={creando}
+        onCerrarCreacion={() => setCreando(false)}
+      />
     </section>
   )
 }

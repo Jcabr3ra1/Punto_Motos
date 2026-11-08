@@ -83,8 +83,7 @@ button,
 img,
 .menu-lateral,
 .navbar,
-.barra-de-estado,
-.selector-de-seccion {
+.barra-de-estado {
   -webkit-user-select: none;
   user-select: none;
   -webkit-user-drag: none;
@@ -1097,34 +1096,6 @@ kbd {
   align-items: center;
   justify-content: center;
   margin-top: var(--esp-4);
-}
-
-.selector-de-seccion {
-  display: inline-flex;
-  margin: var(--esp-2) 0 var(--esp-4);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-  overflow: hidden;
-}
-
-.selector-de-seccion__opcion {
-  padding: var(--esp-1) var(--esp-4);
-  font: inherit;
-  color: var(--color-texto);
-  background: var(--color-superficie);
-  border: 0;
-  border-right: 1px solid var(--color-borde);
-  cursor: pointer;
-}
-
-.selector-de-seccion__opcion:last-child {
-  border-right: 0;
-}
-
-.selector-de-seccion__opcion[aria-pressed='true'] {
-  font-weight: 700;
-  color: var(--color-sobre-marca);
-  background: var(--color-marca);
 }
 
 .conjunto {
@@ -2627,59 +2598,6 @@ kbd {
   text-decoration: underline;
 }
 
-.ir-a {
-  margin: 0;
-  padding: var(--esp-1) 0;
-  list-style: none;
-}
-
-.estructura__contenido a.ir-a__enlace {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  align-items: center;
-  gap: var(--esp-3);
-  padding: var(--esp-2) var(--esp-4);
-  color: var(--color-texto);
-  text-decoration: none;
-  border-bottom: 1px solid var(--linea-suave);
-}
-
-.ir-a li:last-child .ir-a__enlace {
-  border-bottom: 0;
-}
-
-.estructura__contenido a.ir-a__enlace:hover {
-  background: #f9f8f4;
-}
-
-.ir-a__placa {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  color: var(--color-marca);
-  background: var(--marco);
-  border-radius: var(--radio);
-}
-
-.ir-a__texto {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.ir-a__nombre {
-  font-weight: 600;
-}
-
-.ir-a__descripcion {
-  overflow: hidden;
-  font-size: 12px;
-  color: var(--texto-secundario);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Consulta de precio y existencia del vendedor, en negro como el tablero. */
 .consulta {
   min-width: 0;
@@ -3801,18 +3719,20 @@ kbd {
   background: #eef0e2;
 }
 
+/* Existencia: la cifra arriba, alineada a la derecha como las demás cifras, y la barra fina debajo. */
 .medidor {
   display: inline-grid;
-  grid-template-columns: 56px 56px;
-  align-items: center;
-  gap: var(--esp-2);
+  grid-template-columns: 56px;
+  justify-items: end;
+  gap: var(--esp-1);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 .medidor__barra {
+  grid-row: 2;
   width: 56px;
-  height: 6px;
+  height: 4px;
   overflow: hidden;
   background: #e7e6e0;
   border-radius: 3px;
@@ -4638,6 +4558,35 @@ a.navbar__caja:hover .navbar__valor {
   text-overflow: ellipsis;
 }
 
+/* Acciones de una fila como iconos de 28px (Movimientos, Editar, Eliminar): caben junto al registro. */
+.boton-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--texto-secundario);
+  vertical-align: middle;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+
+.boton-icono + .boton-icono {
+  margin-left: var(--esp-1);
+}
+
+.boton-icono:hover {
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border-color: var(--color-borde);
+}
+
+.boton-icono--peligro:hover {
+  color: var(--color-error);
+}
+
 /* «Anulada» como texto rojo bajo el número, sin recuadro, para que la fila no se corra. */
 .libro__anulada {
   font-weight: 600;
@@ -4747,6 +4696,25 @@ a.navbar__caja:hover .navbar__valor {
   margin: 0;
 }
 
+.registro__alerta {
+  font-weight: 600;
+  color: var(--color-alerta);
+}
+
+.registro__entra {
+  color: var(--color-exito);
+}
+
+.registro__sale {
+  color: var(--color-error);
+}
+
+/* Aviso bajo una cifra de la tabla («Bajo el costo»), como «Anulada» en Ventas: texto sin recuadro. */
+.libro__alerta {
+  font-weight: 600;
+  color: var(--color-alerta);
+}
+
 /* El panel negro. */
 .registro {
   display: flex;
@@ -4843,6 +4811,31 @@ a.navbar__caja:hover .navbar__valor {
   height: 40px;
 }
 
+/* Sobre el negro, el botón secundario va oscuro con borde gris, como en el cajón de Caja. */
+.registro .boton--secundario {
+  color: var(--marco-texto);
+  background: var(--marco-elevado);
+  border-color: #4a4a48;
+}
+
+.registro .boton--secundario:hover:not(:disabled) {
+  color: var(--color-marca);
+  background: #292a26;
+}
+
+/* Colores de aviso más claros para leerse sobre el negro. */
+.registro .registro__alerta {
+  color: #ffb74d;
+}
+
+.registro .registro__entra {
+  color: #8fd18f;
+}
+
+.registro .registro__sale {
+  color: #ff8a80;
+}
+
 /* Filtros agrupados en la barra: período, fechas y estado, separados por una línea fina. */
 .barra-de-filtros__grupo {
   display: inline-flex;
@@ -4889,6 +4882,74 @@ a.navbar__caja:hover .navbar__valor {
   border: 0;
 }
 
+/* Libro sin detalle por fila (Movimientos): la lista a todo el ancho. */
+.libro--sin-registro {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Filtro por producto dentro de la barra: el buscador compacto de 32px, sus resultados flotando debajo y el rótulo y
+   la ayuda solo para lectores de pantalla. */
+.barra-de-filtros__producto {
+  position: relative;
+  width: 280px;
+}
+
+.barra-de-filtros__producto .buscador {
+  max-width: none;
+  margin: 0;
+}
+
+.barra-de-filtros__producto .buscador__etiqueta,
+.barra-de-filtros__producto .buscador > .campo__ayuda,
+.barra-de-filtros__producto .buscador__estado,
+.barra-de-filtros__producto .filtro-de-producto__etiqueta {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.barra-de-filtros__producto .buscador__entrada {
+  min-height: 32px;
+  height: 32px;
+  font-size: 13px;
+  border-color: var(--color-borde);
+}
+
+
+.barra-de-filtros__producto .buscador__lista {
+  position: absolute;
+  top: calc(32px + var(--esp-1));
+  left: 0;
+  z-index: 20;
+  width: min(640px, 80vw);
+  max-height: 360px;
+  margin: 0;
+  overflow-y: auto;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.18);
+}
+
+.barra-de-filtros__producto .campo {
+  margin: 0;
+}
+
+.barra-de-filtros__producto .filtro-de-producto {
+  gap: var(--esp-2);
+  min-height: 32px;
+  height: 32px;
+  padding: 0 var(--esp-2) 0 var(--esp-3);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.barra-de-filtros__producto .filtro-de-producto > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @container area (max-width: 959px) {
   .libro {
     grid-template-columns: minmax(0, 1fr);
@@ -4897,4 +4958,96 @@ a.navbar__caja:hover .navbar__valor {
   .libro__secundaria {
     display: none;
   }
+}
+
+/* Inicio: «Se están acabando», a la derecha de las últimas ventas. */
+.por-reponer__cuenta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-alerta);
+  font-variant-numeric: tabular-nums;
+}
+
+.por-reponer {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.por-reponer__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-3);
+  height: 40px;
+  padding: 0 var(--esp-4);
+  font-size: 13px;
+  border-bottom: 1px solid #e6e4de;
+}
+
+.por-reponer__nombre {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.por-reponer__nombre .tabla__codigo {
+  flex-shrink: 0;
+}
+
+.por-reponer__texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.por-reponer__cifra {
+  font-weight: 600;
+  color: var(--color-alerta);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.por-reponer__cifra--agotado {
+  color: var(--color-error);
+}
+
+.por-reponer__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  height: 36px;
+  padding: 0 var(--esp-4);
+  font-size: 12px;
+  color: var(--texto-secundario);
+}
+
+/* Caja de hoy en Inicio: textos que no se parten por dentro. */
+.instrumento__detalle--entero {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leyenda-de-cobro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1) var(--esp-3);
+}
+
+.leyenda-de-cobro__parte {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.leyenda-de-cobro__color {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
 }

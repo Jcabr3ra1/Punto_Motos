@@ -100,4 +100,11 @@ describe('productos', () => {
     expect(await screen.findByRole('dialog', { name: /Editar Pastillas/ })).toBeInTheDocument()
     expect(screen.queryByRole('complementary', { name: 'Pastillas de freno Pulsar 180' })).not.toBeInTheDocument()
   })
+
+  it('sin producto elegido el registro invita a elegir uno', async () => {
+    abrir()
+    await screen.findByRole('table', { name: 'Productos' })
+
+    expect(screen.getByText('Elige un producto para ver su ficha.')).toBeInTheDocument()
+  })
 })

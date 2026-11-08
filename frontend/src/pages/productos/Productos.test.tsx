@@ -148,7 +148,7 @@ describe('filtros y paginación', () => {
     const { api, u } = await abrir(dueno)
 
     await u.selectOptions(screen.getByLabelText('Moto'), 'Pulsar 180')
-    await u.click(screen.getByLabelText('Solo insumos de taller'))
+    await u.click(screen.getByRole('button', { name: 'Insumos de taller' }))
 
     await waitFor(() => expect(llamadasA(api, 'workshop_supply=true')).not.toHaveLength(0))
     expect(llamadasA(api, 'moto=1&workshop_supply=true')).not.toHaveLength(0)
@@ -157,7 +157,7 @@ describe('filtros y paginación', () => {
   it('el dueño puede mostrar los desactivados', async () => {
     const { api, u } = await abrir(dueno)
 
-    await u.click(screen.getByLabelText('Mostrar desactivados'))
+    await u.click(screen.getByRole('button', { name: 'Desactivados' }))
 
     await waitFor(() => expect(llamadasA(api, 'include_inactive=true')).not.toHaveLength(0))
   })
@@ -170,21 +170,25 @@ describe('filtros y paginación', () => {
           : { cuerpo: pagina([pastillas], { count: 120, next: 'y' }) },
     })
 
-    expect(screen.getByText('Página 1 de 3')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled()
+    // Sin poder medir la pantalla (pruebas), el libro pide 20 por página: 120 productos son 6 páginas.
+    expect(screen.getByText('Página 1 de 6')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Atrás' })).toBeDisabled()
 
     await u.click(screen.getByRole('button', { name: 'Siguiente' }))
-    expect(await screen.findByText('Página 2 de 3')).toBeInTheDocument()
+    expect(await screen.findByText('Página 2 de 6')).toBeInTheDocument()
     expect(llamadasA(api, 'page=2')).toHaveLength(1)
 
     await u.selectOptions(screen.getByLabelText('Tipo'), 'Frenos')
-    expect(await screen.findByText('Página 1 de 3')).toBeInTheDocument()
+    expect(await screen.findByText('Página 1 de 6')).toBeInTheDocument()
   })
 
-  it('no muestra los botones de página cuando todo cabe en una sola', async () => {
-    await abrir(dueno)
+  it('el pie con Atrás y Siguiente queda fijo aunque todo quepa en una página', async () => {
+    const { api } = await abrir(dueno)
 
-    expect(screen.queryByRole('navigation', { name: 'Páginas de productos' })).not.toBeInTheDocument()
+    const pie = screen.getByRole('navigation', { name: 'Páginas de productos' })
+    expect(within(pie).getByRole('button', { name: 'Atrás' })).toBeDisabled()
+    expect(within(pie).getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+    expect(llamadasA(api, 'page_size=20')).not.toHaveLength(0)
   })
 
   it('avisa cuando ningún producto coincide con la búsqueda', async () => {

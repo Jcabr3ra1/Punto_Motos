@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { ArrowLeftRight, Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router'
 import { listarMotos, listarTipos } from '../../api/catalogo'
 import { isApiError } from '../../api/client'
@@ -9,11 +10,11 @@ import { editarProducto, eliminarProducto, listarProductos, type OrdenDeProducto
 import type { Product } from '../../api/types'
 import { DialogoDeConfirmacion } from '../../components/DialogoDeConfirmacion'
 import { AvisoDeError } from '../../components/AvisoDeError'
-import { Campo } from '../../components/Campo'
-import { CampoSelector } from '../../components/CampoSelector'
-import { Casilla } from '../../components/Casilla'
+import { BarraDeFiltros, BotonDeFiltro, ListaDeFiltro } from '../../components/BarraDeFiltros'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { RegistroVacio } from '../../components/Registro'
+import { useFilasQueCaben } from '../../hooks/useFilasQueCaben'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useSeleccion } from '../../hooks/useSeleccion'
 import { FichaDeProducto } from './FichaDeProducto'
@@ -22,7 +23,8 @@ import { formatearPesos } from '../../utilidades/dinero'
 import { EstadoVacio } from '../../components/EstadoVacio'
 import { DESTINOS } from '../../navegacion/destinos'
 
-const TAMANO_DE_PAGINA = 50
+/** Medidas del libro (ver Ventas): filas de 48px, cabecera de 36px, pie de 48px y bordes. */
+const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
 
 const ORDENES: readonly { valor: OrdenDeProductos; texto: string }[] = [
   { valor: 'name', texto: 'Nombre (A a Z)' },
@@ -46,6 +48,9 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
   // Cualquier cambio de filtro vuelve a la primera página; solo cambiar de página la conserva.
   const cambiar = (parcial: Partial<EstadoDeFiltros>) => onCambiarFiltros({ ...filtros, pagina: 1, ...parcial })
 
+  const lista = useRef<HTMLElement>(null)
+  const porPagina = useFilasQueCaben(lista, MEDIDAS_DEL_LIBRO)
+
   const tipos = useQuery({ queryKey: claves.catalogoActivo('categories'), queryFn: ({ signal }) => listarTipos(signal) })
   const motos = useQuery({ queryKey: claves.catalogoActivo('motos'), queryFn: ({ signal }) => listarMotos(signal) })
 
@@ -59,6 +64,7 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
     include_inactive: filtros.desactivados,
     ordering: filtros.orden,
     page: filtros.pagina,
+    page_size: porPagina,
   }
   const productos = useQuery({
     queryKey: [...claves.productos, consultaDeProductos],
@@ -100,106 +106,102 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
 
   return (
     <>
-      <div className="filtros" role="search" aria-label="Filtrar productos">
-        <Campo
-          etiqueta="Buscar"
-          type="search"
-          value={filtros.busqueda}
-          onChange={(e) => cambiar({ busqueda: e.target.value })}
-          placeholder="Código, nombre o moto"
-          autoComplete="off"
-        />
-        <CampoSelector
-          etiqueta="Tipo"
-          value={filtros.tipo}
-          onChange={(e) => cambiar({ tipo: e.target.value })}
-          opciones={[
-            { valor: '', texto: 'Todos los tipos' },
-            ...(tipos.data ?? []).map((t) => ({ valor: String(t.id), texto: t.name })),
-          ]}
-        />
-        <CampoSelector
-          etiqueta="Moto"
-          value={filtros.moto}
-          onChange={(e) => cambiar({ moto: e.target.value })}
-          opciones={[
-            { valor: '', texto: 'Todas las motos' },
-            ...(motos.data ?? []).map((m) => ({ valor: String(m.id), texto: m.name })),
-          ]}
-        />
-        <CampoSelector
-          etiqueta="Ordenar por"
-          value={filtros.orden}
-          onChange={(e) => cambiar({ orden: e.target.value as OrdenDeProductos })}
-          opciones={ORDENES.map((o) => ({ valor: o.valor, texto: o.texto }))}
-        />
-      </div>
-      <div className="filtros__casillas">
-        <Casilla
-          etiqueta="Solo insumos de taller"
-          checked={filtros.insumos}
-          onChange={(e) => cambiar({ insumos: e.target.checked })}
-        />
-        {esDueno && (
-          <Casilla
-            etiqueta="Mostrar desactivados"
-            checked={filtros.desactivados}
-            onChange={(e) => cambiar({ desactivados: e.target.checked })}
-          />
-        )}
-      </div>
-
-      {productos.isPending && <Cargando />}
-      {productos.isError && <ErrorDeCarga error={productos.error} onReintentar={() => void productos.refetch()} />}
-
-      {productos.isSuccess && (
-        <>
-          <p role="status" className="texto-suave">
+      <BarraDeFiltros
+        busqueda={{
+          etiqueta: 'Buscar',
+          placeholder: 'Código, nombre o moto',
+          valor: filtros.busqueda,
+          onCambiar: (valor) => cambiar({ busqueda: valor }),
+        }}
+      >
+        <ListaDeFiltro etiqueta="Tipo" valor={filtros.tipo} onCambiar={(tipo) => cambiar({ tipo })}>
+          <option value="">Todos</option>
+          {(tipos.data ?? []).map((t) => (
+            <option key={t.id} value={String(t.id)}>
+              {t.name}
+            </option>
+          ))}
+        </ListaDeFiltro>
+        <ListaDeFiltro etiqueta="Moto" valor={filtros.moto} onCambiar={(moto) => cambiar({ moto })}>
+          <option value="">Todas</option>
+          {(motos.data ?? []).map((m) => (
+            <option key={m.id} value={String(m.id)}>
+              {m.name}
+            </option>
+          ))}
+        </ListaDeFiltro>
+        <div className="barra-de-filtros__grupo">
+          <BotonDeFiltro activo={filtros.insumos} onClick={() => cambiar({ insumos: !filtros.insumos })}>
+            Insumos de taller
+          </BotonDeFiltro>
+          {esDueno && (
+            <BotonDeFiltro activo={filtros.desactivados} onClick={() => cambiar({ desactivados: !filtros.desactivados })}>
+              Desactivados
+            </BotonDeFiltro>
+          )}
+        </div>
+        <ListaDeFiltro etiqueta="Ordenar por" valor={filtros.orden} onCambiar={(orden) => cambiar({ orden: orden as OrdenDeProductos })}>
+          {ORDENES.map((o) => (
+            <option key={o.valor} value={o.valor}>
+              {o.texto}
+            </option>
+          ))}
+        </ListaDeFiltro>
+        {productos.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
             {productos.data.count === 1 ? '1 producto' : `${productos.data.count} productos`}
           </p>
-          {productos.data.count === 0 ? (
-            <EstadoVacio
-              icono={DESTINOS.productos.icono}
-              mensaje={hayFiltros ? 'Ningún producto coincide con la búsqueda.' : esDueno ? 'Todavía no hay productos. Crea el primero con «Nuevo producto».' : 'Todavía no hay productos.'}
-            />
-          ) : (
-            <div className={seleccion.elegido ? 'con-ficha' : undefined}>
-              {eliminando && (
-                <DialogoDeConfirmacion
-                  titulo={`¿Eliminar «${eliminando.name}»?`}
-                  accion={eliminar.isPending ? 'Eliminando…' : 'Sí, eliminar'}
-                  cancelar="Volver"
-                  peligro
-                  ocupado={eliminar.isPending || desactivar.isPending}
-                  onConfirmar={() => {
-                    desactivar.reset()
-                    eliminar.mutate(eliminando)
-                  }}
-                  onCancelar={() => {
-                    eliminar.reset()
-                    desactivar.reset()
-                    setEliminando(null)
-                  }}
-                  otrasAcciones={
-                    tieneHistorial &&
-                    eliminando.is_active && (
-                      <button
-                        type="button"
-                        className="boton boton--secundario boton--auto"
-                        disabled={desactivar.isPending || eliminar.isPending}
-                        onClick={() => desactivar.mutate(eliminando)}
-                      >
-                        {desactivar.isPending ? 'Desactivando…' : 'Desactivar producto'}
-                      </button>
-                    )
-                  }
-                >
-                  <p>
-                    Solo se puede eliminar un producto que nunca se usó; su código ({eliminando.code}) quedará libre.
-                  </p>
-                  <AvisoDeError mensajes={error?.generales ?? []} />
-                </DialogoDeConfirmacion>
-              )}
+        )}
+      </BarraDeFiltros>
+
+      {eliminando && (
+        <DialogoDeConfirmacion
+          titulo={`¿Eliminar «${eliminando.name}»?`}
+          accion={eliminar.isPending ? 'Eliminando…' : 'Sí, eliminar'}
+          cancelar="Volver"
+          peligro
+          ocupado={eliminar.isPending || desactivar.isPending}
+          onConfirmar={() => {
+            desactivar.reset()
+            eliminar.mutate(eliminando)
+          }}
+          onCancelar={() => {
+            eliminar.reset()
+            desactivar.reset()
+            setEliminando(null)
+          }}
+          otrasAcciones={
+            tieneHistorial &&
+            eliminando.is_active && (
+              <button
+                type="button"
+                className="boton boton--secundario boton--auto"
+                disabled={desactivar.isPending || eliminar.isPending}
+                onClick={() => desactivar.mutate(eliminando)}
+              >
+                {desactivar.isPending ? 'Desactivando…' : 'Desactivar producto'}
+              </button>
+            )
+          }
+        >
+          <p>
+            Solo se puede eliminar un producto que nunca se usó; su código ({eliminando.code}) quedará libre.
+          </p>
+          <AvisoDeError mensajes={error?.generales ?? []} />
+        </DialogoDeConfirmacion>
+      )}
+
+      <div className="libro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de productos">
+          {productos.isPending && <Cargando />}
+          {productos.isError && <ErrorDeCarga error={productos.error} onReintentar={() => void productos.refetch()} />}
+          {productos.isSuccess &&
+            (productos.data.count === 0 ? (
+              <EstadoVacio
+                icono={DESTINOS.productos.icono}
+                mensaje={hayFiltros ? 'Ningún producto coincide con la búsqueda.' : esDueno ? 'Todavía no hay productos. Crea el primero con «Nuevo producto».' : 'Todavía no hay productos.'}
+              />
+            ) : (
               <TablaDeProductos
                 productos={productos.data.results}
                 esDueno={esDueno}
@@ -214,22 +216,27 @@ export function ListaDeProductos({ filtros, onCambiarFiltros, esDueno, onEditar,
                   setEliminando(producto)
                 }}
               />
-              <Paginacion
-                etiqueta="Páginas de productos"
-                pagina={filtros.pagina}
-                total={productos.data.count}
-                tamano={TAMANO_DE_PAGINA}
-                hayAnterior={Boolean(productos.data.previous)}
-                haySiguiente={Boolean(productos.data.next)}
-                onCambiar={(pagina) => onCambiarFiltros({ ...filtros, pagina })}
-              />
-              {seleccion.elegido && (
-                <FichaDeProducto producto={seleccion.elegido} esDueno={esDueno} onEditar={onEditar} onCerrar={seleccion.cerrar} />
-              )}
-            </div>
+            ))}
+          {productos.isSuccess && (
+            <Paginacion
+              etiqueta="Páginas de productos"
+              pagina={filtros.pagina}
+              total={productos.data.count}
+              tamano={porPagina}
+              hayAnterior={Boolean(productos.data.previous)}
+              haySiguiente={Boolean(productos.data.next)}
+              onCambiar={(pagina) => onCambiarFiltros({ ...filtros, pagina })}
+              mostrarSiempre
+              textoAnterior="Atrás"
+            />
           )}
-        </>
-      )}
+        </section>
+        {seleccion.elegido ? (
+          <FichaDeProducto producto={seleccion.elegido} esDueno={esDueno} onEditar={onEditar} onCerrar={seleccion.cerrar} />
+        ) : (
+          <RegistroVacio mensaje="Elige un producto para ver su ficha." />
+        )}
+      </div>
     </>
   )
 }
@@ -253,7 +260,7 @@ function TablaDeProductos({
 }) {
   return (
     <div
-      className={`tabla-contenedor${elegido ? ' tabla--con-ficha' : ''}`}
+      className="tabla-contenedor"
       tabIndex={0}
       onKeyDown={onTeclear}
       aria-describedby="ayuda-productos"
@@ -315,7 +322,8 @@ function TablaDeProductos({
               )}
               <td className="tabla__numero">
                 {formatearPesos(producto.sale_price)}
-                {producto.sells_below_cost && <span className="etiqueta etiqueta--alerta">Bajo el costo</span>}
+                {/* Debajo del precio, como «Anulada» en Ventas, para que la fila no se corra. */}
+                {producto.sells_below_cost && <span className="tabla__detalle libro__alerta">Bajo el costo</span>}
               </td>
               <td className="tabla__numero">
                 <Medidor actual={producto.stock} minimo={producto.min_stock} alerta={producto.is_low_stock} />
@@ -323,31 +331,35 @@ function TablaDeProductos({
                 {producto.is_low_stock && <span className="solo-lectores">Reponer</span>}
               </td>
               <td className="tabla__acciones">
-                {/* Todos pueden ver el kárdex de un producto; solo el dueño lo edita. */}
+                {/* Iconos con su nombre en el title y para lectores: caben junto al registro sin cortar la fila.
+                    Todos pueden ver el kárdex de un producto; solo el dueño lo edita o elimina. */}
                 <Link
-                  className="boton-enlace col-secundaria"
+                  className="boton-icono"
                   to={`${DESTINOS.movimientos.ruta}?product=${producto.id}`}
                   aria-label={`Movimientos de ${producto.name}`}
+                  title="Movimientos"
                 >
-                  Movimientos
+                  <ArrowLeftRight aria-hidden="true" size={16} strokeWidth={1.75} />
                 </Link>
                 {esDueno && (
                   <>
                     <button
                       type="button"
-                      className="boton-enlace"
+                      className="boton-icono"
                       aria-label={`Editar ${producto.name}`}
+                      title="Editar"
                       onClick={() => onEditar(producto)}
                     >
-                      Editar
+                      <Pencil aria-hidden="true" size={16} strokeWidth={1.75} />
                     </button>
                     <button
                       type="button"
-                      className="boton-enlace"
+                      className="boton-icono boton-icono--peligro"
                       aria-label={`Eliminar ${producto.name}`}
+                      title="Eliminar"
                       onClick={() => onEliminar(producto)}
                     >
-                      Eliminar
+                      <Trash2 aria-hidden="true" size={16} strokeWidth={1.75} />
                     </button>
                   </>
                 )}
