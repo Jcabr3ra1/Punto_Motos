@@ -316,10 +316,11 @@ describe('pestaña de devoluciones', () => {
     expect(filaSinCliente).toHaveTextContent('Sin cliente')
     expect(filaSinCliente).toHaveTextContent('Mal servicio del mecánico')
 
-    await u.selectOptions(screen.getByLabelText('Causa'), 'Mal servicio del mecánico')
+    await u.click(screen.getByRole('button', { name: 'Mal servicio' }))
+    await u.click(screen.getByRole('button', { name: 'Fechas' }))
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-11-05' } })
     await waitFor(() =>
-      expect(api.llamadas.some((l) => l.clave === 'GET /sale-returns?cause=bad_service&date_from=2026-11-05')).toBe(true),
+      expect(api.llamadas.some((l) => l.clave === 'GET /sale-returns?cause=bad_service&date_from=2026-11-05&page_size=20')).toBe(true),
     )
 
     await u.click(within(filaSinCliente).getByRole('link', { name: 'N.º 4' }))

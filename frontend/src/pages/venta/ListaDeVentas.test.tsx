@@ -93,6 +93,8 @@ describe('ventas', () => {
   it('sin ventas muestra el estado vacío con la acción de vender', async () => {
     abrir(vendedor, [])
 
+    expect(await screen.findByText('Todavía no hay ventas hoy.')).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Todas las fechas' }))
     expect(await screen.findByText('Todavía no hay ventas.')).toBeInTheDocument()
   })
 })

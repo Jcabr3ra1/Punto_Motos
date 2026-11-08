@@ -5,6 +5,7 @@ import type { SaleDetail } from '../../api/types'
 import { dueno, errorDeApi, simularApi, vendedor } from '../../test/apiSimulada'
 import { paginaDe, venta } from '../../test/datos'
 import { mostrarRutas } from '../../test/mostrar'
+import { hoyEnColombia, moverDia } from '../../utilidades/fechas'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -29,10 +30,79 @@ describe('historial de ventas', () => {
     const u = userEvent.setup()
     await screen.findByRole('table')
 
-    await u.selectOptions(screen.getByLabelText('Estado'), 'Anuladas')
+    await u.click(screen.getByRole('button', { name: 'Anuladas' }))
+    await u.click(screen.getByRole('button', { name: 'Fechas' }))
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-11-03' } })
 
-    await waitFor(() => expect(llamadas(api, 'GET /sales')).toContain('GET /sales?voided=true&date_from=2026-11-03'))
+    await waitFor(() => expect(llamadas(api, 'GET /sales')).toContain('GET /sales?voided=true&date_from=2026-11-03&page_size=20'))
+  })
+
+  it('abre en Hoy y los botones de período cambian el rango de fechas', async () => {
+    const hoy = hoyEnColombia()
+    const api = simularApi({ 'GET /sales*': () => ({ cuerpo: paginaDe([venta()]) }) })
+    mostrarRutas(dueno, '/venta/historial')
+    const u = userEvent.setup()
+    await screen.findByRole('table')
+
+    expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-pressed', 'true')
+    expect(llamadas(api, 'GET /sales')).toContain(`GET /sales?date_from=${hoy}&date_to=${hoy}&page_size=20`)
+
+    await u.click(screen.getByRole('button', { name: '7 días' }))
+    await waitFor(() => expect(llamadas(api, 'GET /sales')).toContain(`GET /sales?date_from=${moverDia(hoy, -6)}&date_to=${hoy}&page_size=20`))
+
+    await u.click(screen.getByRole('button', { name: 'Este mes' }))
+    await waitFor(() => expect(llamadas(api, 'GET /sales')).toContain(`GET /sales?date_from=${hoy.slice(0, 8)}01&date_to=${hoy}&page_size=20`))
+
+    await u.click(screen.getByRole('button', { name: 'Todas las fechas' }))
+    await waitFor(() => expect(llamadas(api, 'GET /sales')).toContain('GET /sales?page_size=20'))
+    expect(screen.queryByLabelText('Desde')).not.toBeInTheDocument()
+  })
+
+  it('el mecánico se combina con el período y el estado', async () => {
+    const hoy = hoyEnColombia()
+    const api = simularApi({
+      'GET /sales*': () => ({ cuerpo: paginaDe([venta()]) }),
+      'GET /mechanics*': () => ({ cuerpo: [{ id: 3, name: 'Luis Ruiz', phone: '', is_active: true }] }),
+    })
+    mostrarRutas(dueno, '/venta/historial')
+    const u = userEvent.setup()
+    await screen.findByRole('option', { name: 'Luis Ruiz' })
+
+    await u.selectOptions(screen.getByLabelText('Mecánico'), 'Luis Ruiz')
+    await u.click(screen.getByRole('button', { name: 'Vigentes' }))
+
+    await waitFor(() =>
+      expect(llamadas(api, 'GET /sales')).toContain(`GET /sales?mechanic=3&voided=false&date_from=${hoy}&date_to=${hoy}&page_size=20`),
+    )
+  })
+
+  it('el número de recibo se busca en todas las fechas y lo dice', async () => {
+    const api = simularApi({ 'GET /sales*': () => ({ cuerpo: paginaDe([venta()]) }) })
+    mostrarRutas(dueno, '/venta/historial')
+    const u = userEvent.setup()
+    await screen.findByRole('table')
+
+    await u.type(screen.getByLabelText('N.º de recibo'), '41')
+
+    await waitFor(() => expect(llamadas(api, 'GET /sales')).toContain('GET /sales?number=41&page_size=20'))
+    expect(screen.getByText(/en todas las fechas/)).toBeInTheDocument()
+  })
+
+  it('el libro tiene su pie con Atrás y Siguiente aunque haya una sola página', async () => {
+    simularApi({ 'GET /sales*': () => ({ cuerpo: paginaDe([venta()]) }) })
+    mostrarRutas(dueno, '/venta/historial')
+
+    const pie = await screen.findByRole('navigation', { name: 'Páginas de ventas' })
+    expect(within(pie).getByRole('button', { name: 'Atrás' })).toBeDisabled()
+    expect(within(pie).getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+  })
+
+  it('sin venta elegida el registro invita a elegir una', async () => {
+    simularApi({ 'GET /sales*': () => ({ cuerpo: paginaDe([venta()]) }) })
+    mostrarRutas(dueno, '/venta/historial')
+    await screen.findByRole('table')
+
+    expect(screen.getByText('Elige una venta para ver su recibo.')).toBeInTheDocument()
   })
 })
 
