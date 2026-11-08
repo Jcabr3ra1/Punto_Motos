@@ -3,17 +3,13 @@ import { createPortal } from 'react-dom'
 import type { ServiceType } from '../../api/types'
 import { useDevolverFoco, useFocoAtrapado, useFondoInerte } from '../../components/useFocoAtrapado'
 import { formatearPesos } from '../../utilidades/dinero'
+import { sinTildes } from '../../utilidades/texto'
 
 interface Props {
   tipos: readonly ServiceType[]
   cargando: boolean
   onElegir: (tipo: ServiceType) => void
   onCerrar: () => void
-}
-
-/** Minúsculas y sin tildes, para que «revision» encuentre «Revisión general». */
-function sinTildes(texto: string): string {
-  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
 /**

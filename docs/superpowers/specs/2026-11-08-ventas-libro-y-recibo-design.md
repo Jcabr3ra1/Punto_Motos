@@ -82,3 +82,33 @@ estado vacío depende del período). Agregar pruebas de los períodos, «Fechas�
 la búsqueda por recibo en todas las fechas, el pie fijo y el registro vacío.
 Ejecutar build, lint y toda la suite. Sin revisión cruzada en esta etapa (Juan
 la pidió omitir mientras arregla nexakit).
+
+## Inventario (siguiente etapa)
+
+Decidido pantalla por pantalla, como pidió Juan:
+
+- **Productos: sí, libro + registro negro.** La ficha (código, precio, costo y
+  margen solo para el dueño, existencia, ubicación, tipo, marca, motos y los 5
+  últimos movimientos) pasa al registro, con «Editar» en lima y «Ver
+  movimientos». Barra: búsqueda con `/`, Tipo y Moto como listas con forma de
+  botón (`ListaDeFiltro`), botones «Insumos de taller» y «Desactivados» (solo
+  el dueño) y «Ordenar por». «Bajo el costo» va como texto bajo el precio.
+  Filas que caben y pie fijo.
+- **Movimientos: libro sin registro** (`libro--sin-registro`), porque no hay
+  detalle por fila. Abre en **Todas las fechas** para que el kárdex de un
+  producto, abierto desde Productos, se vea completo. Barra: buscador de
+  producto compacto, período, Tipo como lista. El motivo se corta en una línea
+  con el texto completo en `title` y «Hecho por» es secundaria.
+- **Tipos, marcas y motos: libro sin registro**, a pedido de Juan. «Nuevo tipo /
+  marca / moto» pasa al encabezado; la barra tiene los botones de sección, una
+  búsqueda por nombre o sigla sin tildes y los botones Todos, Activos e
+  Inactivos. Como la API entrega las listas completas, buscar, filtrar y
+  paginar (filas que caben, pie fijo) se hace en el programa. Editar es un
+  icono de lápiz; el formulario sigue en el panel lateral.
+- **Inventario inicial: no.** Es un conteo, no un historial que se recorre.
+- **Inicio:** se quitó «Ir a» y se agregó «Se están acabando» (productos con
+  `is_low_stock`, del agotado al que apenas llegó al mínimo). Como la API no
+  tiene filtro de existencia baja, recorre el catálogo en páginas de 200 cada
+  5 minutos; con un filtro del backend sería una sola consulta. En la Caja de
+  hoy, el cobro se lee como leyenda («Efectivo 70 %», «Transferencia 30 %»)
+  sin abreviar ni partir palabras.

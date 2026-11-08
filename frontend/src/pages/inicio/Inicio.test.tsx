@@ -159,16 +159,19 @@ describe('inicio del dueño', () => {
     expect(within(primera).getByRole('link', { name: '#0412' })).toHaveAttribute('href', '/venta/historial/12')
   })
 
-  it('ofrece ir a las pantallas más usadas', () => {
+  it('abajo van las últimas ventas y lo que se está acabando, sin el panel «Ir a»', async () => {
     abrir(dueno)
 
-    const irA = screen.getByRole('navigation', { name: 'Ir a' })
-    expect(within(irA).getAllByRole('link').map((enlace) => enlace.getAttribute('href'))).toEqual([
-      '/venta/vender',
-      '/inventario/productos',
-      '/taller/liquidacion',
-      '/compras/lista',
-    ])
+    expect(await screen.findByRole('region', { name: 'Se están acabando' })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Ir a' })).not.toBeInTheDocument()
+  })
+
+  it('el cobro de la caja se lee con palabras completas, sin abreviar', async () => {
+    abrir(dueno)
+
+    const cajaDeHoy = await instrumento('Caja de hoy')
+    await waitFor(() => expect(cajaDeHoy).toHaveTextContent(/Efectivo \d+\s%.*Transferencia \d+\s%/))
+    expect(cajaDeHoy).not.toHaveTextContent(/efec\.|transf\./)
   })
 
   it('Ctrl+N abre Vender', async () => {
@@ -346,6 +349,55 @@ describe('inicio del dueño', () => {
   })
 })
 
+describe('productos que se están acabando', () => {
+  const agotado = producto({ id: 3, code: 'ELE-BUJ', name: 'Bujía NGK', stock: 0, min_stock: 4, is_low_stock: true })
+  const casi = producto({ id: 4, code: 'MO-FIL', name: 'Filtro de aceite', stock: 1, min_stock: 2, is_low_stock: true })
+  const justo = producto({ id: 5, code: 'FRE-PAS', name: 'Pastillas de freno', stock: 3, min_stock: 3, is_low_stock: true })
+  const bien = producto({ id: 6, code: 'FRE-ZAP', name: 'Zapatas traseras', stock: 9, min_stock: 2, is_low_stock: false })
+
+  it('recorre todo el catálogo y muestra primero lo más urgente', async () => {
+    const api = abrir(dueno, {
+      'GET /products*': (_, ruta) => {
+        const pagina = Number(new URLSearchParams(String(ruta).split('?')[1]).get('page') ?? 1)
+        return pagina === 1
+          ? { cuerpo: paginaDe([justo, bien], { count: 4, next: 'siguiente' }) }
+          : { cuerpo: paginaDe([casi, agotado], { count: 4, previous: 'anterior' }) }
+      },
+    })
+
+    const panel = await screen.findByRole('region', { name: 'Se están acabando' })
+    await waitFor(() => expect(panel).toHaveTextContent('3 por reponer'))
+    const filas = within(panel).getAllByRole('listitem')
+    expect(filas.map((f) => f.textContent)).toEqual([
+      expect.stringMatching(/Bujía NGK.*Agotado/),
+      expect.stringMatching(/Filtro de aceite.*1 \/ 2/),
+      expect.stringMatching(/Pastillas de freno.*3 \/ 3/),
+    ])
+    expect(panel).not.toHaveTextContent('Zapatas traseras')
+    expect(within(panel).getByRole('link', { name: /Ver productos/ })).toHaveAttribute('href', '/inventario/productos')
+    const paginas = api.llamadas.filter((l) => l.clave.startsWith('GET /products?')).map((l) => l.clave)
+    expect(paginas).toEqual(['GET /products?page_size=200', 'GET /products?page=2&page_size=200'])
+  })
+
+  it('si nada está en su mínimo lo dice', async () => {
+    abrir(dueno, { 'GET /products*': () => ({ cuerpo: paginaDe([bien]) }) })
+
+    const panel = await screen.findByRole('region', { name: 'Se están acabando' })
+    expect(await within(panel).findByText('Ningún producto está en su mínimo.')).toBeInTheDocument()
+  })
+
+  it('con muchos por reponer muestra los primeros y cuántos faltan', async () => {
+    const muchos = Array.from({ length: 9 }, (_, i) =>
+      producto({ id: 10 + i, code: `P-${i}`, name: `Producto ${i}`, stock: i, min_stock: 10, is_low_stock: true }),
+    )
+    abrir(dueno, { 'GET /products*': () => ({ cuerpo: paginaDe(muchos) }) })
+
+    const panel = await screen.findByRole('region', { name: 'Se están acabando' })
+    await waitFor(() => expect(within(panel).getAllByRole('listitem')).toHaveLength(6))
+    expect(panel).toHaveTextContent('y 3 más')
+  })
+})
+
 describe('inicio del vendedor', () => {
   it('no ve caja, mecánicos ni cuentas, y no los pide', async () => {
     const api = abrir(vendedor)
@@ -361,6 +413,8 @@ describe('inicio del vendedor', () => {
     expect(pedidas.some((c) => c.startsWith('GET /suppliers'))).toBe(false)
     expect(pedidas.some((c) => c.startsWith('GET /consignees'))).toBe(false)
     expect(pedidas.some((c) => c.startsWith('GET /sales?') && c.includes('voided=false'))).toBe(false)
+    expect(screen.queryByRole('region', { name: 'Se están acabando' })).not.toBeInTheDocument()
+    expect(pedidas.some((c) => c.startsWith('GET /products?'))).toBe(false)
   })
 
   it('dice si la caja está abierta para vender', async () => {

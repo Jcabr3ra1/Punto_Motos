@@ -5,6 +5,7 @@ import type { User } from '../../api/types'
 import { dueno, errorDeApi, simularApi, vendedor } from '../../test/apiSimulada'
 import { movimiento, movimientoParaVendedor, paginaDeMovimientos, producto } from '../../test/datos'
 import { mostrarRutas } from '../../test/mostrar'
+import { hoyEnColombia } from '../../utilidades/fechas'
 
 const entrada = movimiento({ id: 3, quantity: 5, balance_after: 8, reason: 'Conteo de bodega' })
 const salida = movimiento({ id: 2, quantity: -2, balance_after: 3, reason: 'Se dañó en bodega', created_by: 'ana' })
@@ -68,7 +69,8 @@ describe('lista de movimientos', () => {
     await screen.findByRole('table')
     // La otra llamada es la del indicador «Movimientos de hoy» (una página de un registro).
     const deLaLista = llamadas(api).filter((l) => !l.clave.includes('page_size=1'))
-    expect(deLaLista.map((l) => l.clave)).toEqual(['GET /inventory/movements'])
+    // Abre en todas las fechas; sin poder medir la pantalla, el libro pide 20 por página.
+    expect(deLaLista.map((l) => l.clave)).toEqual(['GET /inventory/movements?page_size=20'])
   })
 
   it('avisa si no hay movimientos, con y sin filtros', async () => {
@@ -128,6 +130,7 @@ describe('filtros', () => {
     const { api } = await abrir(dueno)
     await screen.findByRole('table')
 
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Fechas' }))
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-11-01' } })
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-11-30' } })
 
@@ -143,7 +146,7 @@ describe('filtros', () => {
     await u.click(screen.getByRole('button', { name: 'Quitar filtro' }))
 
     expect(await screen.findByRole('combobox', { name: 'Filtrar por producto' })).toBeInTheDocument()
-    expect(llamadas(api).some((l) => l.clave === 'GET /inventory/movements')).toBe(true)
+    expect(llamadas(api).some((l) => l.clave === 'GET /inventory/movements?page_size=20')).toBe(true)
   })
 
   it('elige el producto con el buscador, incluso uno sin existencias', async () => {
@@ -169,13 +172,29 @@ describe('filtros', () => {
           : { cuerpo: paginaDeMovimientos([entrada], { count: 120, next: 'y' }) },
     })
 
-    expect(await screen.findByText('Página 1 de 3')).toBeInTheDocument()
+    // 120 movimientos a 20 por página (sin poder medir la pantalla) son 6 páginas.
+    expect(await screen.findByText('Página 1 de 6')).toBeInTheDocument()
     await u.click(screen.getByRole('button', { name: 'Siguiente' }))
-    expect(await screen.findByText('Página 2 de 3')).toBeInTheDocument()
+    expect(await screen.findByText('Página 2 de 6')).toBeInTheDocument()
     expect(llamadas(api, 'page=2')).toHaveLength(1)
 
     await u.selectOptions(screen.getByLabelText('Tipo'), 'Venta')
-    expect(await screen.findByText('Página 1 de 3')).toBeInTheDocument()
+    expect(await screen.findByText('Página 1 de 6')).toBeInTheDocument()
+  })
+})
+
+describe('período y pie del libro', () => {
+  it('abre en todas las fechas; Hoy pide solo el día y el pie queda fijo', async () => {
+    const { api, u } = await abrir(dueno)
+    await screen.findByRole('table')
+    const hoy = hoyEnColombia()
+
+    expect(screen.getByRole('button', { name: 'Todas las fechas' })).toHaveAttribute('aria-pressed', 'true')
+    const pie = screen.getByRole('navigation', { name: 'Páginas de movimientos' })
+    expect(within(pie).getByRole('button', { name: 'Atrás' })).toBeDisabled()
+
+    await u.click(screen.getByRole('button', { name: 'Hoy' }))
+    await waitFor(() => expect(llamadas(api, `date_from=${hoy}&date_to=${hoy}&page_size=20`)).toHaveLength(1))
   })
 })
 

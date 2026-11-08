@@ -68,6 +68,43 @@ describe('lista de tipos, marcas y motos', () => {
   })
 })
 
+describe('barra de filtros y pie', () => {
+  it('busca por nombre o sigla sin importar tildes', async () => {
+    const { u } = await abrir()
+
+    await u.type(screen.getByLabelText('Buscar'), 'electrico')
+
+    const filas = within(screen.getByRole('table')).getAllByRole('row').slice(1)
+    expect(filas).toHaveLength(1)
+    expect(within(filas[0]).getByText('Eléctrico')).toBeInTheDocument()
+    expect(screen.getByText('1 tipo')).toBeInTheDocument()
+  })
+
+  it('filtra por estado: solo activos o solo inactivos', async () => {
+    const { u } = await abrir()
+    await u.click(screen.getByRole('button', { name: 'Motos' }))
+    await screen.findByText('Discover 125')
+
+    await u.click(screen.getByRole('button', { name: 'Activos' }))
+    expect(screen.queryByText('Discover 125')).not.toBeInTheDocument()
+    expect(screen.getByText('Pulsar 180')).toBeInTheDocument()
+
+    await u.click(screen.getByRole('button', { name: 'Inactivos' }))
+    expect(screen.getByText('Discover 125')).toBeInTheDocument()
+    expect(screen.queryByText('Pulsar 180')).not.toBeInTheDocument()
+  })
+
+  it('el pie con Atrás y Siguiente queda fijo y «Nuevo» va en el encabezado', async () => {
+    await abrir()
+
+    const pie = screen.getByRole('navigation', { name: 'Páginas de tipos' })
+    expect(within(pie).getByRole('button', { name: 'Atrás' })).toBeDisabled()
+    expect(within(pie).getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+    const encabezado = screen.getByRole('heading', { level: 2, name: 'Tipos, marcas y motos' }).closest<HTMLElement>('.encabezado-pantalla')!
+    expect(within(encabezado).getByRole('button', { name: 'Nuevo tipo' })).toBeInTheDocument()
+  })
+})
+
 describe('crear', () => {
   it('crea un tipo con su sigla y vuelve a la lista actualizada', async () => {
     let tipos = [electrico, frenos]

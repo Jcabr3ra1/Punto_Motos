@@ -5,7 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import { listarMecanicos } from '../../api/taller'
 import { listarVentas, type FiltrosDeVentas } from '../../api/ventas'
-import { BarraDeFiltros, BotonDeFiltro } from '../../components/BarraDeFiltros'
+import { BarraDeFiltros, BotonDeFiltro, ListaDeFiltro } from '../../components/BarraDeFiltros'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
@@ -163,17 +163,14 @@ export function Ventas() {
             </BotonDeFiltro>
           ))}
         </div>
-        <label className="filtro filtro--lista">
-          <span aria-hidden="true">Mecánico:</span>
-          <select aria-label="Mecánico" value={filtros.mechanic ? String(filtros.mechanic) : ''} onChange={(e) => cambiar({ mechanic: e.target.value || undefined })}>
-            <option value="">Todos</option>
-            {(mecanicos.data ?? []).map((m) => (
-              <option key={m.id} value={String(m.id)}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ListaDeFiltro etiqueta="Mecánico" valor={filtros.mechanic ? String(filtros.mechanic) : ''} onCambiar={(mecanico) => cambiar({ mechanic: mecanico || undefined })}>
+          <option value="">Todos</option>
+          {(mecanicos.data ?? []).map((m) => (
+            <option key={m.id} value={String(m.id)}>
+              {m.name}
+            </option>
+          ))}
+        </ListaDeFiltro>
         {ventas.isSuccess && (
           <p role="status" className="barra-de-filtros__resultados">
             {ventas.data.count === 1 ? '1 venta' : `${formatearNumero(ventas.data.count)} ventas`}

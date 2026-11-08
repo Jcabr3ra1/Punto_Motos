@@ -71,3 +71,15 @@ export function BotonDeFiltro({ activo, onClick, children }: { activo: boolean; 
     </button>
   )
 }
+
+/** Lista desplegable con forma de botón de filtro: «Tipo: Todos ▾». El rótulo visible es solo visual. */
+export function ListaDeFiltro({ etiqueta, valor, onCambiar, children }: { etiqueta: string; valor: string; onCambiar: (valor: string) => void; children: ReactNode }) {
+  return (
+    <label className="filtro filtro--lista">
+      <span aria-hidden="true">{etiqueta}:</span>
+      <select aria-label={etiqueta} value={valor} onChange={(evento) => onCambiar(evento.target.value)}>
+        {children}
+      </select>
+    </label>
+  )
+}

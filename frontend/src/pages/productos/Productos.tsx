@@ -45,7 +45,7 @@ export function Productos() {
   )
 
   return (
-    <section>
+    <section className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.productos.icono}
         titulo="Productos"
