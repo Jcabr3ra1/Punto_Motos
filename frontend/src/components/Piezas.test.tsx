@@ -168,7 +168,7 @@ describe('ficha', () => {
           this.alCambiar = alCambiar
         }
         observe(elemento: Element) {
-          this.alCambiar([{ contentRect: { width: 1000 }, target: elemento } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver)
+          this.alCambiar([{ contentRect: { width: 900 }, target: elemento } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver)
         }
         disconnect() {}
         unobserve() {}
