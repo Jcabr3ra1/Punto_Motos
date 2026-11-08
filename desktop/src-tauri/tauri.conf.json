@@ -20,11 +20,11 @@
       {
         "label": "main",
         "title": "Punto Moto",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 900,
-        "minHeight": 560,
-        "center": true
+        "width": 760,
+        "height": 500,
+        "center": true,
+        "resizable": false,
+        "maximizable": false
       }
     ],
     "security": {

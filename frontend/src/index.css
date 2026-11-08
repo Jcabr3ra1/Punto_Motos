@@ -102,60 +102,168 @@ summary {
   scrollbar-color: #9d9d9a transparent;
 }
 
-/* Pantallas de acceso: arranque, asistente e inicio de sesión */
-
-/* Las pantallas de acceso mantienen su escala original: son un punto focal, no pantallas de trabajo. */
+/* Pantallas de acceso: ventana pequeña (760 × 500) con el arte de la marca a la izquierda y el formulario a la
+   derecha. Medidas en píxeles: no siguen la escala compacta del área de trabajo. */
 .acceso {
-  font-size: 16px;
   display: grid;
-  place-items: center;
-  min-height: 100vh;
-  padding: 1.5rem;
-  background: var(--color-negro);
+  grid-template-columns: minmax(0, 1fr) 330px;
+  height: 100vh;
+  min-height: 460px;
+  overflow: hidden;
+  font-size: 13px;
+  background: var(--marco);
 }
 
-.acceso__contenedor {
+.acceso__arte {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  width: 100%;
-  max-width: 26rem;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: 28px 32px;
+  overflow: hidden;
+  color: var(--marco-texto);
 }
 
-.acceso__logo {
-  display: block;
-  width: 9rem;
+.acceso__decoracion {
+  position: absolute;
+  inset: 0;
+}
+
+/* El piñón del logo, grande y cortado por la esquina, con un degradado hacia negro donde va el texto. */
+.acceso__pinon {
+  position: absolute;
+  top: -110px;
+  left: -120px;
+  width: 430px;
   height: auto;
+  opacity: 0.9;
 }
 
-.acceso__nombre {
-  margin: -0.5rem 0 0;
-  font-size: 0.875rem;
+.acceso__decoracion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(11 11 12 / 0) 30%, var(--marco) 78%);
+}
+
+.acceso__velocidad {
+  position: absolute;
+  right: 12%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-marca));
+  opacity: 0.85;
+  animation: acceso-velocidad 360ms ease-out both;
+}
+
+.acceso__velocidad--1 {
+  top: 130px;
+  width: 46%;
+}
+
+.acceso__velocidad--2 {
+  top: 154px;
+  width: 62%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #8f8f8c);
+  animation-delay: 40ms;
+}
+
+.acceso__velocidad--3 {
+  top: 178px;
+  width: 38%;
+  animation-delay: 80ms;
+}
+
+.acceso__velocidad--4 {
+  top: 202px;
+  width: 54%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #8f8f8c);
+  animation-delay: 120ms;
+}
+
+@keyframes acceso-velocidad {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+}
+
+.acceso__lema {
+  position: relative;
+}
+
+.acceso__titular {
+  margin: 0;
+  font-size: 30px;
   font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-plata);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: #ffffff;
 }
 
-.acceso__tarjeta {
-  width: 100%;
-  max-width: 26rem;
-  padding: 2rem;
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
+.acceso__titular em {
+  display: block;
+  font-style: normal;
+  color: var(--color-marca);
 }
 
+.acceso__frase {
+  max-width: 280px;
+  margin: 8px 0 0;
+  line-height: 1.45;
+  color: #a6a6a3;
+}
+
+.acceso__estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: #a6a6a3;
+}
+
+.acceso__estado::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #8f8f8c;
+  border-radius: 50%;
+}
+
+.acceso__estado--si::before {
+  background: #7bd88f;
+  box-shadow: 0 0 0 3px rgb(123 216 143 / 0.15);
+}
+
+.acceso__estado--no::before {
+  background: #f07a6e;
+}
+
+.acceso__formulario {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 32px;
+  overflow-y: auto;
+  color: var(--color-texto);
+  background: var(--color-fondo);
+  border-left: 3px solid var(--color-marca);
+}
 
 .acceso h1 {
-  margin: 0 0 0.5rem;
-  font-size: 1.5rem;
-  line-height: 1.25;
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 24px;
 }
 
 .acceso__descripcion {
-  margin: 0 0 1.25rem;
+  margin: 0 0 20px;
+  font-size: 12.5px;
   color: var(--color-texto-suave);
 }
 
@@ -1366,68 +1474,76 @@ kbd {
   height: 1.125rem;
 }
 
-/* Escala original de las pantallas de acceso, en píxeles porque `rem` sigue la escala compacta del resto. */
-.acceso {
-  --radio: 8px;
-  font-size: 16px;
-}
-
-.acceso__contenedor {
-  gap: 20px;
-  max-width: 416px;
-}
-
-.acceso__logo {
-  width: 144px;
-}
-
-.acceso__nombre {
-  margin-top: -8px;
-  font-size: 14px;
-}
-
-.acceso__tarjeta {
-  max-width: 416px;
-  padding: 32px;
-}
-
-.acceso h1 {
-  margin: 0 0 8px;
-  font-size: 24px;
-}
-
-.acceso__descripcion {
-  margin-bottom: 20px;
-}
-
+/* Formularios de las pantallas de acceso: campos de 36px, rótulos pequeños en negrita y el botón lima. */
 .acceso .campo {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .acceso .campo label {
   margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .acceso .campo__ayuda,
 .acceso .campo__errores {
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .acceso .campo input:not([type='checkbox']),
 .acceso .campo select {
-  min-height: 44px;
-  padding: 8px 12px;
+  min-height: 36px;
+  padding: 0 12px;
 }
 
 .acceso .boton {
-  min-height: 44px;
-  padding: 8px 16px;
-  font-weight: 700;
+  min-height: 36px;
+  margin-top: 8px;
 }
 
 .acceso .aviso {
-  margin-bottom: 16px;
-  padding: 12px 16px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+/* Campo con un botón dentro, como mostrar u ocultar la contraseña. */
+.campo-con-boton {
+  position: relative;
+  display: block;
+}
+
+.campo-con-boton input,
+.acceso .campo .campo-con-boton input:not([type='checkbox']) {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.campo-con-boton__boton {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  width: 32px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio);
+  transform: translateY(-50%);
+  cursor: default;
+}
+
+.campo-con-boton__boton:hover {
+  color: var(--color-texto);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acceso__velocidad {
+    animation: none;
+  }
 }
 
 /* Compras */
