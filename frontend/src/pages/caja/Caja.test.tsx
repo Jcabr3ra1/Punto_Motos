@@ -66,8 +66,8 @@ describe('caja abierta', () => {
     expect(cifras).toHaveTextContent(/Efectivo esperado en el cajón\$\s?75\.000/)
     expect(cifras).toHaveTextContent(/Transferencias\$\s?15\.000/)
     await userEvent.setup().click(screen.getByRole('button', { name: 'Ver resumen por tipo' }))
-    const resumen = screen.getByRole('table', { name: 'Resumen por tipo de movimiento' })
-    expect(within(resumen).getByRole('row', { name: /Gasto/ })).toHaveTextContent(/-\$\s?3\.000/)
+    const resumen = screen.getByRole('list', { name: 'Resumen por tipo de movimiento' })
+    expect(within(resumen).getByText(/Gasto/).closest('li')).toHaveTextContent(/-\$\s?3\.000/)
     expect(await screen.findByText('Venta 41 · Ana Gómez')).toBeInTheDocument()
   })
 
@@ -154,7 +154,7 @@ describe('caja abierta', () => {
 describe('cajas anteriores', () => {
   it('lista las cajas con su diferencia y abre el detalle', async () => {
     simularApi({
-      'GET /cash-sessions': () => ({ cuerpo: paginaDe([caja({ is_open: false, counted_cash: 74000, difference: -1000, closed_at: '2026-11-03T19:00:00-05:00', summary: undefined })]) }),
+      'GET /cash-sessions*': () => ({ cuerpo: paginaDe([caja({ is_open: false, counted_cash: 74000, difference: -1000, closed_at: '2026-11-03T19:00:00-05:00', summary: undefined })]) }),
       'GET /cash-sessions/3': () => ({ cuerpo: caja({ is_open: false, counted_cash: 74000, difference: -1000 }) }),
       'GET /cash-movements*': () => ({ cuerpo: paginaDe([movimiento]) }),
     })
@@ -163,9 +163,11 @@ describe('cajas anteriores', () => {
 
     const fila = (await screen.findAllByRole('row'))[1]
     expect(fila).toHaveTextContent(/Faltaron \$\s?1\.000/)
-    await u.click(within(fila).getByRole('link'))
+    await u.click(within(fila).getByRole('button', { name: /Abrir la caja del/ }))
 
-    expect(await screen.findByLabelText('Cifras de la caja')).toHaveTextContent(/Faltan \$\s?1\.000/)
+    const ventana = await screen.findByRole('dialog', { name: /Caja del/ })
+    expect(await within(ventana).findByLabelText('Cifras de la caja')).toHaveTextContent(/Faltan \$\s?1\.000/)
+    expect(screen.getByRole('heading', { level: 2, name: 'Cajas anteriores' })).toBeInTheDocument()
   })
 })
 

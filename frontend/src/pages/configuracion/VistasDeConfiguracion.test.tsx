@@ -29,6 +29,20 @@ describe('vistas de configuración', () => {
     expect(await screen.findByRole('dialog', { name: 'Nuevo usuario' })).toBeInTheDocument()
   })
 
+  it('usuarios es un libro con búsqueda sin tildes, filtro de inactivos y pie fijo', async () => {
+    abrir('/configuracion/usuarios')
+    const u = userEvent.setup()
+
+    const tabla = await screen.findByRole('table', { name: 'Usuarios del programa' })
+    expect(screen.getByRole('navigation', { name: 'Páginas de usuarios' })).toHaveTextContent('Atrás')
+    await u.click(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Inactivos' }))
+    expect(within(tabla).getAllByRole('row').slice(1).map((fila) => within(fila).getByRole('rowheader').textContent)).toEqual(['ex'])
+
+    await u.click(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Todos' }))
+    await u.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'perez')
+    expect(within(tabla).getAllByRole('row').slice(1).map((fila) => within(fila).getByRole('rowheader').textContent)).toEqual(['dueno'])
+  })
+
   it('datos del negocio va en una tarjeta con su encabezado', async () => {
     abrir('/configuracion/negocio', vendedor)
 

@@ -12,7 +12,7 @@ import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { EstadoVacio } from '../../components/EstadoVacio'
-import { Ficha } from '../../components/Ficha'
+import { Registro } from '../../components/Registro'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { DESTINOS } from '../../navegacion/destinos'
 import { VistaPrevia } from '../../components/VistaPrevia'
@@ -20,7 +20,7 @@ import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos, pesosConSigno } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
-import { MovimientosDeCaja, ResumenPorTipo } from './ResumenDeCaja'
+import { MovimientosDeCaja, ResumenEnLineas } from './ResumenDeCaja'
 
 type Vista = 'resumen' | 'salida' | 'cerrar'
 
@@ -150,10 +150,10 @@ export function CajaDeHoy() {
             </aside>
             {resumenAbierto && (
               <div ref={fichaResumen} className="caja-hoy__resumen">
-                <Ficha titulo="Resumen por tipo" modulo="Caja de hoy" onCerrar={() => setResumenAbierto(false)}>
-                  <ResumenPorTipo caja={caja} />
-                  <p className="texto-suave">Las transferencias se suman aparte: no forman parte del efectivo del cajón.</p>
-                </Ficha>
+                <Registro titulo="Resumen por tipo" modulo="Caja de hoy" onCerrar={() => setResumenAbierto(false)}>
+                  <ResumenEnLineas caja={caja} />
+                  <p className="registro__nota">Las transferencias se suman aparte: no forman parte del efectivo del cajón.</p>
+                </Registro>
               </div>
             )}
           </div>

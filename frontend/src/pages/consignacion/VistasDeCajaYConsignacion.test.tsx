@@ -40,8 +40,27 @@ describe('vistas de caja y consignación', () => {
     await u.click(within(await screen.findByRole('table', { name: 'Cajas' })).getByText('Abrió dueno'))
 
     const ficha = await screen.findByRole('complementary', { name: /Caja del/ })
-    await waitFor(() => expect(within(ficha).getByLabelText('Cifras de la caja')).toHaveTextContent('Cuadró'))
-    expect(within(ficha).getByRole('link', { name: 'Abrir la caja' })).toHaveAttribute('href', '/caja/historial/3')
+    await waitFor(() => expect(ficha).toHaveTextContent('Cuadró'))
+    // La caja completa se abre en una ventana emergente encima de la lista, sin salir de la pantalla.
+    await u.click(within(ficha).getByRole('button', { name: 'Abrir la caja' }))
+    const ventana = await screen.findByRole('dialog', { name: /Caja del/ })
+    expect(within(ventana).getByLabelText('Cifras de la caja')).toHaveTextContent('Cuadró')
+    // Los movimientos de la caja van de 10 en 10, con Atrás y Siguiente siempre abajo.
+    expect(await within(ventana).findByRole('navigation', { name: 'Páginas de movimientos de caja' })).toHaveTextContent('Atrás')
+    await u.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('cajas anteriores muestra el registro vacío, el pie fijo y pide el período elegido', async () => {
+    const api = abrir('/caja/historial')
+    const u = userEvent.setup()
+
+    expect(await screen.findByText('Elige una caja para ver su resumen.')).toBeInTheDocument()
+    expect(await screen.findByRole('navigation', { name: 'Páginas de cajas' })).toHaveTextContent('Atrás')
+    expect(api.llamadas.some((l) => /^GET \/cash-sessions\?page_size=\d+$/.test(l.clave) && !l.clave.includes('page_size=1'))).toBe(true)
+
+    await u.click(within(screen.getByRole('group', { name: 'Período' })).getByRole('button', { name: 'Este mes' }))
+    await waitFor(() => expect(api.llamadas.some((l) => /^GET \/cash-sessions\?date_from=\d{4}-\d{2}-01&date_to=/.test(l.clave))).toBe(true))
   })
 
   it('locales suma lo que deben y cuenta cuáles', async () => {
