@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Banknote,
+  Boxes,
   Building,
   Building2,
   Calculator,
@@ -14,6 +15,7 @@ import {
   ListChecks,
   Package,
   PackageOpen,
+  RefreshCw,
   ReceiptText,
   Settings,
   ShoppingCart,
@@ -49,14 +51,15 @@ const SOLO_DUENO: readonly Role[] = ['owner']
 
 export const DESTINOS = {
   inicio: { icono: House, descripcion: 'Resumen del día y accesos rápidos', ruta: '/', etiqueta: 'Inicio', roles: TODOS },
-  venta: { icono: ShoppingCart, descripcion: 'Cobrar en el mostrador y revisar lo vendido', ruta: '/venta', etiqueta: 'Venta', roles: TODOS },
+  venta: { icono: ShoppingCart, descripcion: 'Cobrar en el mostrador y revisar lo vendido', ruta: '/venta', etiqueta: 'Mostrador', roles: TODOS },
   vender: { icono: ShoppingCart, descripcion: 'Carrito y cobro', ruta: '/venta/vender', etiqueta: 'Vender', roles: TODOS },
   ventas: { icono: ReceiptText, descripcion: 'Historial y anulación', ruta: '/venta/historial', etiqueta: 'Ventas', roles: TODOS },
   devoluciones: { icono: Undo2, descripcion: 'Lo que los clientes devolvieron', ruta: '/venta/devoluciones', etiqueta: 'Devoluciones', roles: TODOS },
-  productos: { icono: Package, descripcion: 'Existencias, precios y códigos', ruta: '/productos', etiqueta: 'Productos', roles: TODOS },
+  inventario: { icono: Boxes, descripcion: 'Productos, existencias y clasificación', ruta: '/inventario', etiqueta: 'Inventario', roles: TODOS },
+  productos: { icono: Package, descripcion: 'Existencias, precios y códigos', ruta: '/inventario/productos', etiqueta: 'Productos', roles: TODOS },
   movimientos: { icono: ArrowLeftRight, descripcion: 'Entradas, salidas y ajustes', ruta: '/inventario/movimientos', etiqueta: 'Movimientos', roles: TODOS },
   inventarioInicial: { icono: ClipboardList, descripcion: 'Conteo de lo que hay al empezar',
-    ruta: '/inventario-inicial',
+    ruta: '/inventario/inicial',
     etiqueta: 'Inventario inicial',
     roles: SOLO_DUENO,
     soloConConteoAbierto: true,
@@ -78,31 +81,31 @@ export const DESTINOS = {
   historialDeLiquidaciones: { icono: History, descripcion: 'Liquidaciones anteriores', ruta: '/taller/historial', etiqueta: 'Historial de liquidaciones', roles: SOLO_DUENO },
   configuracion: { icono: Settings, descripcion: 'Negocio, catálogo y usuarios', ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
   negocio: { icono: Building, descripcion: 'Nombre y datos del negocio', ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
-  catalogo: { icono: Tags, descripcion: 'Clasificación de los productos', ruta: '/configuracion/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
+  catalogo: { icono: Tags, descripcion: 'Clasificación de los productos', ruta: '/inventario/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
   usuarios: { icono: Users, descripcion: 'Quién entra al programa', ruta: '/configuracion/usuarios', etiqueta: 'Usuarios', roles: SOLO_DUENO },
-  tiposDeServicio: { icono: ListChecks, descripcion: 'Servicios que ofrece el taller', ruta: '/configuracion/servicios', etiqueta: 'Tipos de servicio', roles: SOLO_DUENO },
-  mecanicos: { icono: HardHat, descripcion: 'Mecánicos y su porcentaje', ruta: '/configuracion/mecanicos', etiqueta: 'Mecánicos', roles: SOLO_DUENO },
+  tiposDeServicio: { icono: ListChecks, descripcion: 'Servicios que ofrece el taller', ruta: '/taller/servicios', etiqueta: 'Tipos de servicio', roles: SOLO_DUENO },
+  mecanicos: { icono: HardHat, descripcion: 'Mecánicos y su porcentaje', ruta: '/taller/mecanicos', etiqueta: 'Mecánicos', roles: SOLO_DUENO },
+  actualizaciones: { icono: RefreshCw, descripcion: 'Buscar e instalar una versión nueva', ruta: '/configuracion/actualizaciones', etiqueta: 'Actualizar programa', roles: SOLO_DUENO },
 } as const satisfies Record<string, Destino>
 
 export const MENU_PRINCIPAL: readonly Destino[] = [
   DESTINOS.inicio,
   DESTINOS.venta,
-  DESTINOS.productos,
-  DESTINOS.movimientos,
-  DESTINOS.inventarioInicial,
-  DESTINOS.compras,
+  DESTINOS.inventario,
   DESTINOS.taller,
+  DESTINOS.compras,
   DESTINOS.caja,
   DESTINOS.consignacion,
   DESTINOS.configuracion,
 ]
 
-export const MENU_CONFIGURACION: readonly Destino[] = [
-  DESTINOS.negocio,
+export const MENU_CONFIGURACION: readonly Destino[] = [DESTINOS.negocio, DESTINOS.usuarios, DESTINOS.actualizaciones]
+
+export const MENU_INVENTARIO: readonly Destino[] = [
+  DESTINOS.productos,
+  DESTINOS.movimientos,
+  DESTINOS.inventarioInicial,
   DESTINOS.catalogo,
-  DESTINOS.tiposDeServicio,
-  DESTINOS.mecanicos,
-  DESTINOS.usuarios,
 ]
 
 export function puedeVer(destino: Destino, rol: Role): boolean {
@@ -122,11 +125,17 @@ export const MENU_CONSIGNACION: readonly Destino[] = [
   DESTINOS.pagosDeLocales,
 ]
 
-export const MENU_TALLER: readonly Destino[] = [DESTINOS.liquidacion, DESTINOS.historialDeLiquidaciones]
+export const MENU_TALLER: readonly Destino[] = [
+  DESTINOS.liquidacion,
+  DESTINOS.historialDeLiquidaciones,
+  DESTINOS.mecanicos,
+  DESTINOS.tiposDeServicio,
+]
 
 /** Pantallas de cada módulo del menú principal, por la ruta del módulo. */
 export const SUBMENUS: Readonly<Record<string, readonly Destino[]>> = {
   [DESTINOS.venta.ruta]: MENU_VENTA,
+  [DESTINOS.inventario.ruta]: MENU_INVENTARIO,
   [DESTINOS.compras.ruta]: MENU_COMPRAS,
   [DESTINOS.caja.ruta]: MENU_CAJA,
   [DESTINOS.consignacion.ruta]: MENU_CONSIGNACION,
@@ -137,4 +146,18 @@ export const SUBMENUS: Readonly<Record<string, readonly Destino[]>> = {
 /** Las pantallas de un módulo que el rol puede ver; un módulo sin submenú es su propia pantalla. */
 export function pantallasDe(modulo: Destino, rol: Role): readonly Destino[] {
   return (SUBMENUS[modulo.ruta] ?? [modulo]).filter((destino) => puedeVer(destino, rol))
+}
+
+/** Las pantallas de una sección que se muestran: las del rol y, el inventario inicial, solo con el conteo abierto. */
+export function pantallasVisibles(modulo: Destino, rol: Role, conteoAbierto: boolean): readonly Destino[] {
+  return pantallasDe(modulo, rol).filter((destino) => !destino.soloConConteoAbierto || conteoAbierto)
+}
+
+/** Direcciones de antes del menú por secciones y a dónde llevan ahora. */
+export const RUTAS_ANTERIORES: Readonly<Record<string, string>> = {
+  '/productos': DESTINOS.productos.ruta,
+  '/inventario-inicial': DESTINOS.inventarioInicial.ruta,
+  '/configuracion/catalogo': DESTINOS.catalogo.ruta,
+  '/configuracion/mecanicos': DESTINOS.mecanicos.ruta,
+  '/configuracion/servicios': DESTINOS.tiposDeServicio.ruta,
 }
