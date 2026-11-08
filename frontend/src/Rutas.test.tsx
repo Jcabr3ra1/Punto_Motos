@@ -37,8 +37,8 @@ describe('menú principal', () => {
   it('muestra el menú completo del dueño y marca la pantalla actual', () => {
     mostrar(dueno)
 
-    const enlaces = within(menuPrincipal()).getAllByRole('link')
-    expect(enlaces.map((e) => e.textContent)).toEqual(['Inicio', 'Venta', 'Productos', 'Movimientos', 'Compras', 'Taller', 'Caja', 'Consignación', 'Configuración'])
+    const entradas = Array.from(menuPrincipal().querySelectorAll('.menu-lateral__seccion')).map((e) => e.getAttribute('aria-label') ?? e.textContent)
+    expect(entradas).toEqual(['Inicio', 'Mostrador', 'Inventario', 'Taller', 'Compras', 'Caja', 'Consignación', 'Configuración'])
     expect(within(menuPrincipal()).getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page')
   })
 
@@ -52,7 +52,7 @@ describe('menú principal', () => {
   it('navega a otra pantalla al elegirla', async () => {
     mostrar(dueno)
 
-    await userEvent.setup().click(within(menuPrincipal()).getByRole('link', { name: 'Productos' }))
+    await userEvent.setup().click(within(menuPrincipal()).getByRole('button', { name: 'Inventario' }))
 
     expect(screen.getByRole('heading', { name: 'Productos' })).toBeInTheDocument()
     expect(within(menuPrincipal()).getByRole('link', { name: 'Productos' })).toHaveAttribute('aria-current', 'page')
@@ -155,14 +155,14 @@ describe('barra superior', () => {
 describe('inventario inicial en el menú', () => {
   it('el dueño ve la entrada mientras el conteo esté abierto', async () => {
     simularApi({ 'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_ABIERTO }) })
-    mostrar(dueno)
+    mostrar(dueno, '/inventario/productos')
 
     expect(await within(menuPrincipal()).findByRole('link', { name: 'Inventario inicial' })).toBeInTheDocument()
   })
 
   it('el dueño no la ve cuando el conteo ya terminó', async () => {
     const api = simularApi({ 'GET /inventory/initial-count': () => ({ cuerpo: CONTEO_TERMINADO }) })
-    mostrar(dueno)
+    mostrar(dueno, '/inventario/productos')
 
     await waitFor(() => expect(api.cuantas('GET /inventory/initial-count')).toBe(1))
     expect(within(menuPrincipal()).queryByRole('link', { name: 'Inventario inicial' })).not.toBeInTheDocument()

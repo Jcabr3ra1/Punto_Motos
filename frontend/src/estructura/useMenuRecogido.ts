@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 const CLAVE = 'puntomoto.menuRecogido'
-// En una ventana angosta el panel contextual se recoge solo, sin cambiar la preferencia guardada.
+// En una ventana angosta el menú se recoge solo, sin cambiar la preferencia guardada.
 const VENTANA_ANGOSTA = '(max-width: 1000px)'
 
 function leerPreferencia(): boolean {
@@ -17,13 +17,13 @@ function ventanaAngosta(): boolean {
 }
 
 /**
- * Si el panel contextual del menú está recogido. Ctrl+B y el botón de la columna lo alternan; la preferencia se
+ * Si el menú lateral está recogido. Ctrl+B y el botón del pie del menú lo alternan; la preferencia se
  * recuerda entre aperturas. Si la ventana es angosta, empieza recogido.
  */
 export function useEstadoDelMenu(): { recogido: boolean; alternar: () => void } {
   const [preferencia, setPreferencia] = useState(leerPreferencia)
   const [angosta, setAngosta] = useState(ventanaAngosta)
-  // En ventana angosta, abrir el panel es una decisión de este momento, no una preferencia guardada.
+  // En ventana angosta, abrir el menú es una decisión de este momento, no una preferencia guardada.
   const [abiertoEnAngosta, setAbiertoEnAngosta] = useState(false)
 
   useEffect(() => {
@@ -56,11 +56,4 @@ export function useEstadoDelMenu(): { recogido: boolean; alternar: () => void } 
   }, [angosta])
 
   return { recogido, alternar }
-}
-
-/** Para que las secciones muestren sus pestañas cuando el panel contextual está recogido. */
-export const ContextoMenuRecogido = createContext(false)
-
-export function useMenuRecogido(): boolean {
-  return useContext(ContextoMenuRecogido)
 }

@@ -1,33 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import { Outlet, useLocation } from 'react-router'
+import { Outlet } from 'react-router'
 import { useUsuario } from '../auth/useUsuario'
 import { hayVentanaAbierta } from '../components/useFocoAtrapado'
 import { useSalud } from '../hooks/useSalud'
-import { DESTINOS, MENU_PRINCIPAL, pantallasDe, puedeVer, type Destino } from '../navegacion/destinos'
-import { moduloDe } from '../navegacion/ubicacion'
 import { useConteoInicial } from '../pages/inventario/useConteoInicial'
 import { BarraSuperior } from './BarraSuperior'
 import { Buscador } from './Buscador'
-import { ColumnaDeIconos } from './ColumnaDeIconos'
-import { PanelContextual } from './PanelContextual'
-import { ContextoMenuRecogido, useEstadoDelMenu } from './useMenuRecogido'
+import { MenuLateral } from './MenuLateral'
+import { useEstadoDelMenu } from './useMenuRecogido'
 
-// Marco «Tablero» con sesión abierta: columna de iconos con los módulos, panel con las pantallas del módulo
-// abierto, barra superior, el contenido de la pantalla y la barra de estado.
+// Marco «Tablero» con sesión abierta: menú lateral por secciones, barra superior, el contenido de la pantalla y la
+// barra de estado.
 
 export function Estructura() {
   const usuario = useUsuario()
   const salud = useSalud()
-  const { pathname } = useLocation()
   const { recogido, alternar } = useEstadoDelMenu()
   // Solo el dueño ve la entrada del inventario inicial, y únicamente mientras el conteo siga abierto.
   const conteo = useConteoInicial(usuario.role === 'owner')
-  const visible = (destino: Destino) =>
-    puedeVer(destino, usuario.role) && (!destino.soloConConteoAbierto || conteo.data?.is_open === true)
-
-  const modulos = MENU_PRINCIPAL.filter(visible)
-  const moduloActual = moduloDe(pathname)
-  const pantallas = pantallasDe(moduloActual, usuario.role)
   const [buscando, setBuscando] = useState(false)
   // Quién tenía el foco al abrir el buscador, para devolvérselo si se cierra sin elegir.
   const focoPrevio = useRef<HTMLElement | null>(null)
@@ -68,7 +58,7 @@ export function Estructura() {
     return () => window.removeEventListener('keydown', alPulsar, true)
   }, [buscando])
 
-  // Ctrl+B recoge o expande el panel, como en los editores de escritorio.
+  // Ctrl+B recoge o expande el menú, como en los editores de escritorio.
   useEffect(() => {
     const alPulsar = (evento: KeyboardEvent) => {
       if (!(evento.ctrlKey || evento.metaKey) || evento.key.toLowerCase() !== 'b' || evento.repeat) return
@@ -81,7 +71,7 @@ export function Estructura() {
   }, [alternar])
 
   return (
-    <ContextoMenuRecogido.Provider value={recogido}>
+    <>
       <div className={`estructura${recogido ? ' estructura--recogida' : ''}`}>
         {/* Un botón y no un enlace con "#": en las rutas por hash cambiaría la pantalla. */}
         <button
@@ -91,14 +81,12 @@ export function Estructura() {
         >
           Saltar al contenido
         </button>
-        <ColumnaDeIconos
-          modulos={modulos.filter((modulo) => modulo.ruta !== DESTINOS.configuracion.ruta)}
-          ajustes={modulos.find((modulo) => modulo.ruta === DESTINOS.configuracion.ruta)}
-          moduloActual={moduloActual}
+        <MenuLateral
+          rol={usuario.role}
+          conteoAbierto={conteo.data?.is_open === true}
           recogido={recogido}
           onAlternar={alternar}
         />
-        {!recogido && <PanelContextual modulo={moduloActual} pantallas={pantallas} />}
         <div className="estructura__derecha">
           <BarraSuperior onBuscar={abrirBuscador} />
           <main id="contenido" className="estructura__contenido" tabIndex={-1}>
@@ -115,6 +103,6 @@ export function Estructura() {
         </div>
       </div>
       {buscando && <Buscador conteoAbierto={conteo.data?.is_open === true} onCerrar={cerrarBuscador} />}
-    </ContextoMenuRecogido.Provider>
+    </>
   )
 }

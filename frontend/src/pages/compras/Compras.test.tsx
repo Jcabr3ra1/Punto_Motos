@@ -75,7 +75,7 @@ describe('lista de compras', () => {
     simular()
     mostrarRutas(dueno, '/compras/lista')
 
-    const pestanas = within(screen.getByRole('navigation', { name: 'Compras' })).getAllByRole('link')
+    const pestanas = within(screen.getByRole('group', { name: 'Compras' })).getAllByRole('link')
     expect(pestanas.map((p) => p.textContent)).toEqual(['Compras', 'Proveedores', 'Abonos'])
   })
 })

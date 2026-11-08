@@ -55,7 +55,7 @@ describe('buscador de pantallas', () => {
     await u.keyboard('{Enter}')
 
     expect(screen.queryByRole('dialog', { name: 'Buscar pantalla' })).not.toBeInTheDocument()
-    expect(within(screen.getByRole('navigation', { name: 'Compras' })).getByRole('link', { name: 'Abonos' })).toHaveAttribute(
+    expect(within(screen.getByRole('group', { name: 'Compras' })).getByRole('link', { name: 'Abonos' })).toHaveAttribute(
       'aria-current',
       'page',
     )
@@ -133,7 +133,7 @@ describe('buscador de pantallas', () => {
       await u.keyboard('{Control>}b{/Control}')
 
       expect(screen.queryByRole('dialog', { name: 'Buscar pantalla' })).not.toBeInTheDocument()
-      expect(document.querySelector('.panel-contextual')).not.toBeNull()
+      expect(document.querySelector('.menu-lateral--recogido')).toBeNull()
       otra.remove()
     }
   })

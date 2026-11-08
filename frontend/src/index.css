@@ -70,11 +70,9 @@ body {
 /* Como en una aplicación de escritorio: el marco (menú, barras, botones) no se selecciona ni se arrastra. */
 button,
 img,
-.columna,
-.panel-contextual,
+.menu-lateral,
 .navbar,
 .barra-de-estado,
-.pestanas,
 .selector-de-seccion {
   -webkit-user-select: none;
   user-select: none;
@@ -332,7 +330,7 @@ summary {
 
 .estructura {
   display: grid;
-  grid-template-columns: 5rem 12.5rem minmax(0, 1fr);
+  grid-template-columns: 14.25rem minmax(0, 1fr);
   /* Ventana fija: no hay scroll de página, solo se desplaza el contenido. */
   height: 100vh;
   /* Ancho mínimo de ventana (el mismo de Tauri): la aplicación no se apila como una página web. */
@@ -342,225 +340,254 @@ summary {
 }
 
 .estructura--recogida {
-  grid-template-columns: 5rem minmax(0, 1fr);
+  grid-template-columns: 3.5rem minmax(0, 1fr);
 }
 
-/* Columna de iconos: los módulos, siempre visible. */
-.columna {
+/* Menú lateral: cada sección con sus pantallas colgando debajo, anclado al borde como en un programa de escritorio. */
+.menu-lateral {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
+  min-width: 0;
   min-height: 0;
-  padding: 0.75rem 0.375rem 0.5rem;
-  color: var(--marco-texto-suave);
+  color: var(--marco-texto);
   background: var(--marco);
   border-right: 1px solid var(--marco-separador);
 }
 
-.columna__logo {
-  display: block;
-  width: 2.75rem;
-  height: auto;
+.menu-lateral__marca {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.75rem;
+  height: 3.5rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--marco-separador);
 }
 
-.columna__nav {
+.menu-lateral__logo {
+  display: block;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+.menu-lateral__titulo {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.2;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.menu-lateral__subtitulo {
+  display: block;
+  font-size: 0.71875rem;
+  font-weight: 400;
+  color: var(--marco-texto-suave);
+}
+
+.menu-lateral__nav {
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: space-between;
-  width: 100%;
   min-height: 0;
 }
 
-.columna__lista {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
+.menu-lateral__lista {
   margin: 0;
-  padding: 0;
+  padding: 0.5rem 0;
   list-style: none;
 }
 
-.columna__lista--abajo {
-  padding-top: 0.5rem;
+/* Solo la parte central se desplaza; la marca, Configuración y el botón de recoger quedan fijos. */
+.menu-lateral__lista--principal {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.menu-lateral__pie {
+  flex-shrink: 0;
   border-top: 1px solid var(--marco-separador);
 }
 
-.columna__modulo {
+.menu-lateral__seccion {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1.125rem minmax(0, 1fr) 0.875rem;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.45rem 0.125rem 0.4rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.15;
-  text-align: center;
-  color: var(--marco-texto-suave);
+  column-gap: 0.75rem;
+  width: 100%;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0 1rem;
+  font: inherit;
+  font-size: 0.84375rem;
+  font-weight: 500;
+  text-align: left;
+  color: var(--marco-texto);
   text-decoration: none;
-  border-radius: var(--radio);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: default;
 }
 
-.columna__modulo:hover {
+.menu-lateral__seccion:hover {
+  background: var(--marco-elevado);
+}
+
+.menu-lateral__icono {
+  color: var(--marco-texto-suave);
+}
+
+.menu-lateral__nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-lateral__flecha {
+  color: var(--marco-texto-suave);
+}
+
+.menu-lateral__grupo--abierto > .menu-lateral__seccion {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.menu-lateral__grupo--abierto > .menu-lateral__seccion .menu-lateral__icono,
+.menu-lateral__seccion[aria-current='page'] .menu-lateral__icono {
+  color: var(--color-marca);
+}
+
+/* Inicio no tiene pantallas: él mismo es la pantalla actual. */
+.menu-lateral__seccion[aria-current='page'] {
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--marco-seleccion);
+}
+
+/* Barra lima pegada al borde izquierdo: dónde estás, como la aguja de un tablero. */
+.menu-lateral__seccion[aria-current='page']::before,
+.menu-lateral__pantalla[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--color-marca);
+}
+
+/* Las pantallas cuelgan de su sección, unidas por una línea que baja desde el centro de su icono. */
+.menu-lateral__pantallas {
+  margin: 0 0 0.25rem 1.5625rem;
+  padding: 0.125rem 0;
+  list-style: none;
+  border-left: 1px solid var(--marco-separador);
+}
+
+.menu-lateral__pantalla {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 1.75rem;
+  padding: 0 0.75rem 0 1rem;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  color: var(--marco-texto-suave);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.menu-lateral__pantalla:hover {
   color: var(--marco-texto);
   background: var(--marco-elevado);
 }
 
-.columna__modulo[aria-current='page'] {
-  color: var(--color-marca);
+.menu-lateral__pantalla[aria-current='page'] {
+  font-weight: 600;
+  color: #ffffff;
   background: var(--marco-seleccion);
 }
 
-/* Barra lima pegada al borde izquierdo de la ventana: dónde estás, como la aguja de un tablero. */
-.columna__modulo[aria-current='page']::before {
-  content: '';
-  position: absolute;
-  top: 0.4rem;
-  bottom: 0.4rem;
-  left: -0.375rem;
-  width: 3px;
-  background: var(--color-marca);
-  border-radius: 0 2px 2px 0;
+.menu-lateral__pantalla[aria-current='page']::before {
+  left: -1px;
 }
 
-/* Ventana baja: solo iconos; el nombre sigue disponible para el lector de pantalla y al pasar el mouse. */
-@media (max-height: 720px) {
-  .columna {
-    gap: 0.5rem;
-  }
-
-  .columna__logo {
-    width: 2.25rem;
-  }
-
-  .columna__modulo {
-    padding: 0.5rem 0.125rem;
-  }
-
-  .columna__modulo span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-}
-
-.columna__herramienta {
+.menu-lateral__alternar {
   display: grid;
+  flex-shrink: 0;
+  grid-template-columns: 1.125rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.75rem;
   width: 100%;
   height: 2rem;
-  place-items: center;
-  margin-bottom: 0.125rem;
-  padding: 0;
+  padding: 0 1rem;
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
   color: var(--marco-texto-suave);
   background: transparent;
   border: 0;
-  border-radius: var(--radio);
+  border-top: 1px solid var(--marco-separador);
+  border-radius: 0;
+  cursor: default;
 }
 
-.columna__herramienta:hover {
+.menu-lateral__alternar:hover {
   color: var(--marco-texto);
   background: var(--marco-elevado);
 }
 
-/* Panel contextual: las pantallas del módulo abierto. */
-.panel-contextual {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  padding: 1rem 0.625rem;
-  overflow-y: auto;
-  color: var(--marco-texto);
-  background: var(--marco);
-  border-right: 1px solid var(--marco-separador);
-}
-
-.panel-contextual__modulo {
-  margin: 0 0.375rem;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.panel-contextual__descripcion {
-  margin: 0.25rem 0.375rem 1rem;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--marco-texto-suave);
-}
-
-.panel-contextual__lista {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  margin: 0;
+/* Recogido: solo los iconos de las secciones, centrados en una columna de 56px. */
+.menu-lateral--recogido .menu-lateral__marca {
+  justify-content: center;
   padding: 0;
-  list-style: none;
 }
 
-.panel-contextual__item {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1rem 1fr;
-  column-gap: 0.625rem;
-  padding: 0.45rem 0.5rem;
-  border-radius: var(--radio);
+.menu-lateral--recogido .menu-lateral__titulo,
+.menu-lateral--recogido .menu-lateral__nombre,
+.menu-lateral--recogido .menu-lateral__flecha {
+  display: none;
 }
 
-.panel-contextual__item:hover {
-  background: var(--marco-elevado);
+.menu-lateral--recogido .menu-lateral__seccion,
+.menu-lateral--recogido .menu-lateral__alternar {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 0;
 }
 
-.panel-contextual__item:has(.panel-contextual__enlace[aria-current='page']) {
+.menu-lateral--recogido .menu-lateral__grupo--abierto > .menu-lateral__seccion {
   background: var(--marco-seleccion);
 }
 
-.panel-contextual__enlace {
-  display: contents;
-  font-weight: 600;
-  color: var(--marco-texto);
-  text-decoration: none;
-}
-
-.panel-contextual__enlace svg {
-  grid-row: 1 / span 2;
-  margin-top: 0.125rem;
-  color: var(--marco-texto-suave);
-}
-
-.panel-contextual__enlace[aria-current='page'] {
-  color: var(--color-marca);
-}
-
-.panel-contextual__enlace[aria-current='page'] svg {
-  color: var(--color-marca);
-}
-
-/* El enlace cubre toda la fila, también la ayuda. */
-.panel-contextual__enlace::after {
+.menu-lateral--recogido .menu-lateral__grupo--abierto > .menu-lateral__seccion::before {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--color-marca);
 }
 
-.panel-contextual__ayuda {
-  grid-column: 2;
-  margin-top: 0.125rem;
-  font-size: 0.6875rem;
-  line-height: 1.35;
-  color: var(--marco-texto-suave);
-  pointer-events: none;
-}
-
-/* Sobre el marco negro, el foco se ve en lima. */
-.columna :focus-visible,
-.panel-contextual :focus-visible,
+/* Sobre el marco negro, el foco se ve en lima y por dentro, para no quedar cortado por el borde. */
+.menu-lateral :focus-visible,
 .navbar :focus-visible {
   outline-color: var(--color-marca);
+}
+
+.menu-lateral :focus-visible {
+  outline-offset: -2px;
 }
 
 .estructura__derecha {
@@ -594,7 +621,7 @@ summary {
   line-height: 1.25;
 }
 
-.estructura__contenido a:where(:not(.pestanas__enlace, .boton)) {
+.estructura__contenido a:where(:not(.boton)) {
   color: var(--color-acento);
 }
 
@@ -817,41 +844,6 @@ kbd {
 
 .texto-suave {
   color: var(--color-texto-suave);
-}
-
-.pestanas ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pestanas {
-  margin: 1rem 0 1.5rem;
-  border-bottom: 1px solid var(--color-borde);
-}
-
-.pestanas ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.pestanas__enlace {
-  display: block;
-  padding: 0.4rem 0.875rem;
-  color: var(--color-texto-suave);
-  text-decoration: none;
-  border-bottom: 3px solid transparent;
-}
-
-.pestanas__enlace:hover {
-  color: var(--color-texto);
-}
-
-.pestanas__enlace[aria-current='page'] {
-  font-weight: 700;
-  color: var(--color-acento);
-  border-bottom-color: var(--color-acento);
 }
 
 .saltar-al-contenido {
