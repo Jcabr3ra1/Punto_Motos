@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { X } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { isApiError } from '../../api/client'
 import { claves } from '../../api/consultas'
@@ -12,14 +13,13 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { BuscadorDeProductos, type OpcionAdicional } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
-import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
-import { Titulo } from '../../components/Titulo'
-import { DESTINOS } from '../../navegacion/destinos'
+import { hayVentanaAbierta } from '../../components/useFocoAtrapado'
+import { useAtajo } from '../../hooks/useAtajo'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos } from '../../utilidades/dinero'
 import { useConteoInicial } from '../inventario/useConteoInicial'
-import { Recibo } from './Recibo'
 import { SelectorDeCliente, type ClienteElegido } from './SelectorDeCliente'
+import { VentanaDeVenta } from './VentanaDeVenta'
 
 /**
  * Cómo paga el cliente. El backend solo distingue efectivo y transferencia: la transferencia bancaria y Nequi
@@ -34,6 +34,11 @@ const MEDIOS: readonly { valor: Medio; texto: string }[] = [
   { valor: 'nequi', texto: 'Nequi' },
   { valor: 'mixto', texto: 'Mixto' },
 ]
+
+/** Servicios del taller con botón propio junto al buscador; el resto se elige en la lista. */
+const SERVICIOS_A_LA_VISTA = 6
+/** Billetes rápidos para lo que entrega el cliente. */
+const BILLETES = [50_000, 100_000, 200_000] as const
 
 const NOMBRE_DEL_CANAL: Record<Canal, string> = { transferencia: 'transferencia bancaria', nequi: 'Nequi' }
 
@@ -227,24 +232,6 @@ export function Vender() {
     cobrar.mutate()
   }
 
-  if (vendida) {
-    return (
-      <>
-        <Titulo nivel={2}>Venta registrada</Titulo>
-        <p role="status" className="aviso aviso--exito">
-          Venta n.º {vendida.venta.number} registrada por {formatearPesos(vendida.venta.total)}.
-          {vendida.vuelto > 0 && ` Vuelto: ${formatearPesos(vendida.vuelto)}.`}
-        </p>
-        <Recibo venta={vendida.venta} vuelto={vendida.vuelto} />
-        <div className="acciones">
-          <button type="button" className="boton boton--auto" onClick={nuevaVenta} autoFocus>
-            Nueva venta
-          </button>
-        </div>
-      </>
-    )
-  }
-
   const bloqueada = cajaCerrada || conteoAbierto
   const faltaMecanico = servicios.some((s) => s.mecanico === '')
   const hayAlgo = lineas.length > 0 || servicios.length > 0
@@ -256,49 +243,113 @@ export function Vender() {
     !transferenciaDeMas &&
     !cobrar.isPending
 
+  // Ctrl+Enter cobra desde cualquier campo; F2 vuelve al buscador, como en una caja registradora.
+  useAtajo('enter', () => {
+    if (puedeCobrar) cobrar.mutate()
+  }, !vendida)
+  useEffect(() => {
+    if (vendida) return
+    const alTeclear = (evento: KeyboardEvent) => {
+      if (evento.key !== 'F2' || hayVentanaAbierta()) return
+      evento.preventDefault()
+      document.querySelector<HTMLInputElement>('.venta__buscador input')?.focus()
+    }
+    window.addEventListener('keydown', alTeclear)
+    return () => window.removeEventListener('keydown', alTeclear)
+  }, [vendida])
+
+  // Al cerrar la ventana de la venta registrada, el foco vuelve al buscador para atender al siguiente cliente.
+  const habiaVenta = useRef(false)
+  useEffect(() => {
+    if (habiaVenta.current && !vendida) document.querySelector<HTMLInputElement>('.venta__buscador input')?.focus()
+    habiaVenta.current = vendida !== null
+  }, [vendida])
+
+  const unidades = lineas.reduce((suma, l) => suma + l.cantidad, 0)
+  const resumen = [
+    unidades === 1 ? '1 unidad' : `${unidades} unidades`,
+    ...(servicios.length > 0 ? [servicios.length === 1 ? '1 servicio' : `${servicios.length} servicios`] : []),
+  ].join(' · ')
+
   return (
     <form onSubmit={alCobrar} noValidate className="venta">
-      <EncabezadoDePantalla
-        icono={DESTINOS.vender.icono}
-        titulo="Vender"
-        descripcion="Busca productos o servicios, elige cómo paga el cliente y cobra."
-      />
-      {cajaCerrada && (
-        <p role="status" className="aviso aviso--advertencia">
-          La caja está cerrada: no se puede vender.{' '}
-          {esDueno ? <Link to="/caja/actual">Abrir la caja</Link> : 'Pídele al dueño que la abra.'}
-        </p>
-      )}
-      {conteoAbierto && (
-        <p role="status" className="aviso aviso--advertencia">
-          El inventario inicial todavía no ha terminado: no se puede vender hasta que el dueño lo termine.
-        </p>
-      )}
-      <AvisoDeError
-        mensajes={[...(error?.generales ?? []), ...(error?.campos.items ?? []), ...(error?.campos.services ?? []), ...(error?.campos.payments ?? [])]}
-      />
-
-      <div className="venta__columnas">
-        <section aria-label="Productos de la venta" className="venta__carrito">
+      <div className="venta__trabajo">
+        {cajaCerrada && (
+          <p role="status" className="aviso aviso--advertencia">
+            La caja está cerrada: no se puede vender.{' '}
+            {esDueno ? <Link to="/caja/actual">Abrir la caja</Link> : 'Pídele al dueño que la abra.'}
+          </p>
+        )}
+        {conteoAbierto && (
+          <p role="status" className="aviso aviso--advertencia">
+            El inventario inicial todavía no ha terminado: no se puede vender hasta que el dueño lo termine.
+          </p>
+        )}
+        <AvisoDeError
+          mensajes={[...(error?.generales ?? []), ...(error?.campos.items ?? []), ...(error?.campos.services ?? []), ...(error?.campos.payments ?? [])]}
+        />
+        <div className="venta__buscador">
           <BuscadorDeProductos
             etiqueta="Buscar producto o servicio"
             onElegir={agregar}
             opcionesAdicionales={serviciosPorCodigo}
-            ayuda="Escribe 2 letras para buscar productos, o el código de un servicio (por ejemplo 101). Flechas y Enter para elegir; Esc borra."
+            ayuda="Escribe 2 letras para buscar productos, o el código de un servicio (por ejemplo 101). Flechas y Enter para elegir; Esc borra. F2 vuelve aquí."
           />
-          <div role="status" className="texto-suave">
-            {mensaje}
-          </div>
-          {!hayAlgo && <p className="texto-suave">Busca un producto o escribe el código de un servicio y pulsa Enter.</p>}
+        </div>
+        <div className="venta__servicios-rapidos" role="group" aria-label="Servicios rápidos">
+          {(tipos.data ?? []).slice(0, SERVICIOS_A_LA_VISTA).map((tipo) => (
+            <button
+              key={tipo.id}
+              type="button"
+              className="filtro"
+              aria-label={`Agregar ${tipo.code} · ${tipo.name}`}
+              onClick={() => agregarServicio(tipo)}
+            >
+              <span className="tabla__codigo">{tipo.code}</span>
+              {tipo.name}
+            </button>
+          ))}
+          <CampoSelector
+            etiqueta="Agregar servicio"
+            value=""
+            onChange={(e) => {
+              const tipo = tipos.data?.find((t) => String(t.id) === e.target.value)
+              if (tipo) agregarServicio(tipo)
+            }}
+            opciones={[
+              { valor: '', texto: tipos.isPending ? 'Cargando…' : 'Elige un servicio' },
+              ...(tipos.data ?? []).map((t) => ({ valor: String(t.id), texto: `${t.code} · ${t.name}` })),
+            ]}
+          />
+        </div>
+        <div role="status" className="venta__mensaje">
+          {mensaje}
+        </div>
+
+        <section aria-label="Productos de la venta" className="venta__carrito">
+          <p className="venta__carrito-titulo">
+            <span>Venta en curso</span>
+            {hayAlgo && <span>{resumen}</span>}
+          </p>
+          {!hayAlgo && (
+            <div className="venta__vacia">
+              <p>Busca un producto o escribe el código de un servicio y pulsa Enter.</p>
+              <p className="venta__vacia-atajos">
+                <kbd>Enter</kbd> agrega · <kbd>↑</kbd> <kbd>↓</kbd> eligen · <kbd>F2</kbd> buscar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> cobrar
+              </p>
+            </div>
+          )}
           {lineas.length > 0 && (
-            <div className="tabla-contenedor">
+            <div className="tabla-contenedor venta__lineas">
               <table className="tabla">
                 <caption className="solo-lectores">Productos de la venta</caption>
                 <thead>
                   <tr>
                     <th scope="col">Producto</th>
                     <th scope="col">Cantidad</th>
-                    <th scope="col">Precio</th>
+                    <th scope="col" className="tabla__numero">
+                      Precio
+                    </th>
                     <th scope="col" className="tabla__numero">
                       Subtotal
                     </th>
@@ -314,11 +365,14 @@ export function Vender() {
                       ...(error?.campos[`items.${indice}.quantity`] ?? []),
                       ...(error?.campos[`items.${indice}.unit_price`] ?? []),
                     ]
+                    const nombre = linea.producto.name
                     return (
                       <tr key={linea.producto.id}>
                         <th scope="row">
-                          {linea.producto.name}
-                          <span className="tabla__detalle tabla__codigo">{linea.producto.code}</span>
+                          <span className="venta__producto">{nombre}</span>
+                          <span className="tabla__detalle">
+                            <span className="tabla__codigo">{linea.producto.code}</span> quedan {linea.producto.stock}
+                          </span>
                           {errores.length > 0 && (
                             <ul className="campo__errores">
                               {errores.map((m) => (
@@ -328,29 +382,48 @@ export function Vender() {
                           )}
                         </th>
                         <td>
-                          <input
-                            type="number"
-                            className="celda-numero"
-                            aria-label={`Cantidad de ${linea.producto.name}`}
-                            min={1}
-                            max={linea.producto.stock}
-                            step={1}
-                            value={linea.cantidad}
-                            onChange={(e) =>
-                              cambiar(indice, {
-                                cantidad: Math.min(Math.max(1, Math.trunc(e.target.valueAsNumber) || 1), linea.producto.stock),
-                              })
-                            }
-                          />
-                          <span className="tabla__detalle">de {linea.producto.stock}</span>
+                          <span className="paso">
+                            <button
+                              type="button"
+                              className="paso__boton"
+                              aria-label={`Una unidad menos de ${nombre}`}
+                              disabled={linea.cantidad <= 1}
+                              onClick={() => cambiar(indice, { cantidad: linea.cantidad - 1 })}
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              className="paso__valor"
+                              aria-label={`Cantidad de ${nombre}`}
+                              min={1}
+                              max={linea.producto.stock}
+                              step={1}
+                              value={linea.cantidad}
+                              onChange={(e) =>
+                                cambiar(indice, {
+                                  cantidad: Math.min(Math.max(1, Math.trunc(e.target.valueAsNumber) || 1), linea.producto.stock),
+                                })
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="paso__boton"
+                              aria-label={`Una unidad más de ${nombre}`}
+                              disabled={linea.cantidad >= linea.producto.stock}
+                              onClick={() => cambiar(indice, { cantidad: linea.cantidad + 1 })}
+                            >
+                              +
+                            </button>
+                          </span>
                         </td>
-                        <td>
+                        <td className="tabla__numero">
                           {esDueno ? (
                             <>
                               <input
                                 type="number"
                                 className="celda-numero celda-numero--ancha"
-                                aria-label={`Precio de ${linea.producto.name}`}
+                                aria-label={`Precio de ${nombre}`}
                                 min={0}
                                 step={1}
                                 value={linea.precio}
@@ -364,15 +437,16 @@ export function Vender() {
                             formatearPesos(linea.precio)
                           )}
                         </td>
-                        <td className="tabla__numero">{formatearPesos(linea.precio * linea.cantidad)}</td>
+                        <td className="tabla__numero venta__subtotal">{formatearPesos(linea.precio * linea.cantidad)}</td>
                         <td className="tabla__acciones">
                           <button
                             type="button"
-                            className="boton-enlace"
-                            aria-label={`Quitar ${linea.producto.name}`}
+                            className="venta__quitar"
+                            aria-label={`Quitar ${nombre}`}
+                            title="Quitar"
                             onClick={() => setLineas((actuales) => actuales.filter((_, i) => i !== indice))}
                           >
-                            Quitar
+                            <X aria-hidden="true" size={16} />
                           </button>
                         </td>
                       </tr>
@@ -383,24 +457,9 @@ export function Vender() {
             </div>
           )}
 
-          <section aria-label="Servicios del taller" className="venta__servicios">
-            <div className="barra-de-acciones">
-              <h3>Servicios del taller</h3>
-              <CampoSelector
-                etiqueta="Agregar servicio"
-                value=""
-                onChange={(e) => {
-                  const tipo = tipos.data?.find((t) => String(t.id) === e.target.value)
-                  if (tipo) agregarServicio(tipo)
-                }}
-                opciones={[
-                  { valor: '', texto: tipos.isPending ? 'Cargando…' : 'Elige un servicio' },
-                  ...(tipos.data ?? []).map((t) => ({ valor: String(t.id), texto: `${t.code} · ${t.name}` })),
-                ]}
-              />
-            </div>
-            {servicios.length > 0 && (
-              <div className="tabla-contenedor">
+          {servicios.length > 0 && (
+            <section aria-label="Servicios del taller" className="venta__servicios">
+              <div className="tabla-contenedor venta__lineas">
                 <table className="tabla">
                   <caption className="solo-lectores">Servicios de la venta</caption>
                   <thead>
@@ -408,7 +467,9 @@ export function Vender() {
                       <th scope="col">Servicio</th>
                       <th scope="col">Mecánico</th>
                       <th scope="col">Qué se hizo</th>
-                      <th scope="col">Mano de obra</th>
+                      <th scope="col" className="tabla__numero">
+                        Mano de obra
+                      </th>
                       <th scope="col">
                         <span className="solo-lectores">Acciones</span>
                       </th>
@@ -421,10 +482,13 @@ export function Vender() {
                       )
                       const nombre = `${servicio.tipo.name} (${indice + 1})`
                       return (
-                        <tr key={servicio.clave}>
+                        <tr key={servicio.clave} className="venta__fila-servicio">
                           <th scope="row">
-                            {servicio.tipo.name}
-                            <span className="tabla__detalle tabla__codigo">{servicio.tipo.code}</span>
+                            <span className="venta__etiqueta-taller">Taller</span>
+                            <span className="venta__producto">{servicio.tipo.name}</span>
+                            <span className="tabla__detalle">
+                              <span className="tabla__codigo">{servicio.tipo.code}</span> mano de obra
+                            </span>
                             {errores.length > 0 && (
                               <ul className="campo__errores">
                                 {errores.map((m) => (
@@ -459,7 +523,7 @@ export function Vender() {
                               placeholder="Opcional"
                             />
                           </td>
-                          <td>
+                          <td className="tabla__numero venta__subtotal">
                             {esDueno ? (
                               <input
                                 type="number"
@@ -477,11 +541,12 @@ export function Vender() {
                           <td className="tabla__acciones">
                             <button
                               type="button"
-                              className="boton-enlace"
+                              className="venta__quitar"
                               aria-label={`Quitar ${nombre}`}
+                              title="Quitar"
                               onClick={() => setServicios((actuales) => actuales.filter((s) => s.clave !== servicio.clave))}
                             >
-                              Quitar
+                              <X aria-hidden="true" size={16} />
                             </button>
                           </td>
                         </tr>
@@ -490,40 +555,54 @@ export function Vender() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
+            </section>
+          )}
         </section>
+      </div>
 
-        <section aria-label="Cobro" className="venta__cobro">
-          <SelectorDeCliente valor={cliente} onCambiar={setCliente} errores={[...(error?.campos.customer ?? []), ...(error?.campos['new_customer.name'] ?? [])]} />
-          <dl className="venta__total" aria-label="Total de la venta">
-            <dt>Total</dt>
-            <dd>{formatearPesos(total)}</dd>
-          </dl>
-          <fieldset className="conjunto">
-            <legend>Medio de pago</legend>
-            <div className="selector-de-pago">
-              {MEDIOS.map((m) => (
-                <label key={m.valor} className="selector-de-pago__opcion">
-                  <input type="radio" name="medio-de-pago" checked={medio === m.valor} onChange={() => setMedio(m.valor)} />
-                  {m.texto}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          {medio === 'mixto' && (
-            <>
-              <fieldset className="conjunto">
-                <legend>La otra parte llega por</legend>
-                <div className="opciones-en-fila">
-                  {(['transferencia', 'nequi'] as const).map((c) => (
-                    <label key={c} className="opcion">
-                      <input type="radio" name="canal-mixto" checked={canal === c} onChange={() => setCanal(c)} />
-                      {c === 'nequi' ? 'Nequi' : 'Transferencia bancaria'}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+      <section aria-label="Cobro" className="venta__cobro">
+        <SelectorDeCliente valor={cliente} onCambiar={setCliente} errores={[...(error?.campos.customer ?? []), ...(error?.campos['new_customer.name'] ?? [])]} />
+        <dl className="venta__total" aria-label="Total de la venta">
+          <dt>Total a cobrar</dt>
+          <dd>{formatearPesos(total)}</dd>
+          {hayAlgo && <dd className="venta__total-detalle">{resumen}</dd>}
+        </dl>
+        <fieldset className="conjunto">
+          <legend>Medio de pago</legend>
+          <div className="selector-de-pago">
+            {MEDIOS.map((m) => (
+              <label key={m.valor} className="selector-de-pago__opcion">
+                <input type="radio" name="medio-de-pago" checked={medio === m.valor} onChange={() => setMedio(m.valor)} />
+                {m.texto}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {medio === 'mixto' && (
+          <>
+            <fieldset className="conjunto">
+              <legend>La otra parte llega por</legend>
+              <div className="opciones-en-fila">
+                {(['transferencia', 'nequi'] as const).map((c) => (
+                  <label key={c} className="opcion">
+                    <input type="radio" name="canal-mixto" checked={canal === c} onChange={() => setCanal(c)} />
+                    {c === 'nequi' ? 'Nequi' : 'Transferencia bancaria'}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {/* Las dos partes a la vista: al escribir una, la otra se completa con lo que falta del total. */}
+            <div className="venta__partes">
+              <Campo
+                etiqueta="En efectivo"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                // Siempre la cifra real: sin repartir todavía, todo va en efectivo.
+                value={String(enEfectivo)}
+                onChange={(e) => setTransferencia(String(Math.max(0, total - (Number(e.target.value) || 0))))}
+              />
               <Campo
                 etiqueta={canal === 'nequi' ? 'Valor por Nequi' : 'Valor por transferencia'}
                 type="number"
@@ -533,21 +612,22 @@ export function Vender() {
                 value={transferencia}
                 onChange={(e) => setTransferencia(e.target.value)}
                 errores={transferenciaDeMas ? ['No puede ser mayor que el total.'] : undefined}
-                ayuda="El resto se cobra en efectivo."
               />
-            </>
-          )}
-          {(medio === 'transferencia' || medio === 'nequi') && (
-            <p className="venta__efectivo">
-              Cobrar <strong>{formatearPesos(total)}</strong> por {NOMBRE_DEL_CANAL[medio]}.
-            </p>
-          )}
-          {(medio === 'efectivo' || medio === 'mixto') && (
-            <p className="venta__efectivo">
-              Efectivo a cobrar: <strong>{formatearPesos(enEfectivo)}</strong>
-            </p>
-          )}
-          {enEfectivo > 0 && (
+            </div>
+          </>
+        )}
+        {(medio === 'transferencia' || medio === 'nequi') && (
+          <p className="venta__efectivo">
+            Cobrar <strong>{formatearPesos(total)}</strong> por {NOMBRE_DEL_CANAL[medio]}.
+          </p>
+        )}
+        {(medio === 'efectivo' || medio === 'mixto') && (
+          <p className="venta__efectivo">
+            Efectivo a cobrar: <strong>{formatearPesos(enEfectivo)}</strong>
+          </p>
+        )}
+        {enEfectivo > 0 && (
+          <>
             <Campo
               etiqueta="Efectivo que entrega el cliente"
               type="number"
@@ -559,20 +639,36 @@ export function Vender() {
               errores={faltaEfectivo > 0 ? [`Faltan ${formatearPesos(faltaEfectivo)}.`] : undefined}
               ayuda="Para calcular el vuelto. Vacío: entrega lo justo."
             />
+            <div className="venta__billetes" role="group" aria-label="Billetes rápidos">
+              <button type="button" onClick={() => setEfectivoRecibido(String(enEfectivo))}>
+                Exacto
+              </button>
+              {BILLETES.map((billete) => (
+                <button key={billete} type="button" onClick={() => setEfectivoRecibido(String(billete))}>
+                  {formatearPesos(billete)}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {vuelto > 0 && (
+          <p role="status" className="venta__vuelto">
+            Vuelto: <strong>{formatearPesos(vuelto)}</strong>
+          </p>
+        )}
+        <Campo etiqueta="Notas" value={notas} onChange={(e) => setNotas(e.target.value)} maxLength={150} autoComplete="off" />
+        <button type="submit" className="boton venta__cobrar" disabled={!puedeCobrar} aria-keyshortcuts="Control+Enter">
+          {cobrar.isPending ? 'Cobrando…' : `Cobrar ${formatearPesos(total)}`}
+          {!cobrar.isPending && (
+            <kbd className="atajo-visible" aria-hidden="true">
+              Ctrl+Enter
+            </kbd>
           )}
-          {vuelto > 0 && (
-            <p role="status" className="venta__vuelto">
-              Vuelto: <strong>{formatearPesos(vuelto)}</strong>
-            </p>
-          )}
-          <Campo etiqueta="Notas" value={notas} onChange={(e) => setNotas(e.target.value)} maxLength={150} autoComplete="off" />
-          <button type="submit" className="boton venta__cobrar" disabled={!puedeCobrar}>
-            {cobrar.isPending ? 'Cobrando…' : `Cobrar ${formatearPesos(total)}`}
-          </button>
-          {!bloqueada && faltaMecanico && <p className="campo__ayuda">Elige el mecánico de cada servicio para cobrar.</p>}
-          <p className="campo__ayuda">El total es orientativo: el programa confirma los precios al cobrar.</p>
-        </section>
-      </div>
+        </button>
+        {!bloqueada && faltaMecanico && <p className="campo__ayuda">Elige el mecánico de cada servicio para cobrar.</p>}
+        <p className="campo__ayuda">El total es orientativo: el programa confirma los precios al cobrar.</p>
+      </section>
+      {vendida && <VentanaDeVenta venta={vendida.venta} vuelto={vendida.vuelto} onNuevaVenta={nuevaVenta} />}
     </form>
   )
 }

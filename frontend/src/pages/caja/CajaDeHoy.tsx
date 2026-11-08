@@ -241,7 +241,7 @@ function RegistrarSalida({ onTerminar, onCancelar }: { onTerminar: (aviso: strin
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending}>
           {guardar.isPending ? 'Guardando…' : 'Registrar'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>
@@ -322,7 +322,7 @@ function CerrarCaja({
         <button type="submit" className="boton boton--auto" disabled={cerrar.isPending || contado === ''}>
           {cerrar.isPending ? 'Cerrando…' : 'Cerrar caja'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Volver
         </button>
       </div>

@@ -338,6 +338,7 @@ export function FormularioDeDevolucion({ venta, esDueno, onRegistrada, onCancela
           type="button"
           className="boton boton--secundario boton--auto"
           disabled={devolver.isPending}
+          data-cancelar
           onClick={onCancelar}
         >
           Volver

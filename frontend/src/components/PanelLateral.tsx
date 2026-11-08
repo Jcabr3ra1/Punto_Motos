@@ -10,8 +10,9 @@ interface Props {
   /** Módulo desde donde se abrió, en la cabecera: «Productos», «Caja». */
   modulo: string
   descripcion?: string
-  /** «ancho» para formularios con varias líneas, como una devolución. */
-  ancho?: 'normal' | 'ancho'
+  /** «ancho» para formularios con varias líneas, como una devolución; «amplio» para tablas de productos con
+   * cantidad y costo, como una compra, una entrega o un reporte. */
+  ancho?: 'normal' | 'ancho' | 'amplio'
   onCerrar: () => void
   children: ReactNode
 }
@@ -98,6 +99,13 @@ export function PanelLateral({ titulo, modulo, descripcion, ancho = 'normal', on
             if (enviando && boton && boton.type !== 'submit') {
               evento.preventDefault()
               evento.stopPropagation()
+              return
+            }
+            // «Cancelar» de un formulario cierra igual que Esc: si hay algo escrito, pregunta antes de descartarlo.
+            if (boton?.hasAttribute('data-cancelar')) {
+              evento.preventDefault()
+              evento.stopPropagation()
+              intentarCerrar()
             }
           }}
         >

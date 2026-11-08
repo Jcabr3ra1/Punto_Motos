@@ -478,7 +478,7 @@ summary {
   flex-shrink: 0;
   align-items: center;
   gap: 12px;
-  height: 56px;
+  height: 64px;
   padding: 0 16px;
   border-bottom: 1px solid var(--marco-separador);
 }
@@ -486,8 +486,8 @@ summary {
 .menu-lateral__logo {
   display: block;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
 }
 
@@ -788,8 +788,9 @@ summary {
   gap: var(--esp-5);
   align-items: center;
   justify-content: space-between;
-  min-height: 3.25rem;
-  padding: 0 var(--esp-4) 0 var(--esp-5);
+  /* 64px: la misma altura del encabezado del menú lateral, así la línea lima continúa. */
+  min-height: 64px;
+  padding: 0 var(--esp-5) 0 var(--esp-6);
   color: var(--marco-texto);
   background: var(--marco);
   /* Una línea lima muy fina une la barra con la marca sin cargarla. */
@@ -798,128 +799,45 @@ summary {
 
 .navbar__ubicacion {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  overflow: hidden;
 }
 
 .navbar__migas {
   display: flex;
+  min-width: 0;
+  overflow: hidden;
   gap: var(--esp-1);
   align-items: center;
-  font-size: 1.05rem;
+  font-size: 18px;
+  line-height: 24px;
   color: var(--color-plata);
   white-space: nowrap;
 }
 
 .navbar__seccion {
+  flex-shrink: 0;
   font-weight: 700;
   color: #ffffff;
 }
 
 .navbar__separador {
+  flex-shrink: 0;
   color: var(--color-marca);
 }
 
-.navbar__lado {
-  display: flex;
-  gap: var(--esp-4);
-  align-items: center;
-}
-
-.navbar__caja {
-  display: inline-flex;
-  gap: var(--esp-2);
-  align-items: center;
-  margin: 0;
-  padding: var(--esp-1) var(--esp-3);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  white-space: nowrap;
-  text-decoration: none;
-  border: 1px solid #3a3b3e;
-  border-radius: 999px;
-}
-
-.navbar__caja::before {
-  content: '';
-  width: 0.5rem;
-  height: 0.5rem;
-  background: currentColor;
-  border-radius: 50%;
-}
-
-.navbar__caja--abierta {
-  color: #7ee787;
-}
-
-.navbar__caja--cerrada {
-  color: #ffb74d;
-  border-color: #6b4a1e;
+/* La pantalla actual se corta con puntos suspensivos antes de quedar debajo del buscador. */
+.navbar__migas > span:last-child:not(.navbar__seccion) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 a.navbar__caja:hover {
   background: #1b1c1e;
-}
-
-.navbar__reloj {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  color: var(--color-plata);
-}
-
-.navbar__reloj strong {
-  font-size: 0.9375rem;
-  font-variant-numeric: tabular-nums;
-  /* La hora en lima, como la aguja de un tablero. */
-  color: var(--color-marca);
-}
-
-.navbar__salir {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  color: var(--marco-texto-suave);
-  background: transparent;
-  border: 1px solid #3a3b3e;
-  border-radius: var(--radio);
-}
-
-.navbar__salir:hover:not(:disabled) {
-  color: var(--color-sobre-marca);
-  background: var(--color-marca);
-  border-color: var(--color-marca);
-}
-
-.navbar__buscar {
-  display: inline-flex;
-  gap: var(--esp-2);
-  align-items: center;
-  width: 14rem;
-  height: 2rem;
-  padding: 0 var(--esp-1) 0 var(--esp-2);
-  font: inherit;
-  font-size: 0.8125rem;
-  color: var(--marco-texto-suave);
-  text-align: left;
-  background: var(--marco-elevado);
-  border: 1px solid #2c2c2d;
-  border-radius: var(--radio);
-}
-
-.navbar__buscar span {
-  flex: 1;
-}
-
-.navbar__buscar:hover {
-  color: var(--marco-texto);
-  border-color: #3a3b3e;
 }
 
 kbd {
@@ -933,28 +851,9 @@ kbd {
   opacity: 0.85;
 }
 
-/* Ventana angosta: la barra conserva lo esencial. */
-@media (max-width: 1150px) {
-  .navbar__buscar {
-    width: auto;
-  }
-
-  .navbar__buscar span {
-    display: none;
-  }
-
-  .navbar__datos {
-    display: none;
-  }
-
-  .navbar__usuario {
-    padding-left: var(--esp-4);
-  }
-}
-
 .navbar__negocio {
   margin: 0;
-  font-size: 0.6875rem;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -962,42 +861,6 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.navbar__usuario {
-  display: flex;
-  gap: var(--esp-2);
-  align-items: center;
-  padding-left: var(--esp-4);
-  border-left: 1px solid #2b2c2e;
-}
-
-.navbar__iniciales {
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-sobre-marca);
-  background: var(--color-marca);
-  border-radius: 50%;
-}
-
-.navbar__datos {
-  line-height: 1.2;
-}
-
-.navbar__nombre {
-  margin: 0;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.navbar__rol {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-plata);
 }
 
 .texto-suave {
@@ -1632,42 +1495,383 @@ kbd {
   margin-top: var(--esp-4);
 }
 
-/* Venta de mostrador */
-
-.venta__columnas {
+/* Venta de mostrador: un punto de venta. A la izquierda el trabajo (buscar y armar la venta); a la derecha, en
+   negro, la caja registradora con el total, el pago, el vuelto y el botón de cobrar. Ocupa toda el área de
+   trabajo: ventana menos barra superior (64px), barra de estado (24px) y márgenes (32px). */
+.venta {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 336px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--esp-4);
+  height: calc(100vh - 120px);
+  min-height: 420px;
+}
+
+.venta__trabajo {
+  display: flex;
+  flex-direction: column;
   gap: var(--esp-3);
-  align-items: start;
-}
-
-/* El carrito y el cobro, dos recuadros que empiezan a la misma altura. */
-.venta__carrito {
   min-width: 0;
-  padding: var(--esp-4);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-top: 3px solid var(--color-borde);
+  min-height: 0;
 }
 
-/* El cobro como un recibo: filete lima arriba y el total en un instrumento negro. */
-.venta__cobro {
-  position: sticky;
-  top: 0;
-  padding: var(--esp-4);
+.venta__trabajo > .aviso {
+  margin: 0;
+}
+
+/* Buscador grande, siempre listo, de todo el ancho. Sus resultados flotan sobre la venta en vez de empujarla. */
+.venta__buscador .buscador {
+  max-width: none;
+  margin: 0;
+}
+
+.venta__buscador .buscador__lista {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  max-height: 360px;
+  overflow-y: auto;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.18);
+}
+
+.venta__buscador .buscador__estado:empty {
+  display: none;
+}
+
+.venta__buscador .buscador > .campo__ayuda {
+  margin: var(--esp-1) 0 0;
+}
+
+.venta__buscador label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+.venta__buscador input {
+  min-height: 52px;
+  padding: 0 var(--esp-4);
+  font-size: 17px;
+  border: 2px solid var(--color-acento);
+  box-shadow: 0 0 0 3px var(--color-acento-fondo);
+}
+
+.venta__servicios-rapidos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.venta__servicios-rapidos .filtro {
+  height: 32px;
+  border-radius: 16px;
+}
+
+.venta__servicios-rapidos .campo {
+  width: 220px;
+  margin: 0;
+}
+
+/* El rótulo «Agregar servicio» queda para lectores de pantalla: la lista ya dice «Elige un servicio». */
+.venta__servicios-rapidos .campo label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.venta__servicios-rapidos select {
+  height: 32px;
+  min-height: 32px;
+}
+
+.venta__mensaje:empty {
+  display: none;
+}
+
+.venta__mensaje {
+  font-size: 12.5px;
+  color: var(--color-alerta);
+}
+
+/* La venta en curso: un solo recuadro con productos y servicios, que se desplaza por dentro. */
+.venta__carrito {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
-  border-top: 3px solid var(--color-marca);
+}
+
+.venta__carrito-titulo {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--esp-2) var(--esp-4);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+  background: #f6f5f2;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.venta__carrito-titulo span:last-child {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.venta__lineas {
+  border: 0;
+  border-radius: 0;
+}
+
+/* Productos y servicios comparten el ancho de cada columna: así el subtotal y la mano de obra quedan alineados. */
+.venta__lineas .tabla {
+  --venta-col-2: 168px;
+  --venta-col-3: 128px;
+  --venta-col-4: 120px;
+  --venta-col-5: 48px;
+  table-layout: fixed;
+}
+
+.venta__lineas .tabla th:nth-child(2) {
+  width: var(--venta-col-2);
+}
+
+.venta__lineas .tabla th:nth-child(3) {
+  width: var(--venta-col-3);
+}
+
+.venta__lineas .tabla th:nth-child(4) {
+  width: var(--venta-col-4);
+}
+
+.venta__lineas .tabla th:nth-child(5) {
+  width: var(--venta-col-5);
+}
+
+.venta__lineas .celda-numero,
+.venta__lineas .celda-texto,
+.venta__lineas .celda-selector {
+  width: 100%;
+  min-width: 0;
+}
+
+.venta__lineas .venta__producto,
+.venta__lineas .tabla__detalle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dentro de la venta los encabezados no se fijan: el recuadro entero se desplaza. */
+.venta__lineas .tabla thead th {
+  position: static;
+}
+
+.venta__lineas .tabla td,
+.venta__lineas .tabla th {
+  padding-top: var(--esp-2);
+  padding-bottom: var(--esp-2);
+  vertical-align: middle;
+}
+
+.venta__lineas .tabla th:first-child,
+.venta__lineas .tabla td:first-child {
+  padding-left: var(--esp-4);
+}
+
+.venta__producto {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.venta__subtotal {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.venta__servicios {
+  border-top: 1px solid var(--color-borde);
+}
+
+.venta__fila-servicio > * {
+  background: #fafbf2;
+}
+
+.venta__etiqueta-taller {
+  display: inline-block;
+  margin-bottom: 2px;
+  padding: 0 var(--esp-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-marca);
+  background: var(--marco);
+  border-radius: 10px;
+}
+
+/* Cantidad con − y +: un clic por unidad. */
+.paso {
+  display: inline-grid;
+  grid-template-columns: 32px 48px 32px;
+  height: 32px;
+  overflow: hidden;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.paso__boton {
+  padding: 0;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: #3b3f45;
+  background: #f6f5f2;
+  border: 0;
+  cursor: default;
+}
+
+.paso__boton:hover:not(:disabled) {
+  background: var(--color-acento-fondo);
+}
+
+.paso__boton:disabled {
+  color: #b9b7af;
+}
+
+.paso__valor {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 650;
+  text-align: center;
+  border: 0;
+  border-inline: 1px solid var(--color-borde);
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+
+.paso__valor::-webkit-inner-spin-button,
+.paso__valor::-webkit-outer-spin-button {
+  appearance: none;
+}
+
+.venta__quitar {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  color: #8f8f8c;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio);
+  cursor: default;
+}
+
+.venta__quitar:hover {
+  color: var(--color-error);
+  background: var(--color-error-fondo);
+}
+
+.venta__vacia {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  padding: var(--esp-8) var(--esp-4);
+  text-align: center;
+  color: var(--texto-secundario);
+}
+
+.venta__vacia p {
+  margin: 0;
+}
+
+.venta__vacia-atajos {
+  font-size: 12px;
+}
+
+.venta__vacia kbd {
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 11px;
+  border: 1px solid var(--color-borde);
+  border-radius: 3px;
+  background: #f6f5f2;
+}
+
+/* La caja registradora: negra, con el total en lima y todo lo del cobro. */
+.venta__cobro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-height: 0;
+  padding: var(--esp-4);
+  overflow-y: auto;
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-left: 3px solid var(--color-marca);
+}
+
+.venta__cobro .campo {
+  margin: 0;
+}
+
+.venta__cobro .campo label,
+.venta__cobro legend {
+  margin-bottom: var(--esp-1);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.venta__cobro input:not([type='radio']),
+.venta__cobro select,
+.venta__cobro textarea {
+  color: #ffffff;
+  background: var(--marco-elevado);
+  border-color: #3a3b3e;
+}
+
+.venta__cobro input::placeholder {
+  color: #8f8f8c;
+}
+
+.venta__cobro .campo__ayuda {
+  color: var(--marco-texto-suave);
+}
+
+.venta__cobro .campo__errores {
+  color: #f4a39b;
+}
+
+.venta__cobro .conjunto {
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .venta__total {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin: var(--esp-3) calc(-1 * var(--esp-4)) var(--esp-4);
-  padding: var(--esp-3) var(--esp-4);
-  color: var(--marco-texto);
-  background: var(--marco);
+  margin: 0;
+  padding-bottom: var(--esp-3);
+  border-bottom: 1px solid var(--marco-separador);
 }
 
 .venta__total dt {
@@ -1680,25 +1884,159 @@ kbd {
 
 .venta__total dd {
   margin: 0;
-  font-size: 28px;
-  font-weight: 650;
-  line-height: 32px;
-  color: #ffffff;
+  overflow: hidden;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 52px;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-marca);
   font-variant-numeric: tabular-nums;
 }
 
-.venta__efectivo,
-.venta__vuelto {
-  margin: 0 0 var(--esp-3);
+.venta__total .venta__total-detalle {
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--marco-texto-suave);
+}
+
+.venta__efectivo {
+  margin: 0;
+  font-size: 13px;
+  color: var(--marco-texto-suave);
+}
+
+.venta__efectivo strong {
+  color: #ffffff;
+}
+
+.venta__cobro .campo input[type='number'] {
+  min-height: 44px;
+  font-size: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.venta__billetes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--esp-1);
+}
+
+.venta__billetes button {
+  height: 32px;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--marco-texto);
+  background: var(--marco-elevado);
+  border: 1px solid #3a3b3e;
+  border-radius: var(--radio);
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.venta__billetes button:hover {
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+  border-color: var(--color-marca);
 }
 
 .venta__vuelto {
-  font-size: 1.15rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--esp-2) var(--esp-3);
+  color: var(--marco-texto);
+  background: #14210f;
+  border: 1px solid #2c4a1e;
+  border-radius: var(--radio);
+}
+
+.venta__vuelto strong {
+  font-size: 22px;
+  color: #7ee787;
+  font-variant-numeric: tabular-nums;
 }
 
 .venta__cobrar {
-  min-height: 2.75rem;
-  font-size: 1.05rem;
+  /* Siempre a la vista: si la caja registradora se desplaza en una ventana baja, el botón queda fijo al pie. */
+  position: sticky;
+  /* Pegado al borde real (sin el relleno de la caja) y con el negro del fondo arriba y abajo para tapar lo que pasa. */
+  bottom: calc(-1 * var(--esp-4));
+  flex-shrink: 0;
+  gap: var(--esp-3);
+  min-height: 56px;
+  margin-top: auto;
+  box-shadow:
+    0 -8px 0 var(--marco),
+    0 16px 0 var(--marco);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Las listas de sugerencias (cliente) flotan sobre la caja negra con su propio fondo claro y texto oscuro. */
+.venta__cobro .buscador__lista {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  margin-top: var(--esp-1);
+  color: var(--color-texto);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
+}
+
+.venta__cobro .buscador {
+  position: relative;
+  max-width: none;
+  margin: 0;
+}
+
+.campo__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.campo__opcional {
+  font-size: 11.5px;
+  color: var(--texto-secundario);
+}
+
+.venta__cobro .campo__opcional {
+  color: var(--marco-texto-suave);
+}
+
+/* Pago mixto: las dos partes lado a lado, con los campos alineados aunque un rótulo ocupe dos líneas. */
+.venta__partes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--esp-2);
+}
+
+.venta__cobro .venta__partes .campo input[type='number'] {
+  min-height: 40px;
+  font-size: 17px;
+}
+
+/* Deshabilitado sigue siendo opaco: al quedar fijo al pie no debe dejar ver lo que pasa por detrás. */
+.venta__cobrar:disabled {
+  color: #a6a6a3;
+  background: #2a2d14;
+  border-color: #2a2d14;
+  opacity: 1;
+}
+
+.venta__cobro .atajo-visible {
+  font-size: 11px;
 }
 
 .buscador__entrada--compacta {
@@ -1759,23 +2097,24 @@ kbd {
   grid-template-columns: 9rem 1fr auto;
 }
 
-/* Medio de pago: opciones grandes, fáciles de ver y de elegir en el mostrador. */
+/* Medio de pago: cuatro botones grandes en la caja registradora; el elegido en lima. */
 .selector-de-pago {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--esp-2);
-  margin-top: var(--esp-1);
 }
 
 .selector-de-pago__opcion {
   display: flex;
   gap: var(--esp-2);
   align-items: center;
-  min-height: 2.5rem;
-  padding: var(--esp-1) var(--esp-2);
+  min-height: 44px;
+  padding: var(--esp-1) var(--esp-3);
   font-weight: 600;
-  background: var(--color-superficie);
-  border: 1px solid var(--color-texto-suave);
+  line-height: 1.15;
+  color: var(--marco-texto);
+  background: var(--marco-elevado);
+  border: 1px solid #3a3b3e;
   border-radius: var(--radio);
   -webkit-user-select: none;
   user-select: none;
@@ -1784,27 +2123,17 @@ kbd {
 .selector-de-pago__opcion:has(input:checked) {
   color: var(--color-sobre-marca);
   background: var(--color-marca);
-  border-color: var(--color-sobre-marca);
+  border-color: var(--color-marca);
 }
 
 .selector-de-pago__opcion input {
   accent-color: var(--color-sobre-marca);
 }
 
-/* Servicios del taller en la venta */
-
-.venta__servicios {
-  margin-top: var(--esp-4);
-}
-
-.venta__servicios h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.venta__servicios .barra-de-acciones .campo {
-  min-width: 16rem;
-  margin-bottom: 0;
+.venta__cobro .opciones-en-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
 }
 
 .celda-selector,
@@ -2491,6 +2820,11 @@ kbd {
   width: 36rem;
 }
 
+/* Formularios con tabla de productos: más espacio, sin tapar todo el menú en ventanas angostas. */
+.panel-lateral--amplio {
+  width: min(720px, calc(100vw - 80px));
+}
+
 /* Filete lima: el mismo lenguaje del marco. */
 .panel-lateral::before {
   content: '';
@@ -2989,8 +3323,8 @@ kbd {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* Cabe en el área de trabajo (ventana menos barra superior, barra de estado y márgenes); el cuerpo se desplaza. */
-  max-height: calc(100vh - 104px);
+  /* Cabe en el área de trabajo (ventana menos barra superior de 64px, barra de estado y márgenes). */
+  max-height: calc(100vh - 122px);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-top: 3px solid var(--color-marca);
@@ -3321,4 +3655,287 @@ kbd {
 
 .tarjeta-de-formulario .formulario {
   max-width: none;
+}
+
+/* Área angosta: la caja registradora se estrecha y las columnas de la venta también, sin perder ninguna. */
+@container area (max-width: 959px) {
+  .venta {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: var(--esp-3);
+  }
+
+  .venta__lineas .tabla {
+    --venta-col-2: 108px;
+    --venta-col-3: 88px;
+    --venta-col-4: 96px;
+    --venta-col-5: 32px;
+  }
+
+  .paso {
+    grid-template-columns: 28px 40px 28px;
+  }
+
+  .venta__lineas .tabla th,
+  .venta__lineas .tabla td {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .venta__lineas .tabla thead th {
+    white-space: nowrap;
+  }
+
+  .venta__lineas .celda-numero,
+  .venta__lineas .celda-texto,
+  .venta__lineas .celda-selector {
+    padding-right: 4px;
+    padding-left: 6px;
+  }
+
+  .venta__lineas .tabla th:first-child,
+  .venta__lineas .tabla td:first-child {
+    padding-left: var(--esp-3);
+  }
+
+  .venta__total dd {
+    font-size: 36px;
+    line-height: 44px;
+  }
+
+  .venta__billetes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Venta registrada: ventana centrada sobre Vender, con el vuelto grande y el recibo. */
+.ventana-de-venta {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+}
+
+.ventana-de-venta__cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-4) var(--esp-5) var(--esp-3);
+}
+
+.ventana-de-venta__icono {
+  flex-shrink: 0;
+  color: var(--color-exito);
+}
+
+.ventana-de-venta__resumen {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-secundario);
+}
+
+.ventana-de-venta__vuelto {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 var(--esp-5) var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-left: 3px solid var(--color-marca);
+}
+
+.ventana-de-venta__vuelto span {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.ventana-de-venta__vuelto strong {
+  font-size: 32px;
+  line-height: 40px;
+  color: var(--color-marca);
+  font-variant-numeric: tabular-nums;
+}
+
+.ventana-de-venta__recibo {
+  min-height: 0;
+  padding: 0 var(--esp-5);
+  overflow-y: auto;
+}
+
+.ventana-de-venta .dialogo__acciones {
+  padding: var(--esp-4) var(--esp-5);
+}
+
+.ventana-de-venta__recibo .recibo {
+  max-width: none;
+  margin: 0;
+}
+
+/* Cliente elegido o nuevo, dentro de la caja negra. */
+.venta__cobro .filtro-de-producto__etiqueta {
+  margin-bottom: var(--esp-1);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.venta__cobro .filtro-de-producto {
+  min-height: 44px;
+  color: #ffffff;
+  background: var(--marco-elevado);
+  border-color: #3a3b3e;
+}
+
+.venta__cobro .filtro-de-producto .tabla__detalle {
+  color: var(--marco-texto-suave);
+}
+
+.venta__cobro .boton-enlace {
+  color: var(--color-marca);
+}
+
+.venta__cobro .conjunto legend {
+  margin-bottom: var(--esp-2);
+}
+
+/* Barra superior: a la derecha, cada dato con la misma forma (rótulo pequeño arriba, valor abajo), separados por
+   líneas finas. Sin recuadros ni píldoras: el orden lo dan la alineación y los separadores. */
+.navbar__lado {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--esp-5);
+}
+
+.navbar__divisor {
+  width: 1px;
+  height: 32px;
+  background: #2b2c2e;
+}
+
+.navbar__dato {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.navbar__dato p {
+  margin: 0;
+}
+
+.navbar__rotulo {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.navbar__valor {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.navbar__valor--hora {
+  font-size: 17px;
+  color: var(--color-marca);
+}
+
+.navbar__caja--abierta .navbar__valor {
+  color: #7ee787;
+}
+
+.navbar__caja--cerrada .navbar__valor {
+  color: #ffb74d;
+}
+
+/* Un punto de color antes del rótulo de la caja: verde abierta, naranja cerrada. */
+.navbar__caja .navbar__rotulo::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.navbar__caja--abierta .navbar__rotulo::before {
+  background: #7ee787;
+}
+
+.navbar__caja--cerrada .navbar__rotulo::before {
+  background: #ffb74d;
+}
+
+a.navbar__caja:hover .navbar__valor {
+  text-decoration: underline;
+}
+
+/* Botones sin borde: solo se marcan al pasar el ratón. */
+.navbar__buscar,
+.navbar__salir {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  height: 36px;
+  padding: 0 var(--esp-3);
+  font: inherit;
+  font-size: 14px;
+  color: var(--marco-texto);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio);
+  cursor: default;
+}
+
+.navbar__buscar:hover,
+.navbar__salir:hover:not(:disabled) {
+  background: var(--marco-elevado);
+}
+
+.navbar__buscar kbd {
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--marco-texto-suave);
+  border: 1px solid #3a3b3e;
+  border-radius: 3px;
+}
+
+.navbar__salir {
+  width: 36px;
+  justify-content: center;
+  padding: 0;
+  color: var(--marco-texto-suave);
+}
+
+.navbar__salir:hover:not(:disabled) {
+  color: var(--color-marca);
+}
+
+/* Ventana angosta: el buscador queda en su icono y se ocultan el usuario y su separador. */
+@media (max-width: 1150px) {
+  .navbar__buscar span,
+  .navbar__usuario,
+  .navbar__divisor--usuario {
+    display: none;
+  }
+
+  .navbar__lado {
+    gap: var(--esp-4);
+  }
 }

@@ -109,6 +109,12 @@ export function BuscadorDeProductos({
         moverMarca(-1)
         break
       case 'Enter':
+        // Ctrl+Enter es de quien contiene el buscador (cobrar, guardar con el panel): no agrega el resultado marcado
+        // ni deja que el navegador envíe por su cuenta el formulario de alrededor.
+        if (evento.ctrlKey || evento.metaKey) {
+          evento.preventDefault()
+          break
+        }
         if (!seleccionable) break
         evento.preventDefault()
         if (activo >= 0) elegirIndice(activo)

@@ -92,7 +92,7 @@ export function ConsumoDelTaller({ onTerminar, onCancelar }: { onTerminar: (avis
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending || insumos.data.results.length === 0}>
           {guardar.isPending ? 'Guardando…' : 'Registrar consumo'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>

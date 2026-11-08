@@ -80,6 +80,10 @@ describe('lista de compras', () => {
   })
 })
 
+/** El campo del formulario de compra nueva: con la lista detrás también existe el filtro «Proveedor». */
+const enElPanel = async (etiqueta: string) =>
+  within(await screen.findByRole('dialog', { name: 'Nueva compra' })).findByLabelText(etiqueta)
+
 describe('nueva compra', () => {
   it('agrega productos con el costo actual precargado y crea el borrador', async () => {
     const api = simular({
@@ -89,7 +93,7 @@ describe('nueva compra', () => {
     mostrarRutas(dueno, '/compras/lista/nueva')
     const u = userEvent.setup()
 
-    await u.selectOptions(await screen.findByLabelText('Proveedor'), 'Distribuidora Andina')
+    await u.selectOptions(await enElPanel('Proveedor'), 'Distribuidora Andina')
     await u.type(screen.getByLabelText('Factura o remisión'), 'FV-2001')
     await agregarProducto(u, 'pas', /FRE-PUL-PAS/)
     // Se pueden comprar productos agotados.
@@ -119,7 +123,7 @@ describe('nueva compra', () => {
     simular()
     mostrarRutas(dueno, '/compras/lista/nueva')
     const u = userEvent.setup()
-    await screen.findByLabelText('Proveedor')
+    await enElPanel('Proveedor')
 
     await agregarProducto(u, 'pas', /FRE-PUL-PAS/)
     await agregarProducto(u, 'pas', /FRE-PUL-PAS/)
@@ -140,7 +144,7 @@ describe('nueva compra', () => {
     mostrarRutas(dueno, '/compras/lista/nueva')
     const u = userEvent.setup()
 
-    await u.selectOptions(await screen.findByLabelText('Proveedor'), 'Distribuidora Andina')
+    await u.selectOptions(await enElPanel('Proveedor'), 'Distribuidora Andina')
     await u.type(screen.getByLabelText('Factura o remisión'), 'FV-1020')
     await agregarProducto(u, 'pas', /FRE-PUL-PAS/)
     await u.click(screen.getByRole('button', { name: 'Guardar borrador' }))

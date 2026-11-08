@@ -12,9 +12,9 @@ import { BuscadorDeProductos } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
+import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
-import { Titulo } from '../../components/Titulo'
 import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearNumero } from '../../utilidades/numeros'
@@ -41,21 +41,6 @@ export function Entregas() {
   const delMes = useConteo([...claves.consignacion, 'entregas', 'mes', inicioDelMes], (signal) =>
     listarEntregas({ date_from: inicioDelMes, page_size: 1 }, signal),
   )
-
-  if (nueva) {
-    return (
-      <>
-        <Titulo nivel={2}>Nueva entrega</Titulo>
-        <FormularioDeEntrega
-          onTerminar={(m) => {
-            setAviso(m)
-            setNueva(false)
-          }}
-          onCancelar={() => setNueva(false)}
-        />
-      </>
-    )
-  }
 
   return (
     <>
@@ -144,6 +129,23 @@ export function Entregas() {
             />
           </>
         ))}
+      {nueva && (
+        <PanelLateral
+          titulo="Nueva entrega"
+          modulo="Consignación"
+          descripcion="Mercancía que sale a un local: queda a su cargo hasta que la reporte vendida o devuelta."
+          ancho="amplio"
+          onCerrar={() => setNueva(false)}
+        >
+          <FormularioDeEntrega
+            onTerminar={(m) => {
+              setAviso(m)
+              setNueva(false)
+            }}
+            onCancelar={() => setNueva(false)}
+          />
+        </PanelLateral>
+      )}
     </>
   )
 }
@@ -311,7 +313,7 @@ function FormularioDeEntrega({ onTerminar, onCancelar }: { onTerminar: (aviso: s
         <button type="submit" className="boton boton--auto" disabled={guardar.isPending || lineas.length === 0}>
           {guardar.isPending ? 'Registrando…' : 'Registrar entrega'}
         </button>
-        <button type="button" className="boton boton--secundario boton--auto" onClick={onCancelar}>
+        <button type="button" className="boton boton--secundario boton--auto" data-cancelar onClick={onCancelar}>
           Cancelar
         </button>
       </div>
