@@ -65,6 +65,7 @@ describe('caja abierta', () => {
     const cifras = await screen.findByLabelText('Cifras de la caja')
     expect(cifras).toHaveTextContent(/Efectivo esperado en el cajón\$\s?75\.000/)
     expect(cifras).toHaveTextContent(/Transferencias\$\s?15\.000/)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Ver resumen por tipo' }))
     const resumen = screen.getByRole('table', { name: 'Resumen por tipo de movimiento' })
     expect(within(resumen).getByRole('row', { name: /Gasto/ })).toHaveTextContent(/-\$\s?3\.000/)
     expect(await screen.findByText('Venta 41 · Ana Gómez')).toBeInTheDocument()
@@ -78,14 +79,14 @@ describe('caja abierta', () => {
     expect(screen.getByLabelText('Cifras de la caja')).toBeInTheDocument()
     await u.keyboard('{Escape}')
 
-    await u.click(screen.getByRole('button', { name: 'Cerrar caja…' }))
+    await u.click(screen.getByRole('button', { name: 'Cerrar caja' }))
     expect(screen.getByRole('dialog', { name: 'Cerrar la caja' })).toBeInTheDocument()
   })
 
   it('al cerrar muestra el efectivo esperado contra el contado antes de confirmar', async () => {
     const { u } = abrir(() => ({ is_open: true, session: caja(), suggested_opening_cash: 0 }))
 
-    await u.click(await screen.findByRole('button', { name: 'Cerrar caja…' }))
+    await u.click(await screen.findByRole('button', { name: 'Cerrar caja' }))
     await u.type(screen.getByLabelText('Efectivo contado'), '74000')
 
     const vista = screen.getByText('Efectivo en el cajón').closest('.vista-previa')
@@ -136,14 +137,14 @@ describe('caja abierta', () => {
           : { cuerpo: caja({ is_open: false, counted_cash: 74000, difference: -1000, closing_notes: 'Faltó sencillo' }) },
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Cerrar caja…' }))
+    await u.click(await screen.findByRole('button', { name: 'Cerrar caja' }))
     await u.type(screen.getByLabelText('Efectivo contado'), '74000')
     expect(screen.getByText(/Faltan \$\s?1\.000: explica la diferencia\./)).toBeInTheDocument()
-    await u.click(screen.getByRole('button', { name: 'Cerrar caja' }))
+    await u.click(within(screen.getByRole('dialog', { name: 'Cerrar la caja' })).getByRole('button', { name: 'Cerrar caja' }))
     expect(await screen.findByText('Faltan $1.000 frente a lo esperado: explica la diferencia.')).toBeInTheDocument()
 
     await u.type(screen.getByLabelText('Explicación'), 'Faltó sencillo')
-    await u.click(screen.getByRole('button', { name: 'Cerrar caja' }))
+    await u.click(within(screen.getByRole('dialog', { name: 'Cerrar la caja' })).getByRole('button', { name: 'Cerrar caja' }))
 
     expect(await screen.findByText(/Caja cerrada\. Contado: \$\s?74\.000\. Faltaron \$\s?1\.000\./)).toBeInTheDocument()
     expect(api.llamadas.filter((l) => l.clave === 'POST /cash-sessions/3/close').at(-1)?.cuerpo).toEqual({ counted_cash: 74000, notes: 'Faltó sencillo' })

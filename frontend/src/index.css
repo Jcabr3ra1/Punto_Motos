@@ -3927,6 +3927,333 @@ a.navbar__caja:hover .navbar__valor {
   color: var(--color-marca);
 }
 
+/* Caja de hoy: el diario y el cajón comparten el alto disponible. Solo se desplazan las listas. */
+.estructura__contenido:has(.caja-hoy) {
+  padding: var(--esp-4);
+  overflow: hidden;
+}
+
+.estructura__contenido:has(.caja-hoy) > .seccion {
+  height: 100%;
+  min-height: 0;
+}
+
+.caja-hoy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.caja-hoy > .encabezado-pantalla,
+.caja-hoy .indicadores,
+.caja-hoy > .aviso {
+  margin: 0;
+}
+
+.caja-hoy > .encabezado-pantalla,
+.caja-hoy > section,
+.caja-hoy > .aviso {
+  flex-shrink: 0;
+}
+
+.caja-hoy__estado {
+  padding: var(--esp-1) var(--esp-2);
+  font-size: 12px;
+  color: var(--color-texto-suave);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.caja-hoy__estado--abierta {
+  color: var(--color-acento);
+  background: var(--color-acento-fondo);
+  border-color: #bcc878;
+}
+
+.caja-hoy .indicador {
+  padding: var(--esp-2) var(--esp-4);
+}
+
+.caja-hoy .indicador__valor {
+  font-size: 24px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* En Caja se leen las palabras completas: si falta ancho, el texto ocupa otra línea. */
+.caja-hoy .encabezado-pantalla__titulo,
+.caja-hoy .encabezado-pantalla__descripcion,
+.caja-hoy .indicador__rotulo {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.caja-hoy__cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--esp-3);
+  flex: 1;
+  min-height: 0;
+}
+
+.caja-hoy .movimientos-caja {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+}
+
+.caja-hoy .movimientos-caja__cabecera {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.caja-hoy .movimientos-caja__cabecera h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.caja-hoy .movimientos-caja__cabecera .texto-suave {
+  font-size: 12px;
+}
+
+.caja-hoy .movimientos-caja > .tabla-contenedor {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.caja-hoy .movimientos-caja .tabla {
+  table-layout: auto;
+  font-size: 13px;
+}
+
+.caja-hoy .movimientos-caja th:first-child { width: 104px; }
+.caja-hoy .movimientos-caja th:nth-child(2) { width: 144px; }
+.caja-hoy .movimientos-caja th:nth-child(4) { width: 112px; }
+.caja-hoy .movimientos-caja th:nth-child(5) { width: 128px; }
+.caja-hoy .movimientos-caja th:nth-child(6) { width: 88px; }
+
+.caja-hoy .movimientos-caja td {
+  height: 40px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.caja-hoy .movimientos-caja .tabla__numero { white-space: nowrap; }
+
+.caja-hoy .movimientos-caja thead th {
+  font-size: 11.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.movimientos-caja__hora { display: none; }
+.caja-hoy .movimientos-caja__hora { display: inline; }
+.caja-hoy .movimientos-caja__fecha { display: none; }
+
+.caja-hoy .movimientos-caja > .paginacion {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--esp-2) var(--esp-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+.caja-hoy .movimientos-caja > .estado-vacio {
+  flex: 1;
+  min-height: 0;
+}
+
+.caja-hoy .movimientos-caja > .aviso,
+.caja-hoy .movimientos-caja > .cargando {
+  margin: var(--esp-3) var(--esp-4);
+}
+
+.caja-hoy__cajon {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--esp-3) var(--esp-4);
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-left: 3px solid var(--color-marca);
+}
+
+.caja-hoy__balance {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  font-size: 13px;
+}
+
+.caja-hoy__balance > div:not(.caja-hoy__esperado) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--esp-2);
+}
+
+.caja-hoy__balance dd {
+  margin: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.caja-hoy__esperado {
+  padding-bottom: var(--esp-3);
+  border-bottom: 1px solid #3a3b3e;
+}
+
+.caja-hoy__esperado dt {
+  margin-bottom: var(--esp-2);
+  font-size: 11.5px;
+  line-height: 16px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #b1b1ad;
+}
+
+.caja-hoy__esperado dd {
+  font-size: 24px;
+  line-height: 28px;
+  color: var(--color-marca);
+  overflow-wrap: anywhere;
+}
+
+.caja-hoy__transferencias {
+  padding-top: var(--esp-3);
+  border-top: 1px solid #3a3b3e;
+}
+
+.caja-hoy__transferencias dt,
+.caja-hoy__cierre p {
+  color: #b1b1ad;
+  font-size: 12px;
+}
+
+.caja-hoy__cajon .boton--secundario {
+  color: var(--marco-texto);
+  background: var(--marco-elevado);
+  border-color: #4a4a48;
+}
+
+.caja-hoy__cajon .boton--secundario:hover:not(:disabled) {
+  background: #292a26;
+}
+
+.caja-hoy__cajon .boton { flex-shrink: 0; }
+
+.caja-hoy__cierre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  margin-top: auto;
+}
+
+.caja-hoy__cierre h3,
+.caja-hoy__cierre p {
+  margin: 0;
+  line-height: 16px;
+}
+
+.caja-hoy__cierre h3 {
+  font-size: 14px;
+  color: var(--marco-texto);
+}
+
+.caja-hoy__resumen {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.caja-hoy--con-resumen .caja-hoy__cajon { display: none; }
+
+.caja-hoy__resumen .ficha {
+  position: static;
+  height: 100%;
+  max-height: none;
+}
+
+.caja-hoy__resumen .ficha__cuerpo {
+  min-height: 0;
+  overflow: auto;
+}
+
+.caja-hoy__resumen .tabla { font-size: 12px; }
+
+.caja-hoy__apertura {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 480px);
+  align-items: start;
+  gap: var(--esp-3);
+  min-height: 0;
+  overflow: auto;
+}
+
+.caja-hoy__antes-de-abrir,
+.caja-hoy__apertura > .formulario {
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+}
+
+.caja-hoy__antes-de-abrir {
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-left: 3px solid var(--color-marca);
+}
+
+.caja-hoy__antes-de-abrir .estado-vacio { padding: var(--esp-4) 0; }
+.caja-hoy__antes-de-abrir .estado-vacio__icono { color: var(--color-marca); }
+.caja-hoy__antes-de-abrir p { font-size: 12px; color: #b1b1ad; }
+.caja-hoy__antes-de-abrir dd { margin: var(--esp-2) 0; text-align: right; font-size: 24px; font-variant-numeric: tabular-nums; color: var(--color-marca); }
+.caja-hoy__apertura > .formulario { background: var(--color-superficie); border: 1px solid var(--color-borde); }
+.caja-hoy__apertura .campo input { text-align: right; font-variant-numeric: tabular-nums; }
+
+@container area (max-width: 959px) {
+  .caja-hoy__cuerpo { grid-template-columns: minmax(0, 1fr) 264px; }
+  .caja-hoy .encabezado-pantalla { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .caja-hoy .encabezado-pantalla__acciones { grid-column: auto; }
+  .caja-hoy .movimientos-caja__secundaria { display: none; }
+  .caja-hoy .movimientos-caja__cabecera .texto-suave { display: none; }
+  .caja-hoy--con-resumen .caja-hoy__cajon { display: flex; }
+  .caja-hoy__resumen { display: contents; }
+  .caja-hoy__balance > div.caja-hoy__desglose,
+  .caja-hoy__balance > div.caja-hoy__transferencias { display: none; }
+  .caja-hoy__cajon { gap: var(--esp-2); }
+  .caja-hoy__esperado { padding-bottom: var(--esp-2); }
+  .caja-hoy__esperado dt { margin-bottom: var(--esp-1); }
+  .caja-hoy__cierre .caja-hoy__ayuda-cierre { display: none; }
+}
+
+/* En ventanas bajas, el desglose repetido en los indicadores deja espacio para contar y cerrar. */
+@media (max-height: 680px) {
+  .caja-hoy__balance > div.caja-hoy__desglose,
+  .caja-hoy__balance > div.caja-hoy__transferencias { display: none; }
+  .caja-hoy__cajon { gap: var(--esp-2); }
+  .caja-hoy__cierre .caja-hoy__ayuda-cierre { display: none; }
+}
+
 /* Ventana angosta: el buscador queda en su icono y se ocultan el usuario y su separador. */
 @media (max-width: 1150px) {
   .navbar__buscar span,
