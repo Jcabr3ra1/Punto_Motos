@@ -18,6 +18,7 @@ const urgencia = (producto: Product) => producto.stock / Math.max(producto.min_s
 export function useProductosPorReponer() {
   return useQuery({
     queryKey: [...claves.productos, 'por-reponer'],
+    staleTime: CADA_CINCO_MINUTOS,
     refetchInterval: CADA_CINCO_MINUTOS,
     queryFn: async ({ signal }): Promise<Product[]> => {
       const porReponer: Product[] = []

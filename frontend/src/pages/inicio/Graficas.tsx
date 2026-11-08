@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { VentasPorPeriodo } from '../../hooks/useVentasPorPeriodo'
+import type { DiaDeVentas, VentasPorPeriodo } from '../../hooks/useVentasPorPeriodo'
 import { formatearPesos } from '../../utilidades/dinero'
 import { horaLegible, plural } from './formato'
 
@@ -261,5 +261,106 @@ export function BarrasHorizontales({
         )
       })}
     </div>
+  )
+}
+
+/** Serie diaria en barras desde cero para «7 días» o «Este mes», diferenciando días completos y hoy en curso. */
+export function GraficaTendenciaDeVentas({
+  serie,
+  intervaloTexto,
+  total,
+  mejorDia,
+  periodo,
+}: {
+  serie: DiaDeVentas[]
+  intervaloTexto: string
+  total: number
+  mejorDia: DiaDeVentas | null
+  periodo: '7dias' | 'mes'
+}) {
+  const { ref, ancho } = useAnchoDeGrafica(560)
+  const alto = 156
+  const izq = 2
+  const der = 2
+  const arriba = 18
+  const abajo = 24
+  const anchoUtil = ancho - izq - der
+  const altoUtil = alto - arriba - abajo
+  const yBase = arriba + altoUtil
+  const mayor = Math.max(1, ...serie.map((dia) => dia.total))
+  const paso = anchoUtil / Math.max(1, serie.length)
+  const anchoBarra = Math.max(5, Math.min(44, Math.floor(paso * (serie.length > 14 ? 0.68 : 0.56))))
+
+  const ultimoIndice = Math.max(0, serie.length - 1)
+  const indicesVisibles = new Set<number>()
+  if (periodo === '7dias' || serie.length <= 8) {
+    serie.forEach((_, i) => indicesVisibles.add(i))
+  } else {
+    const salto = Math.max(2, Math.ceil(serie.length / 5))
+    indicesVisibles.add(0)
+    indicesVisibles.add(ultimoIndice)
+    for (let i = salto; i < ultimoIndice; i += salto) {
+      if (ultimoIndice - i >= 2) indicesVisibles.add(i)
+    }
+  }
+
+  const nombrePeriodo = periodo === '7dias' ? 'últimos 7 días' : 'este mes'
+  const hoyMonto = serie[ultimoIndice]?.total ?? 0
+  const descripcion =
+    total === 0
+      ? `Cómo vienen las ventas (${nombrePeriodo}, ${intervaloTexto}): sin ventas vigentes registradas. Hoy sigue en curso; los días anteriores están completos.`
+      : `Cómo vienen las ventas (${nombrePeriodo}, ${intervaloTexto}): total ${formatearPesos(total)}${
+          mejorDia ? `, mejor día ${mejorDia.etiquetaLarga} con ${formatearPesos(mejorDia.total)}` : ''
+        }. Hoy sigue en curso con ${formatearPesos(hoyMonto)}; los días anteriores están completos.`
+
+  return (
+    <svg ref={ref} className="inicio-svg inicio-svg--tendencia" viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={descripcion}>
+      <line x1={izq} y1={arriba} x2={ancho - der} y2={arriba} stroke="#eeede8" strokeWidth="1" />
+      <line x1={izq} y1={arriba + Math.round(altoUtil / 2)} x2={ancho - der} y2={arriba + Math.round(altoUtil / 2)} stroke="#eeede8" strokeWidth="1" />
+      <line x1={izq} y1={yBase} x2={ancho - der} y2={yBase} stroke="#c8c5bd" strokeWidth="1" />
+      {total > 0 && (
+        <text x={ancho - der} y={arriba - 5} textAnchor="end" fontSize="11" fill="#5f636a">
+          Máx. {formatearPesos(mayor)}
+        </text>
+      )}
+      {serie.map((dia, indice) => {
+        const altoBarra = dia.total === 0 ? 0 : Math.max(4, Math.round((dia.total / mayor) * altoUtil))
+        const x = Math.round(izq + indice * paso + (paso - anchoBarra) / 2)
+        const y = yBase - altoBarra
+        const esMejor = mejorDia?.fecha === dia.fecha && dia.total > 0
+        const color = dia.esHoy ? '#4a5700' : esMejor ? '#8e9c38' : '#cfd4b0'
+        const mostrarEtiqueta = indicesVisibles.has(indice)
+        const esBordeLargo = serie.length > 8
+        const ancla = esBordeLargo && indice === 0 ? 'start' : esBordeLargo && indice === ultimoIndice ? 'end' : 'middle'
+        const xTexto =
+          esBordeLargo && indice === 0 ? izq : esBordeLargo && indice === ultimoIndice ? ancho - der : x + anchoBarra / 2
+        const tituloBarra = `${dia.etiquetaLarga}${dia.esHoy ? ' (en curso)' : ''}: ${formatearPesos(dia.total)} (${plural(dia.cantidad, 'venta', 'ventas')})`
+        return (
+          <g key={dia.fecha}>
+            <rect x={x} y={arriba} width={anchoBarra} height={altoUtil} fill="transparent">
+              <title>{tituloBarra}</title>
+            </rect>
+            {altoBarra > 0 && (
+              <rect x={x} y={y} width={anchoBarra} height={altoBarra} rx="1.5" fill={color}>
+                <title>{tituloBarra}</title>
+              </rect>
+            )}
+            {dia.esHoy && altoBarra > 0 && <rect x={x} y={y} width={anchoBarra} height="3" fill="#cde409" />}
+            {mostrarEtiqueta && (
+              <text
+                x={xTexto}
+                y={alto - 5}
+                textAnchor={ancla}
+                fontSize="11"
+                fill={dia.esHoy ? '#1d1f23' : '#5f636a'}
+                fontWeight={dia.esHoy ? '650' : '400'}
+              >
+                {dia.etiqueta}
+              </text>
+            )}
+          </g>
+        )
+      })}
+    </svg>
   )
 }
