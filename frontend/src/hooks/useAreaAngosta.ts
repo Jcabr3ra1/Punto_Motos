@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
 /** Ancho del área de trabajo por debajo del cual la ficha deja de ir al lado y se abre como panel lateral. */
-export const ANCHO_ANGOSTO = 1100
+export const ANCHO_ANGOSTO = 960
 
 /**
- * Si el área de trabajo (#contenido) mide menos de 1100px. Depende del menú recogido o no, por eso se mide el área y
+ * Si el área de trabajo (#contenido) mide menos de 960px. Depende del menú recogido o no, por eso se mide el área y
  * no la ventana. Sin ResizeObserver (pruebas), se considera ancha.
  */
 export function useAreaAngosta(): boolean {

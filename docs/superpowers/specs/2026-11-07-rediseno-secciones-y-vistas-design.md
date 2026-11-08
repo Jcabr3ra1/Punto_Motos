@@ -157,12 +157,12 @@ Son obligatorias. Juan pidió «todo muy perfecto y sin errores».
 
 ## Adaptación al tamaño de la ventana
 
-La ventana va de **900 × 560** (mínimo) a pantallas grandes. Al achicarse nada se apila como en un celular: se reacomoda.
+La ventana va de **900 × 560** (mínimo) a pantallas grandes. Al achicarse nada se apila como en un celular: se reacomoda. El corte se mide sobre el área de trabajo, sin el menú ni los márgenes: a 1280 × 800 con el menú abierto el área mide unos 1010px y debe verse el diseño completo, por eso el corte es de 960px *(ajustado durante la implementación; antes decía 1100px)*.
 
 | Ancho del área de trabajo | Comportamiento |
 | --- | --- |
-| ≥ 1100px | Diseño completo: 4 instrumentos en fila, la ficha al lado de la tabla (300px) y las columnas secundarias visibles. |
-| 900–1099px (incluye 900 × 560 con el menú recogido) | Instrumentos e indicadores en una cuadrícula de 2 × 2. La ficha deja de ir al lado y se abre como el `PanelLateral` existente sobre la lista. Las columnas marcadas como secundarias se ocultan. Las acciones del encabezado pasan bajo el título si no caben. |
+| ≥ 960px | Diseño completo: 4 instrumentos en fila, la ficha al lado de la tabla (300px) y las columnas secundarias visibles. |
+| Menos de 960px (incluye 900 × 560 con el menú recogido o abierto) | Instrumentos e indicadores en una cuadrícula de 2 × 2. La ficha deja de ir al lado y se abre como el `PanelLateral` existente sobre la lista. Las columnas marcadas como secundarias se ocultan. Las acciones del encabezado pasan bajo el título si no caben. |
 | Menos de 1000px de ventana | El menú arranca recogido (ya existe en `useMenuRecogido`). |
 
 - Las tablas se desplazan dentro de su contenedor, nunca la ventana. El encabezado de la tabla queda fijo (`position: sticky`).

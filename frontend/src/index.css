@@ -1919,166 +1919,473 @@ kbd {
   text-decoration: none;
 }
 
-/* Inicio: saludo, accesos rápidos y la caja de hoy. */
-.inicio__encabezado {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
-}
-
-.inicio__encabezado h1 {
-  margin-bottom: 0.125rem;
-}
-
-.inicio__encabezado p {
-  margin: 0;
-}
-
-.accesos-rapidos {
+/* Inicio: cuatro instrumentos de igual alto, las últimas ventas e «Ir a». */
+.inicio__instrumentos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-  gap: 0.75rem;
-  margin: 0 0 1.25rem;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-3);
 }
 
-.estructura__contenido a.acceso-rapido {
+.instrumento {
   display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  height: 100%;
-  min-height: 5rem;
-  padding: 0.875rem 1rem;
-  color: var(--color-texto);
-  text-decoration: none;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 148px;
+  padding: var(--esp-3) var(--esp-4);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-top: 3px solid var(--color-marca);
-  border-radius: 0 0 var(--radio) var(--radio);
-  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.estructura__contenido a.acceso-rapido:hover {
-  border-color: #b9b7b0;
+.instrumento--oscuro {
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-color: var(--marco);
   border-top-color: var(--color-marca);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
 }
 
-.acceso-rapido__icono {
+.instrumento :where(p) {
+  margin: 0;
+}
+
+.instrumento__cabecera {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+}
+
+.instrumento--oscuro .instrumento__cabecera {
+  color: var(--marco-texto-suave);
+}
+
+.instrumento__extra {
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.instrumento__cifra {
+  margin-top: var(--esp-2);
+  overflow: hidden;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.instrumento--oscuro .instrumento__cifra {
+  color: #ffffff;
+}
+
+.instrumento__estado {
+  margin-top: var(--esp-2);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 28px;
+}
+
+.instrumento__detalle {
+  margin-top: var(--esp-1);
+  font-size: 12.5px;
+  line-height: 16px;
+  color: var(--texto-secundario);
+}
+
+.instrumento--oscuro .instrumento__detalle {
+  color: var(--marco-texto-suave);
+}
+
+.instrumento__pie {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  margin-top: auto;
+  padding-top: var(--esp-3);
+  box-sizing: content-box;
+}
+
+/* El botón del pie mide lo mismo que la fila de los enlaces de los recuadros vecinos. */
+.instrumento__pie > .boton {
+  min-height: 28px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.instrumento__pie > .boton {
+  width: auto;
+}
+
+.estructura__contenido a.instrumento__enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-acento);
+  text-decoration: none;
+}
+
+.estructura__contenido .instrumento--oscuro a.instrumento__enlace {
+  color: var(--color-marca);
+}
+
+.estructura__contenido a.instrumento__enlace:hover {
+  text-decoration: underline;
+}
+
+.instrumento__lista {
+  margin: var(--esp-2) 0 0;
+}
+
+.instrumento__fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--esp-2);
+  padding: var(--esp-1) 0;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--linea-suave);
+}
+
+.instrumento__fila:last-child {
+  border-bottom: 0;
+}
+
+.instrumento__fila dd {
+  margin: 0;
+  font-weight: 650;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.instrumento__error {
+  margin-top: var(--esp-2);
+  font-size: 12.5px;
+  color: var(--color-error);
+}
+
+.instrumento--oscuro .instrumento__error {
+  color: #f4a39b;
+}
+
+.instrumento__cargando {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+.instrumento__esqueleto-cifra {
+  width: 70%;
+  height: 24px;
+}
+
+.instrumento__esqueleto-linea {
+  display: block;
+  width: 50%;
+  height: 12px;
+}
+
+.instrumento__esqueleto-monto {
+  display: inline-block;
+  width: 80px;
+  height: 12px;
+}
+
+.instrumento--oscuro .esqueleto {
+  background: linear-gradient(90deg, #1d1d1e, #29292a, #1d1d1e);
+  background-size: 200% 100%;
+}
+
+/* Ventas por hora: barras finas en oliva claro; la hora actual en oliva. */
+.grafica-horas {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 28px;
+  margin-top: var(--esp-2);
+}
+
+.grafica-horas__barra {
+  flex: 1;
+  min-height: 2px;
+  background: #d9dcc0;
+}
+
+.grafica-horas__barra--ahora {
+  background: var(--color-acento);
+}
+
+.inicio__abajo {
   display: grid;
-  flex: 0 0 auto;
-  width: 2.25rem;
-  height: 2.25rem;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--esp-3);
+}
+
+.inicio__vendedor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--esp-3);
+}
+
+.panel-inicio {
+  min-width: 0;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+}
+
+.panel-inicio__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  height: 36px;
+  padding: 0 var(--esp-4);
+  background: #f6f5f2;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.estructura__contenido .panel-inicio__titulo {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+}
+
+.estructura__contenido a.panel-inicio__enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-acento);
+  text-decoration: none;
+}
+
+.panel-inicio__vacio {
+  margin: 0;
+  padding: var(--esp-4);
+  color: var(--texto-secundario);
+}
+
+.panel-inicio__tabla .tabla th:first-child,
+.panel-inicio__tabla .tabla td:first-child {
+  padding-left: var(--esp-4);
+}
+
+.panel-inicio__tabla .tabla th:last-child,
+.panel-inicio__tabla .tabla td:last-child {
+  padding-right: var(--esp-4);
+}
+
+.tabla__fila--anulada td {
+  color: var(--texto-secundario);
+  text-decoration: line-through;
+}
+
+.tabla__texto-largo {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.estructura__contenido a.tabla__codigo {
+  text-decoration: none;
+}
+
+.estructura__contenido a.tabla__codigo:hover {
+  text-decoration: underline;
+}
+
+.ir-a {
+  margin: 0;
+  padding: var(--esp-1) 0;
+  list-style: none;
+}
+
+.estructura__contenido a.ir-a__enlace {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-2) var(--esp-4);
+  color: var(--color-texto);
+  text-decoration: none;
+  border-bottom: 1px solid var(--linea-suave);
+}
+
+.ir-a li:last-child .ir-a__enlace {
+  border-bottom: 0;
+}
+
+.estructura__contenido a.ir-a__enlace:hover {
+  background: #f9f8f4;
+}
+
+.ir-a__placa {
+  display: grid;
+  width: 32px;
+  height: 32px;
   place-items: center;
   color: var(--color-marca);
   background: var(--marco);
   border-radius: var(--radio);
 }
 
-.acceso-rapido__texto {
+.ir-a__texto {
   display: flex;
-  flex: 1;
   flex-direction: column;
   min-width: 0;
 }
 
-.acceso-rapido__nombre {
-  font-weight: 700;
+.ir-a__nombre {
+  font-weight: 600;
 }
 
-.acceso-rapido__descripcion {
-  font-size: 0.75rem;
+.ir-a__descripcion {
+  overflow: hidden;
+  font-size: 12px;
   color: var(--texto-secundario);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.acceso-rapido__flecha {
-  flex: 0 0 auto;
-  color: var(--texto-secundario);
-  transition: transform 120ms ease;
-}
-
-.acceso-rapido:hover .acceso-rapido__flecha {
-  color: var(--color-acento);
-  transform: translateX(2px);
-}
-
-.inicio__tarjetas {
-  display: grid;
-  /* La misma cuadrícula de los accesos: la caja ocupa dos columnas. */
-  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-  gap: 0.75rem;
-  align-items: start;
-}
-
-/* La caja de hoy como un instrumento del tablero. */
-.tarjeta-caja {
-  grid-column: span 2;
-  padding: 1rem 1.125rem;
+/* Consulta de precio y existencia del vendedor, en negro como el tablero. */
+.consulta {
+  min-width: 0;
+  /* Arriba 8px: así su rótulo queda en la misma línea que el de «Ventas de hoy» a su lado. */
+  padding: var(--esp-2) var(--esp-4) var(--esp-4);
   color: var(--marco-texto);
   background: var(--marco);
   border-top: 3px solid var(--color-marca);
-  border-radius: 0 0 var(--radio) var(--radio);
 }
 
-.tarjeta-caja p {
-  margin: 0;
-}
-
-.tarjeta-caja__titulo {
+.consulta__rotulo {
   display: flex;
-  gap: 0.375rem;
   align-items: center;
-  margin-bottom: 0.5rem !important;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  height: 24px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--marco-texto-suave);
 }
 
-.tarjeta-caja__cifra {
-  font-size: 1.75rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  color: var(--color-marca);
+.consulta__campo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  height: 40px;
+  margin-top: var(--esp-2);
+  padding: 0 var(--esp-3);
+  color: var(--marco-texto-suave);
+  background: var(--marco-elevado);
+  border: 1px solid #2c2c2c;
+  border-radius: var(--radio);
 }
 
-.tarjeta-caja__cerrada {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #ffb74d;
+.consulta__campo:focus-within {
+  border-color: var(--color-marca);
 }
 
-.tarjeta-caja__detalle {
-  font-size: 0.8125rem;
+.consulta__campo input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: #ffffff;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.consulta__resultados {
+  margin: var(--esp-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.consulta__resultado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 72px;
+  align-items: center;
+  gap: var(--esp-4);
+  padding: var(--esp-2) 0;
+  border-bottom: 1px solid var(--marco-separador);
+}
+
+.consulta__resultado:last-child {
+  border-bottom: 0;
+}
+
+.consulta__producto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.consulta__nombre {
+  overflow: hidden;
+  font-weight: 600;
+  color: #ffffff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.consulta__detalle {
+  font-size: 12px;
   color: var(--marco-texto-suave);
 }
 
-.tarjeta-caja__linea {
-  margin-top: 0.75rem !important;
-  padding-top: 0.625rem;
-  font-size: 0.8125rem;
-  border-top: 1px solid var(--marco-separador);
+.consulta__precio {
+  font-weight: 650;
+  color: #ffffff;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
-.estructura__contenido a.tarjeta-caja__enlace {
-  display: inline-flex;
-  gap: 0.375rem;
-  align-items: center;
-  margin-top: 0.75rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-marca);
-  text-decoration: none;
+.consulta__existencia {
+  text-align: right;
+  color: var(--marco-texto-suave);
+  font-variant-numeric: tabular-nums;
 }
 
-.tarjeta-caja__boton {
-  margin-top: 0.875rem;
+.consulta__existencia--baja {
+  color: #f0b45e;
+}
+
+.consulta__vacio {
+  margin: var(--esp-3) 0 0;
+  color: var(--marco-texto-suave);
+}
+
+@container area (max-width: 959px) {
+  .inicio__instrumentos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inicio__abajo,
+  .inicio__vendedor {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Cargando: una rueda discreta junto al texto. */
@@ -2781,8 +3088,8 @@ kbd {
   width: auto;
 }
 
-/* Área angosta (menos de 1100px): cuadrícula de 2 × 2, sin ficha al lado y sin columnas secundarias. */
-@container area (max-width: 1099px) {
+/* Área angosta (menos de 960px): cuadrícula de 2 × 2, sin ficha al lado y sin columnas secundarias. */
+@container area (max-width: 959px) {
   .indicadores {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
