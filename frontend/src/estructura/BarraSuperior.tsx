@@ -8,15 +8,6 @@ import { useNegocio } from '../hooks/useNegocio'
 import { ubicacionDe } from '../navegacion/ubicacion'
 import { formatearPesos } from '../utilidades/dinero'
 
-/** Iniciales para el círculo de la barra: «Carlos Pérez» → «CP». */
-const iniciales = (nombre: string) =>
-  nombre
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((palabra) => palabra[0].toUpperCase())
-    .join('')
-
 const formatoDeFecha = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
 const formatoDeHora = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' })
 
@@ -70,28 +61,31 @@ export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
         )}
       </div>
 
+      {/* A la derecha, todo con la misma forma: rótulo pequeño arriba y valor abajo, separados por líneas finas. */}
       <div className="navbar__lado">
-        <button type="button" className="navbar__buscar" onClick={onBuscar} aria-keyshortcuts="Control+K">
-          <Search aria-hidden="true" size={15} strokeWidth={1.75} />
-          <span>Buscar pantalla…</span>
+        <button type="button" className="navbar__buscar" onClick={onBuscar} aria-label="Buscar pantalla" aria-keyshortcuts="Control+K">
+          <Search aria-hidden="true" size={16} strokeWidth={1.75} />
+          <span>Buscar</span>
           <kbd aria-hidden="true">Ctrl K</kbd>
         </button>
-        {caja.isSuccess && <EstadoDeLaCaja abierta={caja.data.is_open} esperado={caja.data.session?.expected_cash} esDueno={esDueno} />}
-        <p className="navbar__reloj" aria-label="Fecha y hora">
-          <span>{conMayuscula(formatoDeFecha.format(ahora))}</span>
-          <strong>{formatoDeHora.format(ahora)}</strong>
+        {caja.isSuccess && (
+          <>
+            <span className="navbar__divisor" aria-hidden="true" />
+            <EstadoDeLaCaja abierta={caja.data.is_open} esperado={caja.data.session?.expected_cash} esDueno={esDueno} />
+          </>
+        )}
+        <span className="navbar__divisor" aria-hidden="true" />
+        <p className="navbar__dato" aria-label="Fecha y hora">
+          <span className="navbar__rotulo">{conMayuscula(formatoDeFecha.format(ahora))}</span>
+          <strong className="navbar__valor navbar__valor--hora">{formatoDeHora.format(ahora)}</strong>
         </p>
-        <div className="navbar__usuario">
-          <span className="navbar__iniciales" aria-hidden="true">
-            {iniciales(usuario.display_name)}
-          </span>
-          <div className="navbar__datos">
-            <p className="navbar__nombre">{usuario.display_name}</p>
-            <p className="navbar__rol">{usuario.role_label}</p>
-          </div>
+        <span className="navbar__divisor navbar__divisor--usuario" aria-hidden="true" />
+        <div className="navbar__dato navbar__usuario">
+          <p className="navbar__rotulo">{usuario.role_label}</p>
+          <p className="navbar__valor">{usuario.display_name}</p>
         </div>
         <button type="button" className="navbar__salir" onClick={alSalir} disabled={saliendo} aria-label="Cerrar sesión" title="Cerrar sesión">
-          <LogOut aria-hidden="true" size={16} strokeWidth={1.75} />
+          <LogOut aria-hidden="true" size={18} strokeWidth={1.75} />
         </button>
       </div>
     </header>
@@ -100,19 +94,34 @@ export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
 
 /** El dueño ve el efectivo esperado y puede ir a la caja; el vendedor solo ve si está abierta. */
 function EstadoDeLaCaja({ abierta, esperado, esDueno }: { abierta: boolean; esperado?: number; esDueno: boolean }) {
-  const clase = `navbar__caja navbar__caja--${abierta ? 'abierta' : 'cerrada'}`
-  const texto = abierta
+  const estado = abierta ? 'abierta' : 'cerrada'
+  const rotulo = abierta ? 'Caja abierta' : 'Caja cerrada'
+  const valor = abierta
+    ? esDueno && esperado !== undefined
+      ? formatearPesos(esperado)
+      : 'Lista para vender'
+    : esDueno
+      ? 'Abrir la caja'
+      : 'Pídele al dueño'
+  // La frase completa para el lector de pantalla; a la vista, rótulo y valor como el resto de la barra.
+  const completo = abierta
     ? esDueno && esperado !== undefined
       ? `Caja abierta · ${formatearPesos(esperado)} en el cajón`
       : 'Caja abierta'
     : esDueno
       ? 'Caja cerrada · Abrir'
       : 'Caja cerrada'
+  const contenido = (
+    <>
+      <span className="navbar__rotulo">{rotulo}</span>
+      <span className="navbar__valor">{valor}</span>
+    </>
+  )
   return esDueno ? (
-    <Link to="/caja/actual" className={clase}>
-      {texto}
+    <Link to="/caja/actual" className={`navbar__dato navbar__caja navbar__caja--${estado}`} aria-label={completo}>
+      {contenido}
     </Link>
   ) : (
-    <p className={clase}>{texto}</p>
+    <p className={`navbar__dato navbar__caja navbar__caja--${estado}`}>{contenido}</p>
   )
 }

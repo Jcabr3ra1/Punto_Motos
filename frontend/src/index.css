@@ -836,112 +836,8 @@ summary {
   text-overflow: ellipsis;
 }
 
-.navbar__lado {
-  flex-shrink: 0;
-}
-
-.navbar__lado {
-  display: flex;
-  gap: var(--esp-4);
-  align-items: center;
-}
-
-.navbar__caja {
-  display: inline-flex;
-  gap: var(--esp-2);
-  align-items: center;
-  margin: 0;
-  height: 32px;
-  padding: 0 var(--esp-4);
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  text-decoration: none;
-  border: 1px solid #3a3b3e;
-  border-radius: 999px;
-}
-
-.navbar__caja::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: currentColor;
-  border-radius: 50%;
-}
-
-.navbar__caja--abierta {
-  color: #7ee787;
-}
-
-.navbar__caja--cerrada {
-  color: #ffb74d;
-  border-color: #6b4a1e;
-}
-
 a.navbar__caja:hover {
   background: #1b1c1e;
-}
-
-.navbar__reloj {
-  display: flex;
-  white-space: nowrap;
-  flex-direction: column;
-  align-items: flex-end;
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.25;
-  color: var(--color-plata);
-}
-
-.navbar__reloj strong {
-  font-size: 18px;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  /* La hora en lima, como la aguja de un tablero. */
-  color: var(--color-marca);
-}
-
-.navbar__salir {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  color: var(--marco-texto-suave);
-  background: transparent;
-  border: 1px solid #3a3b3e;
-  border-radius: var(--radio);
-}
-
-.navbar__salir:hover:not(:disabled) {
-  color: var(--color-sobre-marca);
-  background: var(--color-marca);
-  border-color: var(--color-marca);
-}
-
-.navbar__buscar {
-  display: inline-flex;
-  gap: var(--esp-2);
-  align-items: center;
-  width: 240px;
-  height: 36px;
-  padding: 0 var(--esp-2) 0 var(--esp-3);
-  font: inherit;
-  font-size: 14px;
-  color: var(--marco-texto-suave);
-  text-align: left;
-  background: var(--marco-elevado);
-  border: 1px solid #2c2c2d;
-  border-radius: var(--radio);
-}
-
-.navbar__buscar span {
-  flex: 1;
-}
-
-.navbar__buscar:hover {
-  color: var(--marco-texto);
-  border-color: #3a3b3e;
 }
 
 kbd {
@@ -955,29 +851,6 @@ kbd {
   opacity: 0.85;
 }
 
-/* Por debajo de 1400px el buscador queda en su icono y Ctrl+K: así cabe completa la pantalla actual. */
-@media (max-width: 1400px) {
-  .navbar__buscar {
-    width: auto;
-  }
-
-  .navbar__buscar span {
-    display: none;
-  }
-}
-
-/* Ventana angosta: la barra conserva lo esencial. */
-@media (max-width: 1150px) {
-
-  .navbar__datos {
-    display: none;
-  }
-
-  .navbar__usuario {
-    padding-left: var(--esp-4);
-  }
-}
-
 .navbar__negocio {
   margin: 0;
   font-size: 11.5px;
@@ -988,43 +861,6 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.navbar__usuario {
-  display: flex;
-  gap: var(--esp-2);
-  align-items: center;
-  padding-left: var(--esp-4);
-  border-left: 1px solid #2b2c2e;
-}
-
-.navbar__iniciales {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-sobre-marca);
-  background: var(--color-marca);
-  border-radius: 50%;
-}
-
-.navbar__datos {
-  line-height: 1.2;
-}
-
-.navbar__nombre {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.navbar__rol {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--color-plata);
 }
 
 .texto-suave {
@@ -3965,4 +3801,141 @@ kbd {
 
 .venta__cobro .conjunto legend {
   margin-bottom: var(--esp-2);
+}
+
+/* Barra superior: a la derecha, cada dato con la misma forma (rótulo pequeño arriba, valor abajo), separados por
+   líneas finas. Sin recuadros ni píldoras: el orden lo dan la alineación y los separadores. */
+.navbar__lado {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--esp-5);
+}
+
+.navbar__divisor {
+  width: 1px;
+  height: 32px;
+  background: #2b2c2e;
+}
+
+.navbar__dato {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.navbar__dato p {
+  margin: 0;
+}
+
+.navbar__rotulo {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.navbar__valor {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.navbar__valor--hora {
+  font-size: 17px;
+  color: var(--color-marca);
+}
+
+.navbar__caja--abierta .navbar__valor {
+  color: #7ee787;
+}
+
+.navbar__caja--cerrada .navbar__valor {
+  color: #ffb74d;
+}
+
+/* Un punto de color antes del rótulo de la caja: verde abierta, naranja cerrada. */
+.navbar__caja .navbar__rotulo::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.navbar__caja--abierta .navbar__rotulo::before {
+  background: #7ee787;
+}
+
+.navbar__caja--cerrada .navbar__rotulo::before {
+  background: #ffb74d;
+}
+
+a.navbar__caja:hover .navbar__valor {
+  text-decoration: underline;
+}
+
+/* Botones sin borde: solo se marcan al pasar el ratón. */
+.navbar__buscar,
+.navbar__salir {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  height: 36px;
+  padding: 0 var(--esp-3);
+  font: inherit;
+  font-size: 14px;
+  color: var(--marco-texto);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio);
+  cursor: default;
+}
+
+.navbar__buscar:hover,
+.navbar__salir:hover:not(:disabled) {
+  background: var(--marco-elevado);
+}
+
+.navbar__buscar kbd {
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--marco-texto-suave);
+  border: 1px solid #3a3b3e;
+  border-radius: 3px;
+}
+
+.navbar__salir {
+  width: 36px;
+  justify-content: center;
+  padding: 0;
+  color: var(--marco-texto-suave);
+}
+
+.navbar__salir:hover:not(:disabled) {
+  color: var(--color-marca);
+}
+
+/* Ventana angosta: el buscador queda en su icono y se ocultan el usuario y su separador. */
+@media (max-width: 1150px) {
+  .navbar__buscar span,
+  .navbar__usuario,
+  .navbar__divisor--usuario {
+    display: none;
+  }
+
+  .navbar__lado {
+    gap: var(--esp-4);
+  }
 }
