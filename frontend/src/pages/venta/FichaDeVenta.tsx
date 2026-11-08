@@ -1,14 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router'
 import { claves } from '../../api/consultas'
 import { obtenerVenta } from '../../api/ventas'
 import { Registro } from '../../components/Registro'
-import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 
 /** La venta elegida como un recibo en el registro negro: total, cliente, pago, productos y servicios. */
-export function FichaDeVenta({ id, numero, onCerrar }: { id: number; numero: number; onCerrar: () => void }) {
+export function FichaDeVenta({ id, numero, onCerrar, onAbrirRecibo }: { id: number; numero: number; onCerrar: () => void; onAbrirRecibo: () => void }) {
   const venta = useQuery({ queryKey: [...claves.ventas, 'detalle', id], queryFn: ({ signal }) => obtenerVenta(id, signal) })
   const datos = venta.data
   return (
@@ -17,9 +15,9 @@ export function FichaDeVenta({ id, numero, onCerrar }: { id: number; numero: num
       modulo="Ventas"
       onCerrar={onCerrar}
       acciones={
-        <Link to={`${DESTINOS.ventas.ruta}/${id}`} className="boton">
+        <button type="button" className="boton" onClick={onAbrirRecibo}>
           Abrir el recibo
-        </Link>
+        </button>
       }
     >
       {venta.isPending && <p className="registro__nota">Cargando la venta…</p>}

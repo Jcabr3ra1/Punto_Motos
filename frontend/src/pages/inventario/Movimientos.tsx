@@ -16,7 +16,7 @@ import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { useConteo } from '../../hooks/useConteo'
-import { useFilasQueCaben } from '../../hooks/useFilasQueCaben'
+import { MEDIDAS_DEL_LIBRO, useFilasQueCaben } from '../../hooks/useFilasQueCaben'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -41,9 +41,6 @@ const TIPOS: readonly { valor: '' | MovementKind; texto: string }[] = [
 
 /** Abre con todas las fechas: el kárdex de un producto (enlace desde Productos) debe verse completo. */
 const PERIODO_INICIAL: Periodo = 'todas'
-
-/** Medidas del libro (ver Ventas): filas de 48px, cabecera de 36px, pie de 48px y bordes. */
-const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
 
 /** Los filtros viven en la dirección (`?product=7&kind=adjustment`): sirven los enlaces y el botón «atrás». */
 function leerFiltros(params: URLSearchParams, hoy: string, porPagina: number): FiltrosDeMovimientos & { periodo: Periodo } {

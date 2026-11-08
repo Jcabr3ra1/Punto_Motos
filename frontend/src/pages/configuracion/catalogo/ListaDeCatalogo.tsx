@@ -1,16 +1,16 @@
 import { Pencil } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { listarCatalogo, type ElementoDeCatalogo, type TipoDeCatalogo } from '../../../api/catalogo'
 import { claves } from '../../../api/consultas'
 import { BarraDeFiltros, BotonDeFiltro } from '../../../components/BarraDeFiltros'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
 import { EstadoVacio } from '../../../components/EstadoVacio'
+import { FiltroDeActivos } from '../../../components/FiltroDeActivos'
 import { Paginacion } from '../../../components/Paginacion'
 import { PanelLateral } from '../../../components/PanelLateral'
-import { useFilasQueCaben } from '../../../hooks/useFilasQueCaben'
+import { useListaLocal } from '../../../hooks/useListaLocal'
 import { DESTINOS } from '../../../navegacion/destinos'
-import { sinTildes } from '../../../utilidades/texto'
 import { FormularioDeCatalogo } from './FormularioDeCatalogo'
 
 export interface SeccionDeCatalogo {
@@ -22,17 +22,6 @@ export interface SeccionDeCatalogo {
   ayudaSigla?: string
   descripcion: string
 }
-
-type Estado = 'todos' | 'activos' | 'inactivos'
-
-const ESTADOS: readonly { valor: Estado; texto: string }[] = [
-  { valor: 'todos', texto: 'Todos' },
-  { valor: 'activos', texto: 'Activos' },
-  { valor: 'inactivos', texto: 'Inactivos' },
-]
-
-/** Medidas del libro (ver Ventas): filas de 48px, cabecera de 36px, pie de 48px y bordes. */
-const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
 
 /** «1 tipo», «2 marcas», «3 motos». */
 function cantidad(n: number, seccion: SeccionDeCatalogo): string {
@@ -52,27 +41,15 @@ interface Props {
 export function ListaDeCatalogo({ seccion, secciones, onSeccion, creando, onCerrarCreacion }: Props) {
   const [editando, setEditando] = useState<number | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
-  const [busqueda, setBusqueda] = useState('')
-  const [estado, setEstado] = useState<Estado>('todos')
-  const [pagina, setPagina] = useState(1)
-  const lista = useRef<HTMLElement>(null)
-  const porPagina = useFilasQueCaben(lista, MEDIDAS_DEL_LIBRO)
   const consulta = useQuery({
     queryKey: claves.catalogoCompleto(seccion.tipo),
     queryFn: ({ signal }) => listarCatalogo<ElementoDeCatalogo>(seccion.tipo, { incluirInactivos: true, signal }),
   })
 
   const elementos = consulta.data ?? []
-  const texto = sinTildes(busqueda.trim())
   // La API entrega la lista completa: buscar, filtrar por estado y paginar se hace aquí.
-  const visibles = elementos.filter(
-    (e) =>
-      (estado === 'todos' || e.is_active === (estado === 'activos')) &&
-      (!texto || sinTildes(e.name).includes(texto) || sinTildes(e.abbreviation ?? '').includes(texto)),
-  )
-  const paginas = Math.max(1, Math.ceil(visibles.length / porPagina))
-  const actual = Math.min(pagina, paginas)
-  const enPagina = visibles.slice((actual - 1) * porPagina, actual * porPagina)
+  const { lista, porPagina, busqueda, buscar, estado, filtrarEstado, visibles, enPagina, pagina: actual, paginas, setPagina } =
+    useListaLocal(elementos, (e) => [e.name, e.abbreviation ?? ''])
   const elegido = editando === null ? undefined : elementos.find((e) => e.id === editando)
 
   function volver(mensaje?: string) {
@@ -104,10 +81,7 @@ export function ListaDeCatalogo({ seccion, secciones, onSeccion, creando, onCerr
           etiqueta: 'Buscar',
           placeholder: seccion.conSigla ? 'Nombre o sigla' : 'Nombre',
           valor: busqueda,
-          onCambiar: (valor) => {
-            setBusqueda(valor)
-            setPagina(1)
-          },
+          onCambiar: buscar,
         }}
       >
         <div className="barra-de-filtros__grupo" role="group" aria-label="Sección del catálogo">
@@ -117,20 +91,7 @@ export function ListaDeCatalogo({ seccion, secciones, onSeccion, creando, onCerr
             </BotonDeFiltro>
           ))}
         </div>
-        <div className="barra-de-filtros__grupo" role="group" aria-label="Estado">
-          {ESTADOS.map((e) => (
-            <BotonDeFiltro
-              key={e.valor}
-              activo={estado === e.valor}
-              onClick={() => {
-                setEstado(e.valor)
-                setPagina(1)
-              }}
-            >
-              {e.texto}
-            </BotonDeFiltro>
-          ))}
-        </div>
+        <FiltroDeActivos valor={estado} onCambiar={filtrarEstado} />
         {consulta.isSuccess && (
           <p role="status" className="barra-de-filtros__resultados">
             {cantidad(visibles.length, seccion)}

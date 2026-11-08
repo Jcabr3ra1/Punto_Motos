@@ -14,7 +14,7 @@ import { BarraDeFiltros, BotonDeFiltro, ListaDeFiltro } from '../../components/B
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { RegistroVacio } from '../../components/Registro'
-import { useFilasQueCaben } from '../../hooks/useFilasQueCaben'
+import { MEDIDAS_DEL_LIBRO, useFilasQueCaben } from '../../hooks/useFilasQueCaben'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useSeleccion } from '../../hooks/useSeleccion'
 import { FichaDeProducto } from './FichaDeProducto'
@@ -22,9 +22,6 @@ import type { EstadoDeFiltros } from './filtros'
 import { formatearPesos } from '../../utilidades/dinero'
 import { EstadoVacio } from '../../components/EstadoVacio'
 import { DESTINOS } from '../../navegacion/destinos'
-
-/** Medidas del libro (ver Ventas): filas de 48px, cabecera de 36px, pie de 48px y bordes. */
-const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
 
 const ORDENES: readonly { valor: OrdenDeProductos; texto: string }[] = [
   { valor: 'name', texto: 'Nombre (A a Z)' },

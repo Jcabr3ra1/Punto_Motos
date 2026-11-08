@@ -19,7 +19,7 @@ describe('historial de ventas', () => {
     simularApi({ 'GET /sales*': () => ({ cuerpo: paginaDe([venta(), venta({ id: 40, number: 40, is_voided: true })]) }) })
     mostrarRutas(vendedor, '/venta/historial')
 
-    expect(await screen.findByRole('link', { name: 'N.º 41' })).toHaveAttribute('href', '/venta/historial/41')
+    expect(await screen.findByRole('button', { name: 'Ver el recibo de la venta N.º 41' })).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /N\.º 40/ })).toHaveTextContent('Anulada')
     expect(screen.getByRole('row', { name: /N\.º 41/ })).toHaveTextContent('3001234567')
   })

@@ -5,6 +5,7 @@ import type { DailySettlement } from '../../api/types'
 import { dueno, errorDeApi, simularApi, vendedor, type Respuesta } from '../../test/apiSimulada'
 import { descuentoDeMecanico, liquidacion, mecanico, paginaDe } from '../../test/datos'
 import { mostrarRutas } from '../../test/mostrar'
+import { hoyEnColombia, moverDia } from '../../utilidades/fechas'
 
 const conDeuda: DailySettlement = {
   date: '2026-11-03',
@@ -94,6 +95,30 @@ describe('liquidación del día', () => {
 
     expect(await screen.findByRole('link', { name: 'Abrir la caja' })).toHaveAttribute('href', '/caja/actual')
     expect(screen.getByRole('button', { name: 'Pagar a Carlos Ruiz' })).toBeDisabled()
+  })
+
+  it('el panel de pago muestra el total del día y, al pulsar Pagar, la confirmación del mecánico', async () => {
+    const { u } = abrir()
+
+    const panel = await screen.findByRole('complementary', { name: 'Pago al mecánico' })
+    await waitFor(() => expect(panel).toHaveTextContent(/Total que saldría de la caja\$\s?25\.500/))
+    expect(panel).toHaveTextContent('2 mecánicos · 3 servicios')
+
+    await u.click(screen.getByRole('button', { name: 'Pagar a Carlos Ruiz' }))
+    expect(within(panel).getByRole('group', { name: /¿Pagarle \$\s?18\.000 a Carlos Ruiz\?/ })).toBeInTheDocument()
+    await u.click(within(panel).getByRole('button', { name: 'Volver' }))
+    expect(panel).toHaveTextContent('Total que saldría de la caja')
+  })
+
+  it('Ayer y Hoy cambian el día a liquidar', async () => {
+    const hoy = hoyEnColombia()
+    const { api, u } = abrir()
+    await screen.findByRole('row', { name: /Carlos Ruiz/ })
+    expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-pressed', 'true')
+
+    await u.click(screen.getByRole('button', { name: 'Ayer' }))
+    await waitFor(() => expect(api.llamadas.some((l) => l.clave === `GET /mechanic-settlements/daily?date=${moverDia(hoy, -1)}`)).toBe(true))
+    expect(screen.getByLabelText('Día a liquidar')).toHaveValue(moverDia(hoy, -1))
   })
 
   it('se puede liquidar otro día y avisa si no hay nada pendiente', async () => {
@@ -244,10 +269,12 @@ describe('historial de liquidaciones', () => {
     const fila = await screen.findByRole('row', { name: /Carlos Ruiz/ })
     expect(fila).toHaveTextContent(/\$\s?18\.000/)
     await u.selectOptions(screen.getByLabelText('Mecánico'), 'Carlos Ruiz')
-    await waitFor(() => expect(api.llamadas.some((l) => l.clave === 'GET /mechanic-settlements?mechanic=1')).toBe(true))
+    // Abre en todas las fechas; sin poder medir la pantalla, el libro pide 20 por página.
+    await waitFor(() => expect(api.llamadas.some((l) => l.clave === 'GET /mechanic-settlements?mechanic=1&page_size=20')).toBe(true))
 
-    await u.click(within(screen.getByRole('row', { name: /Carlos Ruiz/ })).getByRole('link'))
-    expect(await screen.findByRole('article', { name: 'Hoja de liquidación de Carlos Ruiz' })).toBeInTheDocument()
+    await u.click(within(screen.getByRole('row', { name: /Carlos Ruiz/ })).getByRole('button', { name: /Ver la hoja/ }))
+    const ventana = await screen.findByRole('dialog', { name: 'Liquidación de Carlos Ruiz' })
+    expect(within(ventana).getByRole('article', { name: 'Hoja de liquidación de Carlos Ruiz' })).toBeInTheDocument()
   })
 
   it('el vendedor no entra al taller', () => {

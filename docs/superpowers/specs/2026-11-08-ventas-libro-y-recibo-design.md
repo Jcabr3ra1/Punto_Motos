@@ -112,3 +112,31 @@ Decidido pantalla por pantalla, como pidió Juan:
   5 minutos; con un filtro del backend sería una sola consulta. En la Caja de
   hoy, el cobro se lee como leyenda («Efectivo 70 %», «Transferencia 30 %»)
   sin abreviar ni partir palabras.
+
+## Taller
+
+- **Liquidación del día:** pantalla de trabajo, como Caja de hoy. A la izquierda
+  lo que se le debe a cada mecánico (con el total que saldría de la caja), la
+  hoja recién pagada y los saldos pendientes por descontar; esa columna se
+  desplaza entera. A la derecha, el **panel negro de pago**: sin mecánico
+  elegido muestra el total del día; con «Pagar…» muestra la confirmación, el
+  medio de pago, «Sí, pagar» y «Volver». La barra tiene **Hoy**, **Ayer** y el
+  día a liquidar. La lógica de pago no cambia.
+- **Historial de liquidaciones:** libro con registro negro (como Ventas), abre
+  en todas las fechas, con período y mecánico.
+- **Mecánicos y Tipos de servicio:** libro sin registro, como el catálogo:
+  búsqueda sin tildes (nombre o teléfono; código o nombre), Todos, Activos e
+  Inactivos, filas que caben y pie fijo; «Editar» como icono.
+- Piezas compartidas nuevas: `useListaLocal` y `FiltroDeActivos` para las
+  listas completas, y `MEDIDAS_DEL_LIBRO` exportada desde `useFilasQueCaben`.
+
+## Documentos en ventana emergente
+
+A pedido de Juan, la hoja de liquidación, el recibo de la venta y el comprobante
+de devolución ya no llevan a otra página: se abren en `VentanaDeDocumento`, sobre
+la lista. El documento ocupa todo el ancho con el mismo margen a los lados; su
+título va en la cabecera negra; en el pie, las acciones del documento a la
+izquierda (en el recibo, «Devolver…» y «Anular venta…», que funcionan igual) y
+«Cerrar» a la derecha. Se abre desde el registro negro o desde el número (o la
+fecha) de cada fila. Las direcciones directas siguen mostrando la página.
+

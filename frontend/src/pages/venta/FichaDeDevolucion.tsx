@@ -1,14 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router'
 import { claves } from '../../api/consultas'
 import { obtenerDevolucion } from '../../api/ventas'
 import { Registro } from '../../components/Registro'
-import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 
 /** Detalle de una devolución en el registro negro: qué se devolvió y en qué estado. */
-export function FichaDeDevolucion({ id, numero, onCerrar }: { id: number; numero: number; onCerrar: () => void }) {
+export function FichaDeDevolucion({ id, numero, onCerrar, onAbrirComprobante }: { id: number; numero: number; onCerrar: () => void; onAbrirComprobante: () => void }) {
   const devolucion = useQuery({
     queryKey: [...claves.devoluciones, 'detalle', id],
     queryFn: ({ signal }) => obtenerDevolucion(id, signal),
@@ -20,9 +18,9 @@ export function FichaDeDevolucion({ id, numero, onCerrar }: { id: number; numero
       modulo="Devoluciones"
       onCerrar={onCerrar}
       acciones={
-        <Link to={`${DESTINOS.devoluciones.ruta}/${id}`} className="boton">
+        <button type="button" className="boton" onClick={onAbrirComprobante}>
           Abrir el comprobante
-        </Link>
+        </button>
       }
     >
       {devolucion.isPending && <p className="registro__nota">Cargando la devolución…</p>}

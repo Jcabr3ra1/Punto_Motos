@@ -58,7 +58,13 @@ describe('vistas de taller', () => {
 
     const ficha = await screen.findByRole('complementary', { name: 'Liquidación de Carlos Ruiz' })
     await waitFor(() => expect(ficha).toHaveTextContent('Cambio de aceite'))
-    expect(within(ficha).getByRole('link', { name: 'Abrir la hoja' })).toHaveAttribute('href', '/taller/historial/7')
+    // La hoja se abre en una ventana emergente encima del historial, sin salir de la pantalla.
+    await u.click(within(ficha).getByRole('button', { name: 'Abrir la hoja' }))
+    const ventana = await screen.findByRole('dialog', { name: 'Liquidación de Carlos Ruiz' })
+    expect(within(ventana).getByRole('article', { name: 'Hoja de liquidación de Carlos Ruiz' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Historial de liquidaciones' })).toBeInTheDocument()
+    await u.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('mecánicos cuenta solo los activos y Ctrl+N abre uno nuevo', async () => {

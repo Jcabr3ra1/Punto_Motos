@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { claves } from '../../../api/consultas'
@@ -6,6 +6,7 @@ import { desglosarError } from '../../../api/errors'
 import { crearTipoDeServicio, editarTipoDeServicio, listarTiposDeServicio } from '../../../api/taller'
 import type { ServiceType } from '../../../api/types'
 import { AvisoDeError } from '../../../components/AvisoDeError'
+import { BarraDeFiltros } from '../../../components/BarraDeFiltros'
 import { Campo } from '../../../components/Campo'
 import { Casilla } from '../../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
@@ -16,6 +17,9 @@ import { DESTINOS } from '../../../navegacion/destinos'
 import { formatearPesos } from '../../../utilidades/dinero'
 import { PanelLateral } from '../../../components/PanelLateral'
 import { EstadoVacio } from '../../../components/EstadoVacio'
+import { FiltroDeActivos } from '../../../components/FiltroDeActivos'
+import { Paginacion } from '../../../components/Paginacion'
+import { useListaLocal } from '../../../hooks/useListaLocal'
 
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; servicio: ServiceType }
 
@@ -28,6 +32,8 @@ export function TiposDeServicio() {
     queryKey: claves.tiposDeServicio(true),
     queryFn: ({ signal }) => listarTiposDeServicio(true, signal),
   })
+  const { lista, porPagina, busqueda, buscar, estado, filtrarEstado, visibles, enPagina, pagina, paginas, setPagina } =
+    useListaLocal(tipos.data ?? [], (t) => [String(t.code), t.name])
 
   function ir(siguiente: Vista, mensaje: string | null = null) {
     setAviso(mensaje)
@@ -43,7 +49,7 @@ export function TiposDeServicio() {
   )
 
   return (
-    <>
+    <section className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.tiposDeServicio.icono}
         titulo="Tipos de servicio"
@@ -78,52 +84,84 @@ export function TiposDeServicio() {
           {aviso}
         </p>
       )}
-      {tipos.isPending && <Cargando />}
-      {tipos.isError && <ErrorDeCarga error={tipos.error} onReintentar={() => void tipos.refetch()} />}
-      {tipos.isSuccess &&
-        (tipos.data.length === 0 ? (
-          <EstadoVacio icono={DESTINOS.tiposDeServicio.icono} mensaje="Todavía no hay tipos de servicio." />
-        ) : (
-          <div className="tabla-contenedor">
-            <table className="tabla">
-              <caption className="solo-lectores">Tipos de servicio</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Código</th>
-                  <th scope="col">Servicio</th>
-                  <th scope="col" className="tabla__numero">
-                    Mano de obra sugerida
-                  </th>
-                  <th scope="col">Estado</th>
-                  <th scope="col">
-                    <span className="solo-lectores">Acciones</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {tipos.data.map((tipo) => (
-                  <tr key={tipo.id} className={tipo.is_active ? undefined : 'tabla__fila--inactiva'}>
-                    <td>
-                      <span className="tabla__codigo">{tipo.code}</span>
-                    </td>
-                    <th scope="row">
-                      {tipo.name}
-                    </th>
-                    <td className="tabla__numero">{formatearPesos(tipo.suggested_price)}</td>
-                    <td>{tipo.is_active ? 'Activo' : 'Inactivo'}</td>
-                    <td className="tabla__acciones">
-                      <button type="button" className="boton-enlace" aria-label={`Editar ${tipo.name}`} onClick={() => ir({ tipo: 'editar', servicio: tipo })}>
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
+      <BarraDeFiltros
+        busqueda={{ etiqueta: 'Buscar', placeholder: 'Código o nombre', valor: busqueda, onCambiar: buscar }}
+      >
+        <FiltroDeActivos valor={estado} onCambiar={filtrarEstado} />
+        {tipos.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
+            {visibles.length === 1 ? '1 tipo de servicio' : `${visibles.length} tipos de servicio`}
+          </p>
+        )}
+      </BarraDeFiltros>
+
+      {/* Sin detalle por fila: cada registro se edita en el panel lateral. */}
+      <div className="libro libro--sin-registro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de tipos de servicio">
+          {tipos.isPending && <Cargando />}
+          {tipos.isError && <ErrorDeCarga error={tipos.error} onReintentar={() => void tipos.refetch()} />}
+          {tipos.isSuccess &&
+            (visibles.length === 0 ? (
+              <EstadoVacio
+                icono={DESTINOS.tiposDeServicio.icono}
+                mensaje={tipos.data.length === 0 ? 'Todavía no hay tipos de servicio.' : 'Ninguno coincide con los filtros.'}
+              />
+            ) : (
+              <div className="tabla-contenedor">
+                <table className="tabla">
+                  <caption className="solo-lectores">Tipos de servicio</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Código</th>
+                      <th scope="col">Servicio</th>
+                      <th scope="col" className="tabla__numero">
+                        Mano de obra sugerida
+                      </th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">
+                        <span className="solo-lectores">Acciones</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enPagina.map((tipo) => (
+                      <tr key={tipo.id} className={tipo.is_active ? undefined : 'tabla__fila--inactiva'}>
+                        <td>
+                          <span className="tabla__codigo">{tipo.code}</span>
+                        </td>
+                        <th scope="row">
+                          {tipo.name}
+                        </th>
+                        <td className="tabla__numero">{formatearPesos(tipo.suggested_price)}</td>
+                        <td>{tipo.is_active ? 'Activo' : 'Inactivo'}</td>
+                        <td className="tabla__acciones">
+                          <button type="button" className="boton-icono" aria-label={`Editar ${tipo.name}`} title="Editar" onClick={() => ir({ tipo: 'editar', servicio: tipo })}>
+                            <Pencil aria-hidden="true" size={16} strokeWidth={1.75} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          {tipos.isSuccess && (
+            <Paginacion
+              etiqueta="Páginas de tipos de servicio"
+              pagina={pagina}
+              total={visibles.length}
+              tamano={porPagina}
+              hayAnterior={pagina > 1}
+              haySiguiente={pagina < paginas}
+              onCambiar={setPagina}
+              mostrarSiempre
+              textoAnterior="Atrás"
+            />
+          )}
+        </section>
+      </div>
       {panel}
-    </>
+    </section>
   )
 }
 

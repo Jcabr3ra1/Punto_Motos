@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Plus, ReceiptText } from 'lucide-react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import { listarMecanicos } from '../../api/taller'
@@ -22,15 +22,10 @@ import { formatearPesos } from '../../utilidades/dinero'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
+import { VentanaDeRecibo } from './DetalleDeVenta'
 import { FichaDeVenta } from './FichaDeVenta'
 import { useHoy } from '../../hooks/useHoy'
-import { useFilasQueCaben } from '../../hooks/useFilasQueCaben'
-
-/**
- * Medidas del libro para saber cuántas ventas enteras caben en la página: filas de 48px, más la cabecera de la tabla
- * (36px), el pie con Atrás y Siguiente (48px) y los bordes. Sin poder medir, 20 por página.
- */
-const MEDIDAS_DEL_LIBRO = { fila: 48, fijo: 36 + 48 + 2, porDefecto: 20 }
+import { MEDIDAS_DEL_LIBRO, useFilasQueCaben } from '../../hooks/useFilasQueCaben'
 
 const ESTADOS: readonly { valor: 'true' | 'false' | undefined; texto: string }[] = [
   { valor: undefined, texto: 'Todas' },
@@ -99,6 +94,8 @@ export function Ventas() {
     placeholderData: keepPreviousData,
   })
   const seleccion = useSeleccion(ventas.data?.results, (venta) => venta.id)
+  // El recibo se abre en una ventana emergente sobre la lista, sin salir de ella.
+  const [recibo, setRecibo] = useState<{ id: number; numero: number } | null>(null)
   const navegar = useNavigate()
   useAtajo('n', () => navegar(DESTINOS.vender.ruta))
 
@@ -215,9 +212,14 @@ export function Ventas() {
                         onClick={seleccion.alHacerClic(venta)}
                       >
                         <th scope="row">
-                          <Link to={`/venta/historial/${venta.id}`} className="tabla__codigo">
+                          <button
+                            type="button"
+                            className="tabla__codigo"
+                            aria-label={`Ver el recibo de la venta N.º ${venta.number}`}
+                            onClick={() => setRecibo({ id: venta.id, numero: venta.number })}
+                          >
                             N.º {venta.number}
-                          </Link>
+                          </button>
                           {/* «Anulada» y los servicios van debajo del número, en una sola línea, para no correr la fila. */}
                           {(venta.is_voided || venta.services_count > 0) && (
                             <span className="tabla__detalle">
@@ -257,11 +259,17 @@ export function Ventas() {
           )}
         </section>
         {seleccion.elegido ? (
-          <FichaDeVenta id={seleccion.elegido.id} numero={seleccion.elegido.number} onCerrar={seleccion.cerrar} />
+          <FichaDeVenta
+            id={seleccion.elegido.id}
+            numero={seleccion.elegido.number}
+            onCerrar={seleccion.cerrar}
+            onAbrirRecibo={() => seleccion.elegido && setRecibo({ id: seleccion.elegido.id, numero: seleccion.elegido.number })}
+          />
         ) : (
           <RegistroVacio mensaje="Elige una venta para ver su recibo." />
         )}
       </div>
+      {recibo && <VentanaDeRecibo {...recibo} onCerrar={() => setRecibo(null)} />}
     </div>
   )
 }
