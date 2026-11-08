@@ -51,8 +51,8 @@ export function Locales() {
     </PanelLateral>
   )
 
-  // Sin el filtro de búsqueda: la suma de una lista sin paginar es exacta.
-  const todos = useQuery({ queryKey: [...claves.consignacion, 'locales', 'todos'], queryFn: ({ signal }) => listarLocales({}, signal) })
+  // Sin el filtro de búsqueda y con los desactivados (desactivar no borra la deuda): la suma es exacta.
+  const todos = useQuery({ queryKey: [...claves.consignacion, 'locales', 'todos'], queryFn: ({ signal }) => listarLocales({ include_inactive: true }, signal) })
   const deuda = {
     total: (todos.data ?? []).reduce((suma, uno) => suma + uno.balance_due, 0),
     conSaldo: (todos.data ?? []).filter((uno) => uno.balance_due > 0).length,

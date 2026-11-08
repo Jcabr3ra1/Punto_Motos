@@ -16,9 +16,10 @@ import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearNumero } from '../../utilidades/numeros'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearFechaHora } from '../../utilidades/fechas'
 import { SelectorDeLocal } from './SelectorDeLocal'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 // Reportes de los locales (solo el dueño): cuántas unidades vendieron (suben su saldo al valor pactado) y
 // cuántas devolvieron (vuelven al inventario). No se editan ni se borran.
@@ -33,7 +34,7 @@ export function Reportes() {
     queryFn: ({ signal }) => listarReportes(filtros, signal),
     placeholderData: keepPreviousData,
   })
-  const inicioDelMes = `${hoyEnColombia().slice(0, 8)}01`
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
   const delMes = useConteo([...claves.consignacion, 'reportes', 'mes', inicioDelMes], (signal) =>
     listarReportes({ date_from: inicioDelMes, page_size: 1 }, signal),
   )

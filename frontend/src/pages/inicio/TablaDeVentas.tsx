@@ -6,12 +6,12 @@ import { claves } from '../../api/consultas'
 import { listarVentas } from '../../api/ventas'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
-import { hoyEnColombia } from '../../utilidades/fechas'
 import { CADA_MINUTO, horaDe } from './formato'
+import { useHoy } from '../../hooks/useHoy'
 
 /** Las ventas más recientes de hoy, incluidas las anuladas (tachadas). Cada recibo abre la venta. */
 export function TablaDeVentas({ titulo, cuantas, completa }: { titulo: string; cuantas: number; completa: boolean }) {
-  const hoy = hoyEnColombia()
+  const hoy = useHoy()
   const idTitulo = useId()
   const ventas = useQuery({
     queryKey: [...claves.ventas, 'recientes', hoy, cuantas],

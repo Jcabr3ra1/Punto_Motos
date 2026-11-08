@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { claves } from '../api/consultas'
 import { listarVentas } from '../api/ventas'
-import { hoyEnColombia } from '../utilidades/fechas'
+import { useHoy } from './useHoy'
 
 export interface VentasDeHoy {
   cantidad: number
@@ -26,7 +26,7 @@ function horaDe(iso: string): number | null {
  * exacta aunque haya más de 200 ventas.
  */
 export function useVentasDeHoy(cadaCuanto?: number) {
-  const hoy = hoyEnColombia()
+  const hoy = useHoy()
   return useQuery({
     queryKey: [...claves.ventas, 'hoy', hoy],
     refetchInterval: cadaCuanto,

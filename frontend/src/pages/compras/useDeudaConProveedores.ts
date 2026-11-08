@@ -2,11 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { listarProveedores } from '../../api/compras'
 import { claves } from '../../api/consultas'
 
-/** Lo que se les debe a todos los proveedores y a cuántos. La lista no está paginada: la suma es exacta. */
+/**
+ * Lo que se les debe a todos los proveedores y a cuántos, incluidos los desactivados (desactivar no borra la deuda). La
+ * lista no está paginada: la suma es exacta.
+ */
 export function useDeudaConProveedores() {
   const proveedores = useQuery({
     queryKey: [...claves.proveedores, 'todos'],
-    queryFn: ({ signal }) => listarProveedores({}, signal),
+    queryFn: ({ signal }) => listarProveedores({ include_inactive: true }, signal),
   })
   const lista = proveedores.data ?? []
   return {

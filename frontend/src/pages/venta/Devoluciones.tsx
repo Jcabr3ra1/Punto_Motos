@@ -16,10 +16,11 @@ import { useSeleccion } from '../../hooks/useSeleccion'
 import { DESTINOS } from '../../navegacion/destinos'
 import { Titulo } from '../../components/Titulo'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { ComprobanteDeDevolucion } from './ComprobanteDeDevolucion'
 import { FichaDeDevolucion } from './FichaDeDevolucion'
+import { useHoy } from '../../hooks/useHoy'
 
 function leerFiltros(params: URLSearchParams): FiltrosDeDevoluciones {
   const numero = Number(params.get('number'))
@@ -58,7 +59,7 @@ export function Devoluciones() {
   })
   const hayFiltros = Boolean(filtros.number || filtros.sale || filtros.cause || filtros.date_from || filtros.date_to)
   const seleccion = useSeleccion(devoluciones.data?.results, (devolucion) => devolucion.id)
-  const hoy = hoyEnColombia()
+  const hoy = useHoy()
   const deHoy = useConteo([...claves.devoluciones, 'hoy', hoy], (signal) =>
     listarDevoluciones({ date_from: hoy, date_to: hoy, page_size: 1 }, signal),
   )

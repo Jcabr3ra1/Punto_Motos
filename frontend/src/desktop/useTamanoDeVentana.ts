@@ -33,11 +33,18 @@ async function achicar() {
  */
 export function useTamanoDeVentana(conSesion: boolean) {
   const anterior = useRef<boolean | null>(null)
+  // Los cambios van en fila: si se cierra la sesión mientras la ventana todavía crece, el cierre espera a que termine
+  // y queda de último. Cada paso aplica la fase vigente en ese momento, así nunca gana una fase vieja.
+  const fila = useRef<Promise<void>>(Promise.resolve())
+  const fase = useRef(conSesion)
   useEffect(() => {
     const primeraVez = anterior.current === null
     anterior.current = conSesion
+    fase.current = conSesion
     if (!isTauri() || (primeraVez && !conSesion)) return
-    // Un fallo al cambiar el tamaño no debe impedir trabajar: la ventana se puede ajustar a mano.
-    void (conSesion ? agrandar() : achicar()).catch(() => {})
+    fila.current = fila.current
+      .then(() => (fase.current === conSesion ? (conSesion ? agrandar() : achicar()) : undefined))
+      // Un fallo al cambiar el tamaño no debe impedir trabajar: la ventana se puede ajustar a mano.
+      .catch(() => {})
   }, [conSesion])
 }

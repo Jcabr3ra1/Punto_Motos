@@ -17,12 +17,13 @@ import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
-import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearPesos } from '../../utilidades/dinero'
 import { formatearConSigno, formatearNumero } from '../../utilidades/numeros'
 import { ConsumoDelTaller } from './ConsumoDelTaller'
 import { FormularioDeAjuste } from './FormularioDeAjuste'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 const TIPOS: readonly { valor: '' | MovementKind; texto: string }[] = [
   { valor: '', texto: 'Todos los tipos' },
@@ -81,7 +82,7 @@ export function Movimientos() {
   })
 
   const hayFiltros = Boolean(filtros.product || filtros.kind || filtros.date_from || filtros.date_to)
-  const hoy = hoyEnColombia()
+  const hoy = useHoy()
   const deHoy = useConteo([...claves.movimientos, 'hoy', hoy], (signal) =>
     listarMovimientos({ date_from: hoy, date_to: hoy, page_size: 1 }, signal),
   )

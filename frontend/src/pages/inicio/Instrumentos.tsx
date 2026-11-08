@@ -10,9 +10,9 @@ import { useCajaActual } from '../../hooks/useCajaActual'
 import { useVentasDeHoy } from '../../hooks/useVentasDeHoy'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
-import { hoyEnColombia } from '../../utilidades/fechas'
 import { Cargando, Instrumento, NoSePudoCargar } from './comun'
 import { CADA_MINUTO, horaDe } from './formato'
+import { useHoy } from '../../hooks/useHoy'
 
 const plural = (n: number, una: string, varias: string) => `${n} ${n === 1 ? una : varias}`
 
@@ -110,7 +110,7 @@ function horaLegible(hora: number): string {
 
 /** Lo que hay que pagarles hoy a los mecánicos. */
 export function MecanicosHoy() {
-  const hoy = hoyEnColombia()
+  const hoy = useHoy()
   const dia = useQuery({
     queryKey: [...claves.liquidaciones, 'dia', hoy],
     queryFn: ({ signal }) => consultarLiquidacionDelDia(hoy, signal),
@@ -142,12 +142,12 @@ export function MecanicosHoy() {
 export function Cuentas() {
   const proveedores = useQuery({
     queryKey: [...claves.proveedores, 'con-deuda'],
-    queryFn: ({ signal }) => listarProveedores({ with_debt: true }, signal),
+    queryFn: ({ signal }) => listarProveedores({ with_debt: true, include_inactive: true }, signal),
     refetchInterval: CADA_MINUTO,
   })
   const locales = useQuery({
     queryKey: [...claves.consignacion, 'locales', 'con-deuda'],
-    queryFn: ({ signal }) => listarLocales({ with_debt: true }, signal),
+    queryFn: ({ signal }) => listarLocales({ with_debt: true, include_inactive: true }, signal),
     refetchInterval: CADA_MINUTO,
   })
   const fila = (rotulo: string, consulta: typeof proveedores | typeof locales) => (

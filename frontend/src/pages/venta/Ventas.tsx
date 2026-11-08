@@ -17,9 +17,10 @@ import { useSeleccion } from '../../hooks/useSeleccion'
 import { useVentasDeHoy } from '../../hooks/useVentasDeHoy'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { FichaDeVenta } from './FichaDeVenta'
+import { useHoy } from '../../hooks/useHoy'
 
 function leerFiltros(params: URLSearchParams): FiltrosDeVentas {
   const numero = Number(params.get('number'))
@@ -62,7 +63,7 @@ export function Ventas() {
   const navegar = useNavigate()
   useAtajo('n', () => navegar(DESTINOS.vender.ruta))
 
-  const hoy = hoyEnColombia()
+  const hoy = useHoy()
   const deHoy = useVentasDeHoy()
   const anuladas = useConteo([...claves.ventas, 'anuladas', hoy], (signal) =>
     listarVentas({ date_from: hoy, date_to: hoy, voided: true, page_size: 1 }, signal),

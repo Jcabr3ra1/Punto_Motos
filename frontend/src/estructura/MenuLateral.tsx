@@ -44,9 +44,12 @@ export function MenuLateral({ rol, conteoAbierto, recogido, onAlternar }: Props)
   // Al salir con el ratón se espera un instante: así, al ir en diagonal hacia la ventanita, no se cierra en el camino.
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const cancelarCierre = () => clearTimeout(temporizador.current)
-  const cerrarConPausa = () => {
+  // Si el foco del teclado sigue dentro (botón o ventanita), el ratón no la cierra: se perdería el foco.
+  const cerrarConPausa = (grupo: HTMLElement) => {
     cancelarCierre()
-    temporizador.current = setTimeout(() => setFlotante(null), PAUSA_AL_SALIR)
+    temporizador.current = setTimeout(() => {
+      if (!grupo.contains(document.activeElement)) setFlotante(null)
+    }, PAUSA_AL_SALIR)
   }
   useEffect(() => cancelarCierre, [])
 
@@ -80,7 +83,7 @@ export function MenuLateral({ rol, conteoAbierto, recogido, onAlternar }: Props)
           cancelarCierre()
           mostrar(modulo.ruta, evento.currentTarget, pantallas.length)
         }}
-        onMouseLeave={cerrarConPausa}
+        onMouseLeave={(evento) => cerrarConPausa(evento.currentTarget)}
         onFocus={(evento) => mostrar(modulo.ruta, evento.currentTarget, pantallas.length)}
         onBlur={alSalirElFoco}
         onKeyDown={(evento) => {

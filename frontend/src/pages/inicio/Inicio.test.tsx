@@ -108,6 +108,15 @@ describe('inicio del dueño', () => {
     expect(api.llamadas.filter((l) => l.clave.startsWith('GET /sales?') && l.clave.includes('voided=false'))).toHaveLength(3)
   })
 
+  it('las cuentas incluyen lo que deben proveedores y locales desactivados', async () => {
+    const api = abrir(dueno)
+
+    await instrumento('Cuentas')
+    await waitFor(() => expect(api.llamadas.some((l) => l.clave.startsWith('GET /suppliers'))).toBe(true))
+    const pedidas = api.llamadas.map((l) => l.clave).filter((c) => c.startsWith('GET /suppliers') || c.startsWith('GET /consignees'))
+    expect(pedidas.every((c) => c.includes('include_inactive=true'))).toBe(true)
+  })
+
   it('si un dato falla, solo su recuadro muestra el error', async () => {
     abrir(dueno, { 'GET /suppliers*': () => errorDeApi(500, 'server_error', 'Falló.') })
 

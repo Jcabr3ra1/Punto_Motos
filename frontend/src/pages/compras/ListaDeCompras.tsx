@@ -14,10 +14,11 @@ import { useAtajo } from '../../hooks/useAtajo'
 import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { ESTADO_DE_PAGO } from './etiquetas'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 const ESTADOS = [
   { valor: '', texto: 'Todas' },
@@ -77,7 +78,7 @@ export function ListaDeCompras() {
   useAtajo('n', () => navegar('/compras/lista/nueva'))
 
   // Cifras exactas: el total de cada consulta. El mes empieza el día 1 en hora de Colombia.
-  const inicioDelMes = `${hoyEnColombia().slice(0, 8)}01`
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
   const borradores = useConteo([...claves.compras, 'borradores'], (signal) => listarCompras({ status: 'draft', page_size: 1 }, signal))
   const recibidas = useConteo([...claves.compras, 'recibidas', inicioDelMes], (signal) =>
     listarCompras({ status: 'received', date_from: inicioDelMes, page_size: 1 }, signal),

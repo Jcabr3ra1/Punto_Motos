@@ -14,11 +14,12 @@ import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearDia, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearDia } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { useDeudaConProveedores } from './useDeudaConProveedores'
 import { FormularioDeAbono } from './FormularioDeAbono'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 function leerFiltros(params: URLSearchParams): FiltrosDeAbonos {
   const proveedor = Number(params.get('supplier'))
@@ -59,7 +60,7 @@ export function Abonos() {
   })
 
   const hayFiltros = Boolean(filtros.supplier || filtros.date_from || filtros.date_to)
-  const inicioDelMes = `${hoyEnColombia().slice(0, 8)}01`
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
   const delMes = useConteo([...claves.abonos, 'mes', inicioDelMes], (signal) =>
     listarAbonos({ date_from: inicioDelMes, page_size: 1 }, signal),
   )

@@ -209,5 +209,17 @@ describe('menú recogido', () => {
 
     expect(screen.getByRole('group', { name: 'Caja' })).toBeInTheDocument()
   })
-})
 
+  it('sacar el ratón no cierra la ventanita si el foco del teclado está dentro', async () => {
+    mostrarRutas(dueno)
+    const u = userEvent.setup()
+    await u.hover(seccion('Compras'))
+    within(screen.getByRole('group', { name: 'Compras' })).getByRole('link', { name: 'Proveedores' }).focus()
+
+    await u.unhover(seccion('Compras'))
+    await new Promise((listo) => setTimeout(listo, 200))
+
+    expect(screen.getByRole('group', { name: 'Compras' })).toBeInTheDocument()
+    expect(within(screen.getByRole('group', { name: 'Compras' })).getByRole('link', { name: 'Proveedores' })).toHaveFocus()
+  })
+})

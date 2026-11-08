@@ -16,11 +16,12 @@ import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearNumero } from '../../utilidades/numeros'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearFechaHora } from '../../utilidades/fechas'
 import { MedioDePago } from '../compras/MedioDePago'
 import { SelectorDeLocal } from './SelectorDeLocal'
 import { PanelLateral } from '../../components/PanelLateral'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 // Pagos de los locales (solo el dueño): pagan por partes, cada pago baja su saldo y entra a la caja abierta.
 export function PagosDeLocales() {
@@ -35,7 +36,7 @@ export function PagosDeLocales() {
     placeholderData: keepPreviousData,
   })
 
-  const inicioDelMes = `${hoyEnColombia().slice(0, 8)}01`
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
   const delMes = useConteo([...claves.consignacion, 'pagos', 'mes', inicioDelMes], (signal) =>
     listarPagosDeLocales({ date_from: inicioDelMes, page_size: 1 }, signal),
   )

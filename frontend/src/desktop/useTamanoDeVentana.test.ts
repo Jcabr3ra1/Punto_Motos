@@ -60,4 +60,23 @@ describe('useTamanoDeVentana', () => {
     await new Promise((listo) => setTimeout(listo, 10))
     expect(llamadas).toEqual([])
   })
+
+  it('si la sesión se cierra mientras la ventana crece, termina pequeña', async () => {
+    let soltar!: () => void
+    ventana.setResizable.mockImplementationOnce(async (v: boolean) => {
+      llamadas.push(`resizable:${v}`)
+      await new Promise<void>((listo) => (soltar = listo))
+    })
+    const { rerender } = renderHook(({ conSesion }) => useTamanoDeVentana(conSesion), { initialProps: { conSesion: true } })
+    await waitFor(() => expect(llamadas).toContain('resizable:true'))
+
+    rerender({ conSesion: false })
+    soltar()
+
+    await waitFor(() => expect(llamadas.at(-1)).toBe('centrar'))
+    await new Promise((listo) => setTimeout(listo, 10))
+    const ultimoTamano = llamadas.filter((l) => l.startsWith('tam:')).at(-1)
+    expect(ultimoTamano).toBe('tam:760x500')
+    expect(llamadas.filter((l) => l.startsWith('resizable:')).at(-1)).toBe('resizable:false')
+  })
 })

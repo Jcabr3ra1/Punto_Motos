@@ -19,9 +19,10 @@ import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearNumero } from '../../utilidades/numeros'
 import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora, hoyEnColombia } from '../../utilidades/fechas'
+import { formatearFechaHora } from '../../utilidades/fechas'
 import { SelectorDeLocal } from './SelectorDeLocal'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { useHoy } from '../../hooks/useHoy'
 
 // Entregas en consignación (solo el dueño): las unidades salen del inventario hacia otro local, con un valor
 // pactado por unidad (por defecto el costo). No se editan ni se borran.
@@ -36,7 +37,7 @@ export function Entregas() {
     queryFn: ({ signal }) => listarEntregas(filtros, signal),
     placeholderData: keepPreviousData,
   })
-  const inicioDelMes = `${hoyEnColombia().slice(0, 8)}01`
+  const inicioDelMes = `${useHoy().slice(0, 8)}01`
   const delMes = useConteo([...claves.consignacion, 'entregas', 'mes', inicioDelMes], (signal) =>
     listarEntregas({ date_from: inicioDelMes, page_size: 1 }, signal),
   )
