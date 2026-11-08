@@ -16,3 +16,11 @@ export function horaDe(iso: string): string {
   const fecha = new Date(iso)
   return Number.isNaN(fecha.getTime()) ? '' : formatoDeHora.format(fecha)
 }
+
+/** «8 a. m.», «12 p. m.», «6 p. m.». */
+export function horaLegible(hora: number): string {
+  const doce = hora % 12 === 0 ? 12 : hora % 12
+  return `${doce} ${hora < 12 ? 'a. m.' : 'p. m.'}`
+}
+
+export const plural = (n: number, una: string, varias: string) => `${n} ${n === 1 ? una : varias}`
