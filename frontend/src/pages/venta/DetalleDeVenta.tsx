@@ -95,7 +95,7 @@ function useReciboConAcciones(id: number) {
             }}
           >
             <Undo2 aria-hidden="true" size={16} />
-            Devolver…
+            Devolver
           </button>
         )}
         {esDueno && (
@@ -108,7 +108,7 @@ function useReciboConAcciones(id: number) {
             }}
           >
             <Ban aria-hidden="true" size={16} />
-            Anular venta…
+            Anular venta
           </button>
         )}
       </>

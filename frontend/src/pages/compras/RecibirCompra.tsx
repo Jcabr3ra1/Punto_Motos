@@ -68,7 +68,7 @@ export function RecibirCompra({ compra, hayCambios, onRecibida, onYaRecibida }: 
             disabled={hayCambios || sinProductos}
             onClick={() => setConfirmando(true)}
           >
-            Recibir compra…
+            Recibir compra
           </button>
           {(hayCambios || sinProductos) && (
             <p className="campo__ayuda">

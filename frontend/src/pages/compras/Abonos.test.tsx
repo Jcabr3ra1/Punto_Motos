@@ -40,9 +40,13 @@ describe('lista de abonos', () => {
     await screen.findByRole('table')
 
     await u.selectOptions(screen.getByLabelText('Proveedor'), 'Distribuidora Andina')
-    fireEvent.change(screen.getByLabelText('Pagados desde'), { target: { value: '2026-11-01' } })
+    // Las fechas son las del pago: se eligen con el botón «Fechas».
+    await u.click(screen.getByRole('button', { name: 'Fechas' }))
+    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-11-01' } })
 
-    await waitFor(() => expect(llamadas(api, 'GET /supplier-payments')).toContain('GET /supplier-payments?supplier=1&date_from=2026-11-01'))
+    await waitFor(() =>
+      expect(llamadas(api, 'GET /supplier-payments')).toContain('GET /supplier-payments?supplier=1&date_from=2026-11-01&page_size=20'),
+    )
   })
 })
 

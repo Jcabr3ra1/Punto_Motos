@@ -180,7 +180,7 @@ export function LiquidacionDelDia() {
                               setPagando(fila)
                             }}
                           >
-                            Pagar…
+                            Pagar
                           </button>
                         </td>
                       </tr>
@@ -300,7 +300,7 @@ export function LiquidacionDelDia() {
               </p>
               <p className="registro__nota">
                 {dia.data && dia.data.mechanics.length > 0
-                  ? `${dia.data.mechanics.length === 1 ? '1 mecánico' : `${dia.data.mechanics.length} mecánicos`} · ${serviciosDelDia === 1 ? '1 servicio' : `${serviciosDelDia} servicios`}. Pulsa «Pagar…» en un mecánico para liquidarlo.`
+                  ? `${dia.data.mechanics.length === 1 ? '1 mecánico' : `${dia.data.mechanics.length} mecánicos`} · ${serviciosDelDia === 1 ? '1 servicio' : `${serviciosDelDia} servicios`}. Pulsa «Pagar» en un mecánico para liquidarlo.`
                   : 'Nada por pagar ese día.'}
               </p>
               {cajaCerrada && <p className="registro__alerta">La caja está cerrada: ábrela para poder pagar.</p>}

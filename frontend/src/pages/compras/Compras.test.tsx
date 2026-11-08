@@ -63,12 +63,28 @@ describe('lista de compras', () => {
     await screen.findByRole('table')
 
     await u.selectOptions(screen.getByLabelText('Proveedor'), 'Distribuidora Andina')
-    await u.selectOptions(screen.getByLabelText('Estado'), 'Recibidas')
+    await u.click(screen.getByRole('button', { name: 'Recibidas' }))
     await u.selectOptions(screen.getByLabelText('Pago'), 'Con saldo')
 
     await waitFor(() =>
-      expect(llamadas(api, 'GET /purchases')).toContain('GET /purchases?supplier=1&status=received&payment_status=pending%2Cpartial'),
+      expect(llamadas(api, 'GET /purchases')).toContain('GET /purchases?supplier=1&status=received&payment_status=pending%2Cpartial&page_size=20'),
     )
+  })
+
+  it('el registro muestra la compra elegida y «Abrir la compra» la abre en el panel sobre la lista', async () => {
+    simular({ 'GET /purchases/15': () => ({ cuerpo: recibida }) })
+    mostrarRutas(dueno, '/compras/lista')
+    const u = userEvent.setup()
+    expect(await screen.findByText('Elige una compra para ver su resumen.')).toBeInTheDocument()
+
+    await u.click(within(await screen.findByRole('table', { name: 'Compras' })).getAllByText('Distribuidora Andina')[0])
+    const registro = await screen.findByRole('complementary', { name: 'FV-1020' })
+    await waitFor(() => expect(registro).toHaveTextContent('5 × Pastillas de freno Pulsar 180'))
+    await u.click(within(registro).getByRole('link', { name: 'Abrir la compra' }))
+
+    const panel = await screen.findByRole('dialog', { name: /Compra FV-1020/ })
+    expect(await within(panel).findByLabelText('Resumen de la compra')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Compras' })).toBeInTheDocument()
   })
 
   it('el dueño ve Compras en el menú con sus tres pestañas', async () => {
@@ -166,13 +182,13 @@ describe('borrador guardado', () => {
       'PATCH /purchases/20': () => ({ cuerpo: borrador({ items: [{ ...borrador().items[0], quantity: 4, subtotal: 80000 }], total: 80000 }) }),
     })
     const cantidad = await screen.findByLabelText('Cantidad de Pastillas de freno Pulsar 180')
-    expect(screen.getByRole('button', { name: 'Recibir compra…' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Recibir compra' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled()
 
     await u.clear(cantidad)
     await u.type(cantidad, '4')
 
-    expect(screen.getByRole('button', { name: 'Recibir compra…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Recibir compra' })).toBeDisabled()
     expect(screen.getByText('Guarda los cambios antes de recibir: se recibe lo que está guardado.')).toBeInTheDocument()
 
     await u.click(screen.getByRole('button', { name: 'Guardar cambios' }))
@@ -185,7 +201,7 @@ describe('borrador guardado', () => {
   it('un borrador sin productos no se puede recibir', async () => {
     abrirBorrador({}, borrador({ items: [], total: 0, items_count: 0 }))
 
-    expect(await screen.findByRole('button', { name: 'Recibir compra…' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Recibir compra' })).toBeDisabled()
     expect(screen.getByText('Agrega productos y guarda el borrador antes de recibir.')).toBeInTheDocument()
   })
 
@@ -231,7 +247,7 @@ describe('borrador guardado', () => {
       },
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Recibir compra…' }))
+    await u.click(await screen.findByRole('button', { name: 'Recibir compra' }))
     const confirmacion = screen.getByRole('group', { name: '¿Recibir la compra?' })
     expect(confirmacion).toHaveTextContent(/1 producto al inventario, por un total de \$\s?60\.000/)
     expect(within(confirmacion).getByRole('button', { name: 'Volver' })).toHaveFocus()
@@ -249,7 +265,7 @@ describe('borrador guardado', () => {
   it('sin abono envía el cuerpo vacío', async () => {
     const { api, u } = abrirBorrador({ 'POST /purchases/20/receive': () => ({ cuerpo: { ...recibida, price_changes: [] } }) })
 
-    await u.click(await screen.findByRole('button', { name: 'Recibir compra…' }))
+    await u.click(await screen.findByRole('button', { name: 'Recibir compra' }))
     await u.click(screen.getByRole('button', { name: 'Sí, recibir la compra' }))
 
     await screen.findByText(/Compra recibida/)
@@ -264,7 +280,7 @@ describe('borrador guardado', () => {
         }),
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Recibir compra…' }))
+    await u.click(await screen.findByRole('button', { name: 'Recibir compra' }))
     await u.click(screen.getByLabelText('Entregar un abono con la mercancía'))
     await u.type(screen.getByLabelText('Valor del abono'), '90000')
     await u.click(screen.getByRole('button', { name: 'Sí, recibir la compra' }))
@@ -280,7 +296,7 @@ describe('borrador guardado', () => {
       'POST /purchases/20/receive': () => new Promise<Respuesta>((r) => (terminar = r)),
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Recibir compra…' }))
+    await u.click(await screen.findByRole('button', { name: 'Recibir compra' }))
     const boton = screen.getByRole('button', { name: 'Sí, recibir la compra' })
     await u.dblClick(boton)
     await u.click(boton)
@@ -300,7 +316,7 @@ describe('borrador guardado', () => {
       },
     })
 
-    await u.click(await screen.findByRole('button', { name: 'Recibir compra…' }))
+    await u.click(await screen.findByRole('button', { name: 'Recibir compra' }))
     await u.click(screen.getByRole('button', { name: 'Sí, recibir la compra' }))
 
     expect(await screen.findByText('La compra ya se recibió: no se puede modificar.')).toBeInTheDocument()
