@@ -125,80 +125,20 @@ summary {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
   min-width: 0;
   padding: 28px 32px;
   overflow: hidden;
   color: var(--marco-texto);
 }
 
-.acceso__decoracion {
-  position: absolute;
-  inset: 0;
-}
-
-/* El piñón del logo, grande y cortado por la esquina, con un degradado hacia negro donde va el texto. */
+/* El logo completo y centrado; ya trae sus propias líneas de velocidad. */
 .acceso__pinon {
-  position: absolute;
-  top: -110px;
-  left: -120px;
-  width: 430px;
+  display: block;
+  width: 240px;
   height: auto;
-  opacity: 0.9;
-}
-
-.acceso__decoracion::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgb(11 11 12 / 0) 30%, var(--marco) 78%);
-}
-
-.acceso__velocidad {
-  position: absolute;
-  right: 12%;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, var(--color-marca));
-  opacity: 0.85;
-  animation: acceso-velocidad 360ms ease-out both;
-}
-
-.acceso__velocidad--1 {
-  top: 130px;
-  width: 46%;
-}
-
-.acceso__velocidad--2 {
-  top: 154px;
-  width: 62%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #8f8f8c);
-  animation-delay: 40ms;
-}
-
-.acceso__velocidad--3 {
-  top: 178px;
-  width: 38%;
-  animation-delay: 80ms;
-}
-
-.acceso__velocidad--4 {
-  top: 202px;
-  width: 54%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #8f8f8c);
-  animation-delay: 120ms;
-}
-
-@keyframes acceso-velocidad {
-  from {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-}
-
-.acceso__lema {
-  position: relative;
 }
 
 .acceso__titular {
@@ -210,17 +150,12 @@ summary {
   color: #ffffff;
 }
 
-.acceso__titular em {
-  display: block;
-  font-style: normal;
-  color: var(--color-marca);
-}
-
-.acceso__frase {
-  max-width: 280px;
-  margin: 8px 0 0;
-  line-height: 1.45;
-  color: #a6a6a3;
+/* El estado de la conexión, discreto al pie del arte. */
+.acceso__arte > .acceso__estado {
+  position: absolute;
+  bottom: 24px;
+  left: 32px;
+  margin: 0;
 }
 
 .acceso__estado {
@@ -1421,12 +1356,6 @@ kbd {
 
 .campo-con-boton__boton:hover {
   color: var(--color-texto);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .acceso__velocidad {
-    animation: none;
-  }
 }
 
 /* Compras */
