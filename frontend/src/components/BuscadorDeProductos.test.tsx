@@ -117,6 +117,27 @@ describe('elegir con el teclado', () => {
     expect(screen.queryByRole('option')).not.toBeInTheDocument()
   })
 
+  it('Ctrl+Enter no elige ni envía el formulario que contiene el buscador', async () => {
+    const enviar = vi.fn((evento: Event) => evento.preventDefault())
+    simularApi({ 'GET /catalog/search*': () => ({ cuerpo: [pastillas] }) })
+    const alElegir = vi.fn()
+    render(
+      <QueryClientProvider client={crearClienteDeConsultas()}>
+        <form onSubmit={(e) => enviar(e.nativeEvent)}>
+          <BuscadorDeProductos onElegir={alElegir} />
+        </form>
+      </QueryClientProvider>,
+    )
+    const u = userEvent.setup()
+    await u.type(await screen.findByRole('combobox', { name: 'Buscar producto' }), 'pas')
+    await screen.findByRole('option', { name: /FRE-PUL-PAS/ })
+
+    await u.keyboard('{Control>}{Enter}{/Control}')
+
+    expect(alElegir).not.toHaveBeenCalled()
+    expect(enviar).not.toHaveBeenCalled()
+  })
+
   it('las flechas se mueven entre los productos que se pueden elegir', async () => {
     const { u, buscador, alElegir } = await abrir()
 

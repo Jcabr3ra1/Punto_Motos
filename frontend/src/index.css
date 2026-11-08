@@ -3870,3 +3870,99 @@ kbd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Venta registrada: ventana centrada sobre Vender, con el vuelto grande y el recibo. */
+.ventana-de-venta {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+}
+
+.ventana-de-venta__cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-4) var(--esp-5) var(--esp-3);
+}
+
+.ventana-de-venta__icono {
+  flex-shrink: 0;
+  color: var(--color-exito);
+}
+
+.ventana-de-venta__resumen {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-secundario);
+}
+
+.ventana-de-venta__vuelto {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 var(--esp-5) var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  color: var(--marco-texto);
+  background: var(--marco);
+  border-left: 3px solid var(--color-marca);
+}
+
+.ventana-de-venta__vuelto span {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.ventana-de-venta__vuelto strong {
+  font-size: 32px;
+  line-height: 40px;
+  color: var(--color-marca);
+  font-variant-numeric: tabular-nums;
+}
+
+.ventana-de-venta__recibo {
+  min-height: 0;
+  padding: 0 var(--esp-5);
+  overflow-y: auto;
+}
+
+.ventana-de-venta .dialogo__acciones {
+  padding: var(--esp-4) var(--esp-5);
+}
+
+.ventana-de-venta__recibo .recibo {
+  max-width: none;
+  margin: 0;
+}
+
+/* Cliente elegido o nuevo, dentro de la caja negra. */
+.venta__cobro .filtro-de-producto__etiqueta {
+  margin-bottom: var(--esp-1);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--marco-texto-suave);
+}
+
+.venta__cobro .filtro-de-producto {
+  min-height: 44px;
+  color: #ffffff;
+  background: var(--marco-elevado);
+  border-color: #3a3b3e;
+}
+
+.venta__cobro .filtro-de-producto .tabla__detalle {
+  color: var(--marco-texto-suave);
+}
+
+.venta__cobro .boton-enlace {
+  color: var(--color-marca);
+}
+
+.venta__cobro .conjunto legend {
+  margin-bottom: var(--esp-2);
+}

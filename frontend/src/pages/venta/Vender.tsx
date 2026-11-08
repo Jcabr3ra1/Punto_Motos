@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { isApiError } from '../../api/client'
 import { claves } from '../../api/consultas'
@@ -13,14 +13,13 @@ import { AvisoDeError } from '../../components/AvisoDeError'
 import { BuscadorDeProductos, type OpcionAdicional } from '../../components/BuscadorDeProductos'
 import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
-import { Titulo } from '../../components/Titulo'
 import { hayVentanaAbierta } from '../../components/useFocoAtrapado'
 import { useAtajo } from '../../hooks/useAtajo'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { formatearPesos } from '../../utilidades/dinero'
 import { useConteoInicial } from '../inventario/useConteoInicial'
-import { Recibo } from './Recibo'
 import { SelectorDeCliente, type ClienteElegido } from './SelectorDeCliente'
+import { VentanaDeVenta } from './VentanaDeVenta'
 
 /**
  * Cómo paga el cliente. El backend solo distingue efectivo y transferencia: la transferencia bancaria y Nequi
@@ -259,23 +258,12 @@ export function Vender() {
     return () => window.removeEventListener('keydown', alTeclear)
   }, [vendida])
 
-  if (vendida) {
-    return (
-      <>
-        <Titulo nivel={2}>Venta registrada</Titulo>
-        <p role="status" className="aviso aviso--exito">
-          Venta n.º {vendida.venta.number} registrada por {formatearPesos(vendida.venta.total)}.
-          {vendida.vuelto > 0 && ` Vuelto: ${formatearPesos(vendida.vuelto)}.`}
-        </p>
-        <Recibo venta={vendida.venta} vuelto={vendida.vuelto} />
-        <div className="acciones">
-          <button type="button" className="boton boton--auto" onClick={nuevaVenta} autoFocus>
-            Nueva venta
-          </button>
-        </div>
-      </>
-    )
-  }
+  // Al cerrar la ventana de la venta registrada, el foco vuelve al buscador para atender al siguiente cliente.
+  const habiaVenta = useRef(false)
+  useEffect(() => {
+    if (habiaVenta.current && !vendida) document.querySelector<HTMLInputElement>('.venta__buscador input')?.focus()
+    habiaVenta.current = vendida !== null
+  }, [vendida])
 
   const unidades = lineas.reduce((suma, l) => suma + l.cantidad, 0)
   const resumen = [
@@ -611,10 +599,9 @@ export function Vender() {
                 inputMode="numeric"
                 min={0}
                 step={1}
-                value={transferencia === '' ? '' : String(enEfectivo)}
-                onChange={(e) =>
-                  setTransferencia(e.target.value === '' ? '' : String(Math.max(0, total - (Number(e.target.value) || 0))))
-                }
+                // Siempre la cifra real: sin repartir todavía, todo va en efectivo.
+                value={String(enEfectivo)}
+                onChange={(e) => setTransferencia(String(Math.max(0, total - (Number(e.target.value) || 0))))}
               />
               <Campo
                 etiqueta={canal === 'nequi' ? 'Valor por Nequi' : 'Valor por transferencia'}
@@ -681,6 +668,7 @@ export function Vender() {
         {!bloqueada && faltaMecanico && <p className="campo__ayuda">Elige el mecánico de cada servicio para cobrar.</p>}
         <p className="campo__ayuda">El total es orientativo: el programa confirma los precios al cobrar.</p>
       </section>
+      {vendida && <VentanaDeVenta venta={vendida.venta} vuelto={vendida.vuelto} onNuevaVenta={nuevaVenta} />}
     </form>
   )
 }

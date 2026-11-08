@@ -113,6 +113,7 @@ describe('punto de venta', () => {
     await agregarPastillas(u)
     await u.click(screen.getByLabelText('Mixto'))
 
+    await u.clear(screen.getByLabelText('En efectivo'))
     await u.type(screen.getByLabelText('En efectivo'), '10000')
     expect(screen.getByLabelText('Valor por transferencia')).toHaveValue(15000)
 
@@ -139,5 +140,35 @@ describe('punto de venta', () => {
     await screen.findByRole('heading', { name: 'Venta registrada' })
     const [enviada] = api.llamadas.filter((l) => l.clave === 'POST /sales').map((l) => l.cuerpo as { items: { quantity: number }[] })
     expect(enviada.items).toEqual([{ product: 1, quantity: 1 }])
+  })
+
+  it('al elegir mixto, el efectivo muestra el total hasta que se reparta', async () => {
+    const { u } = abrir()
+    await agregarPastillas(u)
+
+    await u.click(screen.getByLabelText('Mixto'))
+
+    expect(screen.getByLabelText('En efectivo')).toHaveValue(25000)
+    await u.clear(screen.getByLabelText('En efectivo'))
+    expect(screen.getByLabelText('Valor por transferencia')).toHaveValue(25000)
+  })
+
+  it('al cobrar, la venta registrada sale en una ventana sobre Vender y Nueva venta deja todo listo', async () => {
+    const { u } = abrir(vendedor, { 'POST /sales': () => ({ estado: 201, cuerpo: venta({ total: 25000 }) }) })
+    await agregarPastillas(u)
+    await u.click(screen.getByRole('button', { name: /^\$\s?50\.000$/ }))
+
+    await u.click(screen.getByRole('button', { name: /^Cobrar/ }))
+
+    const ventana = await screen.findByRole('dialog', { name: 'Venta registrada' })
+    expect(within(ventana).getByRole('article', { name: 'Recibo n.º 41' })).toBeInTheDocument()
+    expect(within(ventana).getByRole('status')).toHaveTextContent(/Vuelto: \$\s?25\.000/)
+    expect(screen.getByRole('region', { name: 'Productos de la venta' })).toBeInTheDocument()
+
+    await u.click(within(ventana).getByRole('button', { name: 'Nueva venta' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Venta registrada' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Cantidad de Pastillas de freno Pulsar 180')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Buscar producto o servicio' })).toHaveFocus()
   })
 })
