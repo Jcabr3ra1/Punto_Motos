@@ -9,6 +9,7 @@ import type { InitialCountStatus } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Titulo } from '../../components/Titulo'
+import { DESTINOS } from '../../navegacion/destinos'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { FormularioDeProducto } from '../productos/FormularioDeProducto'
@@ -22,7 +23,7 @@ export function InventarioInicial() {
   if (conteo.isPending) {
     return (
       <section>
-        <Titulo>Inventario inicial</Titulo>
+        <Titulo nivel={2}>Inventario inicial</Titulo>
         <Cargando />
       </section>
     )
@@ -30,7 +31,7 @@ export function InventarioInicial() {
   if (conteo.isError) {
     return (
       <section>
-        <Titulo>Inventario inicial</Titulo>
+        <Titulo nivel={2}>Inventario inicial</Titulo>
         <ErrorDeCarga error={conteo.error} onReintentar={() => void conteo.refetch()} />
       </section>
     )
@@ -45,7 +46,7 @@ function ConteoAbierto({ estado }: { estado: InitialCountStatus }) {
 
   return (
     <section>
-      <Titulo>Inventario inicial</Titulo>
+      <Titulo nivel={2}>Inventario inicial</Titulo>
       <p className="texto-suave">
         Cuenta todo lo que hay en el negocio y cárgalo producto por producto. Mientras el conteo esté abierto no se debe
         vender.
@@ -66,7 +67,7 @@ function ConteoAbierto({ estado }: { estado: InitialCountStatus }) {
           {aviso}
         </p>
       )}
-      <Titulo nivel={2}>Cargar un producto</Titulo>
+      <Titulo nivel={3}>Cargar un producto</Titulo>
       <p className="texto-suave">Solo para productos nuevos. Si un producto ya existe, sus unidades se cargan con un ajuste.</p>
       <FormularioDeProducto
         key={numeroDeCarga}
@@ -106,7 +107,7 @@ function TerminarConteo({ estado }: { estado: InitialCountStatus }) {
         </button>
       ) : (
         <div role="group" aria-labelledby="titulo-confirmar" className="confirmacion">
-          <Titulo nivel={2}>
+          <Titulo nivel={3}>
             <span id="titulo-confirmar">¿Terminar el inventario inicial?</span>
           </Titulo>
           <p>
@@ -150,7 +151,7 @@ function TerminarConteo({ estado }: { estado: InitialCountStatus }) {
 function ConteoTerminado({ estado }: { estado: InitialCountStatus }) {
   return (
     <section>
-      <Titulo>Inventario inicial</Titulo>
+      <Titulo nivel={2}>Inventario inicial</Titulo>
       <p role="status" className="aviso aviso--exito">
         El inventario inicial ya terminó
         {estado.finished_at ? ` el ${formatearFechaHora(estado.finished_at)}` : ''}
@@ -163,7 +164,7 @@ function ConteoTerminado({ estado }: { estado: InitialCountStatus }) {
       <p className="texto-suave">
         Desde ahora las existencias solo cambian con compras, ventas, devoluciones o ajustes.
       </p>
-      <Link to="/productos">Ver los productos</Link>
+      <Link to={DESTINOS.productos.ruta}>Ver los productos</Link>
     </section>
   )
 }

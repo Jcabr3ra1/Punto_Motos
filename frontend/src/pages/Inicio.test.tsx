@@ -42,7 +42,7 @@ describe('inicio', () => {
   it('el vendedor ve Vender y Productos, sin caja ni liquidación', () => {
     abrir(vendedor, { is_open: true })
 
-    expect(within(accesos()).getAllByRole('link').map((enlace) => enlace.getAttribute('href'))).toEqual(['/venta/vender', '/productos'])
+    expect(within(accesos()).getAllByRole('link').map((enlace) => enlace.getAttribute('href'))).toEqual(['/venta/vender', '/inventario/productos'])
     expect(screen.queryByRole('region', { name: 'Caja de hoy' })).not.toBeInTheDocument()
   })
 
@@ -51,7 +51,7 @@ describe('inicio', () => {
 
     expect(within(accesos()).getAllByRole('link').map((enlace) => enlace.getAttribute('href'))).toEqual([
       '/venta/vender',
-      '/productos',
+      '/inventario/productos',
       '/caja/actual',
       '/taller/liquidacion',
     ])

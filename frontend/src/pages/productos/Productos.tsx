@@ -28,7 +28,7 @@ export function Productos() {
   return (
     <section>
       <div className="barra-de-acciones">
-        <Titulo>Productos</Titulo>
+        <Titulo nivel={2}>Productos</Titulo>
         {esDueno && (
           <button
             type="button"

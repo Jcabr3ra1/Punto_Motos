@@ -2,7 +2,6 @@ import { ArrowRight, Plus, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useUsuario } from '../auth/useUsuario'
-import { Actualizaciones } from '../desktop/Actualizaciones'
 import { useCajaActual } from '../hooks/useCajaActual'
 import { DESTINOS, puedeVer, type Destino } from '../navegacion/destinos'
 import { formatearPesos } from '../utilidades/dinero'
@@ -65,7 +64,6 @@ export function Inicio() {
 
       <div className="inicio__tarjetas">
         {esDueno && <CajaDeHoy />}
-        {esDueno && <Actualizaciones />}
       </div>
     </section>
   )

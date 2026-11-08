@@ -81,7 +81,7 @@ export function Movimientos() {
   return (
     <section>
       <div className="barra-de-acciones">
-        <Titulo>Movimientos de inventario</Titulo>
+        <Titulo nivel={2}>Movimientos de inventario</Titulo>
         {esDueno && (
           <div className="acciones">
             <button

@@ -92,9 +92,9 @@ describe('mecánicos', () => {
 
   it('el vendedor no ve estas pestañas ni entra a ellas', () => {
     simularApi({ 'GET /settings/business': () => ({ cuerpo: { name: 'Punto Moto', tax_id: '', address: '', phone: '', receipt_footer: '', default_mechanic_percentage: 60, updated_at: 'x' } }) })
-    mostrarRutas(vendedor, '/configuracion/mecanicos')
+    mostrarRutas(vendedor, '/taller/mecanicos')
 
-    expect(within(screen.getByRole('navigation', { name: 'Configuración' })).queryByRole('link', { name: 'Mecánicos' })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Principal' })).queryByRole('link', { name: 'Mecánicos' })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'No tienes permiso para ver esta pantalla' })).toBeInTheDocument()
   })
 })
