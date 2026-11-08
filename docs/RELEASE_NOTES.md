@@ -1,14 +1,13 @@
-# Punto Moto 0.3.0
+# Punto Moto 0.4.0
 
 ## Cambios de esta versión
 
-- **Diseño nuevo «Tablero»:** el marco del programa ahora es negro con detalles en lima. Los módulos están en una columna de iconos a la izquierda y, a su lado, un panel con las pantallas del módulo abierto y para qué sirve cada una. `Ctrl+B` recoge o expande ese panel.
-- **Buscador de pantallas (`Ctrl+K`):** escribe parte del nombre (sin importar tildes), muévete con las flechas y abre con `Enter`. Solo muestra las pantallas que tu usuario puede abrir.
-- **Formularios en un panel lateral:** crear o editar productos, ajustar existencias, proveedores, abonos, gastos y cierre de caja, locales, usuarios, catálogo, servicios, mecánicos y devoluciones se abren desde la derecha sin perder de vista la lista. `Esc` cierra, `Ctrl+Enter` guarda y, si escribiste algo, pregunta antes de descartarlo.
-- **Vista previa antes de guardar:** el ajuste muestra cómo quedan las existencias (por ejemplo, `8 → 11`) y el cierre de caja compara el efectivo esperado con el contado.
-- **Confirmaciones claras:** eliminar un producto, anular una venta o borrar un borrador de compra se confirman en una ventana pequeña que empieza en «Volver».
-- **Inicio renovado:** saludo según la hora, accesos rápidos según el rol y, para el dueño, la caja de hoy con el efectivo esperado.
-- **Iconos** en el menú y en los botones principales; tablas y avisos más compactos y legibles.
+- **Entrar en una ventana pequeña:** el programa abre en una ventana de 760 × 500 con el logo y el estado de la conexión; al iniciar sesión crece al tamaño de trabajo (1280 × 800) y al salir vuelve a la ventana pequeña. La contraseña se puede mostrar u ocultar.
+- **Menú por secciones:** cada sección (Mostrador, Inventario, Taller, Compras, Caja, Consignación) se despliega con sus pantallas debajo; solo queda abierta la de la pantalla actual. Tipos, marcas y motos pasa a Inventario; Mecánicos y Tipos de servicio, a Taller. Configuración queda al pie con Datos del negocio, Usuarios y **Actualizar programa** (antes en Inicio). Con `Ctrl+B` el menú queda en iconos y cada sección muestra sus pantallas al pasar el ratón o el teclado.
+- **Inicio con el resumen del día:** el dueño ve la caja, las ventas de hoy con un gráfico por hora, lo que se les debe a los mecánicos, lo que se debe a proveedores y lo que deben los locales, y las últimas ventas. El vendedor puede consultar precio y existencia sin entrar a Productos.
+- **Pantallas renovadas:** cada pantalla tiene su encabezado, cifras clave exactas (por ejemplo, ventas de hoy, productos activos, borradores o lo que se debe), y en Ventas, Devoluciones, Productos, Historial de liquidaciones y Cajas anteriores una ficha a la derecha con el detalle del elemento elegido (flechas para recorrer, `Esc` para cerrar). La existencia se ve como un medidor que se pone naranja cuando hay que reponer.
+- **`Ctrl+N`** abre «Nueva venta» o el formulario «Nuevo…» de la pantalla en la que estás.
+- **Logo sin fondo** y diseño alineado que se adapta a ventanas desde 900 × 560 hasta pantallas grandes.
 
 No cambian el contrato de la API ni el esquema de datos.
 
