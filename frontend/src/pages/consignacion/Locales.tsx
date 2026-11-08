@@ -1,25 +1,31 @@
-import { Plus } from 'lucide-react'
+import { HandCoins, Pencil, Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { crearLocal, editarLocal, listarLocales, pendientesDeLocal } from '../../api/consignacion'
 import { claves } from '../../api/consultas'
 import { desglosarError } from '../../api/errors'
 import type { Consignee } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
+import { BarraDeFiltros, BotonDeFiltro } from '../../components/BarraDeFiltros'
 import { Campo } from '../../components/Campo'
 import { Casilla } from '../../components/Casilla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
-import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
-import { Titulo } from '../../components/Titulo'
-import { DESTINOS } from '../../navegacion/destinos'
-import { useDebounce } from '../../hooks/useDebounce'
-import { formatearPesos } from '../../utilidades/dinero'
-import { formatearFechaHora } from '../../utilidades/fechas'
-import { PanelLateral } from '../../components/PanelLateral'
 import { EstadoVacio } from '../../components/EstadoVacio'
+import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
+import { Paginacion } from '../../components/Paginacion'
+import { PanelLateral } from '../../components/PanelLateral'
+import { Registro, RegistroVacio } from '../../components/Registro'
+import { useAtajo } from '../../hooks/useAtajo'
+import { useDebounce } from '../../hooks/useDebounce'
+import { MEDIDAS_DEL_LIBRO, useFilasQueCaben } from '../../hooks/useFilasQueCaben'
+import { useSeleccion } from '../../hooks/useSeleccion'
+import { DESTINOS } from '../../navegacion/destinos'
+import { formatearPesos } from '../../utilidades/dinero'
+import { formatearDia } from '../../utilidades/fechas'
+import { FormularioDePago } from './PagosDeLocales'
 
-type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; local: Consignee } | { tipo: 'tiene'; local: Consignee }
+type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; local: Consignee } | { tipo: 'pagar'; local: Consignee }
 
 // Locales que venden mercancía del negocio en consignación (solo el dueño). No se borran: se desactivan.
 export function Locales() {
@@ -38,18 +44,29 @@ export function Locales() {
     setAviso(mensaje)
     setVista(siguiente)
   }
+  useAtajo('n', () => ir({ tipo: 'crear' }))
 
   const local = vista.tipo === 'editar' ? vista.local : undefined
-  const panel = (vista.tipo === 'crear' || vista.tipo === 'editar') && (
-    <PanelLateral
-      titulo={local ? `Editar «${local.name}»` : 'Nuevo local'}
-      modulo="Consignación"
-      descripcion="Otro local que recibe mercancía para vender y la paga después."
-      onCerrar={() => ir({ tipo: 'lista' })}
-    >
-      <FormularioDeLocal local={local} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
-    </PanelLateral>
-  )
+  const panel =
+    vista.tipo === 'crear' || vista.tipo === 'editar' ? (
+      <PanelLateral
+        titulo={local ? `Editar «${local.name}»` : 'Nuevo local'}
+        modulo="Consignación"
+        descripcion="Otro local que recibe mercancía para vender y la paga después."
+        onCerrar={() => ir({ tipo: 'lista' })}
+      >
+        <FormularioDeLocal local={local} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
+      </PanelLateral>
+    ) : vista.tipo === 'pagar' ? (
+      <PanelLateral
+        titulo={`Pago de «${vista.local.name}»`}
+        modulo="Consignación"
+        descripcion="Lo que el local paga por la mercancía que vendió."
+        onCerrar={() => ir({ tipo: 'lista' })}
+      >
+        <FormularioDePago localInicial={vista.local.id} onTerminar={(m) => ir({ tipo: 'lista' }, m)} onCancelar={() => ir({ tipo: 'lista' })} />
+      </PanelLateral>
+    ) : null
 
   // Sin el filtro de búsqueda y con los desactivados (desactivar no borra la deuda): la suma es exacta.
   const todos = useQuery({ queryKey: [...claves.consignacion, 'locales', 'todos'], queryFn: ({ signal }) => listarLocales({ include_inactive: true }, signal) })
@@ -60,31 +77,35 @@ export function Locales() {
     error: todos.isError,
   }
 
-  if (vista.tipo === 'tiene') {
-    return (
-      <>
-        <div className="barra-de-acciones">
-          <Titulo nivel={2}>Lo que tiene «{vista.local.name}»</Titulo>
-          <button type="button" className="boton boton--secundario boton--auto" onClick={() => ir({ tipo: 'lista' })}>
-            Volver a los locales
-          </button>
-        </div>
-        <LoQueTiene localId={vista.local.id} />
-      </>
-    )
-  }
+  // La API entrega la lista completa (ya filtrada): las páginas de las filas que caben se arman aquí.
+  const lista = useRef<HTMLElement>(null)
+  const porPagina = useFilasQueCaben(lista, MEDIDAS_DEL_LIBRO)
+  const [pagina, setPagina] = useState(1)
+  const visibles = locales.data ?? []
+  const paginas = Math.max(1, Math.ceil(visibles.length / porPagina))
+  const actual = Math.min(pagina, paginas)
+  const enPagina = visibles.slice((actual - 1) * porPagina, actual * porPagina)
+  const seleccion = useSeleccion(enPagina, (uno) => uno.id)
 
   return (
-    <>
+    <section className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.locales.icono}
         titulo="Locales"
         descripcion="Locales que venden mercancía en consignación y lo que deben."
         acciones={
-            <button type="button" className="boton boton--auto" onClick={() => ir({ tipo: 'crear' })}>
-              <Plus aria-hidden="true" size={16} />
-              Nuevo local
-            </button>
+          <button
+            type="button"
+            className="boton boton--auto boton--con-icono"
+            onClick={() => ir({ tipo: 'crear' })}
+            aria-keyshortcuts="Control+N"
+          >
+            <Plus aria-hidden="true" size={16} />
+            Nuevo local
+            <kbd className="atajo-visible" aria-hidden="true">
+              Ctrl+N
+            </kbd>
+          </button>
         }
       />
       <FranjaDeIndicadores
@@ -98,64 +119,224 @@ export function Locales() {
           {aviso}
         </p>
       )}
-      <div className="filtros" role="search" aria-label="Filtrar locales">
-        <Campo etiqueta="Buscar" type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Nombre o NIT" autoComplete="off" />
-      </div>
-      <div className="filtros__casillas">
-        <Casilla etiqueta="Solo los que deben" checked={conDeuda} onChange={(e) => setConDeuda(e.target.checked)} />
-        <Casilla etiqueta="Mostrar desactivados" checked={desactivados} onChange={(e) => setDesactivados(e.target.checked)} />
-      </div>
-      {locales.isPending && <Cargando />}
-      {locales.isError && <ErrorDeCarga error={locales.error} onReintentar={() => void locales.refetch()} />}
-      {locales.isSuccess &&
-        (locales.data.length === 0 ? (
-          <EstadoVacio
-            icono={DESTINOS.locales.icono}
-            mensaje={busqueda || conDeuda ? 'Ningún local coincide con los filtros.' : 'Todavía no hay locales.'}
+      <BarraDeFiltros
+        busqueda={{
+          etiqueta: 'Buscar',
+          placeholder: 'Nombre o NIT',
+          valor: busqueda,
+          onCambiar: (valor) => {
+            setBusqueda(valor)
+            setPagina(1)
+          },
+        }}
+      >
+        <div className="barra-de-filtros__grupo">
+          <BotonDeFiltro
+            activo={conDeuda}
+            onClick={() => {
+              setConDeuda(!conDeuda)
+              setPagina(1)
+            }}
+          >
+            Con saldo
+          </BotonDeFiltro>
+          <BotonDeFiltro
+            activo={desactivados}
+            onClick={() => {
+              setDesactivados(!desactivados)
+              setPagina(1)
+            }}
+          >
+            Desactivados
+          </BotonDeFiltro>
+        </div>
+        {locales.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
+            {visibles.length === 1 ? '1 local' : `${visibles.length} locales`}
+          </p>
+        )}
+      </BarraDeFiltros>
+
+      <div className="libro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de locales">
+          {locales.isPending && <Cargando />}
+          {locales.isError && <ErrorDeCarga error={locales.error} onReintentar={() => void locales.refetch()} />}
+          {locales.isSuccess &&
+            (visibles.length === 0 ? (
+              <EstadoVacio
+                icono={DESTINOS.locales.icono}
+                mensaje={busqueda || conDeuda ? 'Ningún local coincide con los filtros.' : 'Todavía no hay locales.'}
+              />
+            ) : (
+              <div className="tabla-contenedor" tabIndex={0} onKeyDown={seleccion.alTeclear} aria-describedby="ayuda-locales">
+                <p id="ayuda-locales" className="solo-lectores">
+                  Usa las flechas para ver la cuenta de cada local.
+                </p>
+                <table className="tabla">
+                  <caption className="solo-lectores">Locales en consignación</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Local</th>
+                      <th scope="col" className="libro__secundaria">
+                        NIT o cédula
+                      </th>
+                      <th scope="col">Teléfono</th>
+                      <th scope="col" className="tabla__numero">
+                        Debe
+                      </th>
+                      <th scope="col" className="tabla__acciones">
+                        <span className="solo-lectores">Acciones</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enPagina.map((uno) => (
+                      <tr
+                        key={uno.id}
+                        className={`tabla__fila--elegible${uno.is_active ? '' : ' tabla__fila--inactiva'}`}
+                        aria-selected={seleccion.elegido?.id === uno.id}
+                        onClick={seleccion.alHacerClic(uno)}
+                      >
+                        <th scope="row">
+                          {uno.name}
+                          {!uno.is_active && <span className="tabla__detalle">Desactivado</span>}
+                        </th>
+                        <td className="libro__secundaria">{uno.tax_id || '—'}</td>
+                        <td>{uno.phone || '—'}</td>
+                        <td className="tabla__numero">{uno.balance_due > 0 ? <strong>{formatearPesos(uno.balance_due)}</strong> : '—'}</td>
+                        <td className="tabla__acciones">
+                          {uno.balance_due > 0 && (
+                            <button
+                              type="button"
+                              className="boton-icono"
+                              aria-label={`Registrar pago de ${uno.name}`}
+                              title="Registrar pago"
+                              onClick={() => ir({ tipo: 'pagar', local: uno })}
+                            >
+                              <HandCoins aria-hidden="true" size={16} strokeWidth={1.75} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="boton-icono"
+                            aria-label={`Editar ${uno.name}`}
+                            title="Editar"
+                            onClick={() => ir({ tipo: 'editar', local: uno })}
+                          >
+                            <Pencil aria-hidden="true" size={16} strokeWidth={1.75} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          {locales.isSuccess && (
+            <Paginacion
+              etiqueta="Páginas de locales"
+              pagina={actual}
+              total={visibles.length}
+              tamano={porPagina}
+              hayAnterior={actual > 1}
+              haySiguiente={actual < paginas}
+              onCambiar={setPagina}
+              mostrarSiempre
+              textoAnterior="Atrás"
+            />
+          )}
+        </section>
+        {seleccion.elegido ? (
+          <FichaDeLocal
+            local={seleccion.elegido}
+            onPagar={() => seleccion.elegido && ir({ tipo: 'pagar', local: seleccion.elegido })}
+            onEditar={() => seleccion.elegido && ir({ tipo: 'editar', local: seleccion.elegido })}
+            onCerrar={seleccion.cerrar}
           />
         ) : (
-          <div className="tabla-contenedor">
-            <table className="tabla">
-              <caption className="solo-lectores">Locales en consignación</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Local</th>
-                  <th scope="col">Teléfono</th>
-                  <th scope="col" className="tabla__numero">
-                    Debe
-                  </th>
-                  <th scope="col">
-                    <span className="solo-lectores">Acciones</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {locales.data.map((local) => (
-                  <tr key={local.id} className={local.is_active ? undefined : 'tabla__fila--inactiva'}>
-                    <th scope="row">
-                      {local.name}
-                      {(local.tax_id || !local.is_active) && (
-                        <span className="tabla__detalle">{[local.tax_id, !local.is_active && 'Desactivado'].filter(Boolean).join(' · ')}</span>
-                      )}
-                    </th>
-                    <td>{local.phone || '—'}</td>
-                    <td className="tabla__numero">{local.balance_due > 0 ? <strong>{formatearPesos(local.balance_due)}</strong> : formatearPesos(0)}</td>
-                    <td className="tabla__acciones">
-                      <button type="button" className="boton-enlace" aria-label={`Lo que tiene ${local.name}`} onClick={() => ir({ tipo: 'tiene', local })}>
-                        Lo que tiene
-                      </button>
-                      <button type="button" className="boton-enlace" aria-label={`Editar ${local.name}`} onClick={() => ir({ tipo: 'editar', local })}>
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
+          <RegistroVacio mensaje="Elige un local para ver lo que debe y lo que tiene." />
+        )}
+      </div>
       {panel}
-    </>
+    </section>
+  )
+}
+
+/** El local elegido en el registro negro: lo que debe, sus datos y la mercancía que todavía tiene. */
+function FichaDeLocal({ local, onPagar, onEditar, onCerrar }: { local: Consignee; onPagar: () => void; onEditar: () => void; onCerrar: () => void }) {
+  const pendientes = useQuery({
+    queryKey: [...claves.consignacion, 'pendientes', local.id],
+    queryFn: ({ signal }) => pendientesDeLocal(local.id, signal),
+  })
+  const debe = local.balance_due > 0
+  return (
+    <Registro
+      titulo={local.name}
+      modulo="Locales"
+      onCerrar={onCerrar}
+      acciones={
+        <>
+          {debe && (
+            <button type="button" className="boton" onClick={onPagar}>
+              Registrar pago
+            </button>
+          )}
+          <button type="button" className="boton boton--secundario" onClick={onEditar}>
+            Editar
+          </button>
+        </>
+      }
+    >
+      <p className="registro__cifra">
+        <span className="registro__total">{formatearPesos(local.balance_due)}</span>
+        <span className="registro__detalle">{debe ? 'debe por lo vendido' : 'no debe nada'}</span>
+      </p>
+      <dl className="registro__datos">
+        <div>
+          <dt>NIT o cédula</dt>
+          <dd>{local.tax_id || '—'}</dd>
+        </div>
+        <div>
+          <dt>Teléfono</dt>
+          <dd>{local.phone || '—'}</dd>
+        </div>
+        {local.notes && (
+          <div>
+            <dt>Notas</dt>
+            <dd>{local.notes}</dd>
+          </div>
+        )}
+        {!local.is_active && (
+          <div>
+            <dt>Estado</dt>
+            <dd>Desactivado</dd>
+          </div>
+        )}
+      </dl>
+      <h4 className="registro__subtitulo">Lo que tiene</h4>
+      {pendientes.isPending && <p className="registro__nota">Cargando…</p>}
+      {pendientes.isError && <p className="registro__nota">No se pudo cargar la mercancía del local.</p>}
+      {pendientes.data &&
+        (pendientes.data.length === 0 ? (
+          <p className="registro__nota">No tiene mercancía pendiente.</p>
+        ) : (
+          <ul className="registro__lineas" aria-label={`Mercancía que tiene ${local.name}`}>
+            {pendientes.data.map((item) => (
+              <li key={item.id}>
+                <span>
+                  {item.product.name}
+                  <span className="registro__detalle">
+                    Entregado el {formatearDia(item.delivered_at.slice(0, 10))} · {formatearPesos(item.unit_value)} por unidad
+                  </span>
+                </span>
+                <span className="registro__monto">
+                  {item.pending_quantity} de {item.quantity}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ))}
+    </Registro>
   )
 }
 
@@ -214,49 +395,5 @@ function FormularioDeLocal({
         </button>
       </div>
     </form>
-  )
-}
-
-function LoQueTiene({ localId }: { localId: number }) {
-  const pendientes = useQuery({
-    queryKey: [...claves.consignacion, 'pendientes', localId],
-    queryFn: ({ signal }) => pendientesDeLocal(localId, signal),
-  })
-  if (pendientes.isPending) return <Cargando />
-  if (pendientes.isError) return <ErrorDeCarga error={pendientes.error} onReintentar={() => void pendientes.refetch()} />
-  if (pendientes.data.length === 0) return <p className="texto-suave">El local no tiene mercancía pendiente.</p>
-  return (
-    <div className="tabla-contenedor">
-      <table className="tabla">
-        <caption className="solo-lectores">Mercancía que el local todavía tiene</caption>
-        <thead>
-          <tr>
-            <th scope="col">Producto</th>
-            <th scope="col">Entregado</th>
-            <th scope="col" className="tabla__numero">
-              Tiene
-            </th>
-            <th scope="col" className="tabla__numero">
-              Valor pactado
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {pendientes.data.map((item) => (
-            <tr key={item.id}>
-              <th scope="row">
-                {item.product.name}
-                <span className="tabla__detalle tabla__codigo">{item.product.code}</span>
-              </th>
-              <td>{formatearFechaHora(item.delivered_at)}</td>
-              <td className="tabla__numero">
-                {item.pending_quantity} de {item.quantity}
-              </td>
-              <td className="tabla__numero">{formatearPesos(item.unit_value)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }

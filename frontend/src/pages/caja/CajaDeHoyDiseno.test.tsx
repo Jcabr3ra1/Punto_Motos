@@ -76,7 +76,9 @@ describe('diario y cajón de hoy', () => {
     const { u } = mostrar()
     await u.click(await screen.findByRole('button', { name: 'Ver resumen por tipo' }))
     const ficha = screen.getByRole('complementary', { name: 'Resumen por tipo' })
-    expect(within(ficha).getByRole('table', { name: 'Resumen por tipo de movimiento' })).toBeInTheDocument()
+    // En el panel negro, como líneas: la tabla de tres columnas no cabe.
+    expect(within(ficha).getByRole('list', { name: 'Resumen por tipo de movimiento' })).toBeInTheDocument()
+    expect(ficha).toHaveClass('registro')
     expect(within(ficha).getByRole('button', { name: 'Cerrar la ficha' })).toHaveFocus()
     await u.keyboard('{Escape}')
     expect(screen.getByRole('button', { name: 'Ver resumen por tipo' })).toHaveFocus()

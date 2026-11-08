@@ -4,15 +4,18 @@ import { useState, type FormEvent } from 'react'
 import { listarReportes, pendientesDeLocal, registrarReporte } from '../../api/consignacion'
 import { claves } from '../../api/consultas'
 import { desglosarError } from '../../api/errors'
-import type { ConsignmentReportInput } from '../../api/types'
+import type { ConsignmentReport, ConsignmentReportInput } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
+import { BarraDeFiltros } from '../../components/BarraDeFiltros'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { PanelLateral } from '../../components/PanelLateral'
+import { Registro, RegistroVacio } from '../../components/Registro'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { useConteo } from '../../hooks/useConteo'
+import { useSeleccion } from '../../hooks/useSeleccion'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearNumero } from '../../utilidades/numeros'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -20,43 +23,50 @@ import { formatearFechaHora } from '../../utilidades/fechas'
 import { SelectorDeLocal } from './SelectorDeLocal'
 import { EstadoVacio } from '../../components/EstadoVacio'
 import { useHoy } from '../../hooks/useHoy'
+import { useFiltrosDeConsignacion } from './useFiltrosDeConsignacion'
+
+/** «Vendió 5 · devolvió 1», sumando todas las líneas del reporte. */
+function resumenDeReporte(reporte: ConsignmentReport): string {
+  const vendidas = reporte.lines.reduce((suma, l) => suma + l.sold, 0)
+  const devueltas = reporte.lines.reduce((suma, l) => suma + l.returned, 0)
+  return `Vendió ${vendidas} · devolvió ${devueltas}`
+}
 
 // Reportes de los locales (solo el dueño): cuántas unidades vendieron (suben su saldo al valor pactado) y
 // cuántas devolvieron (vuelven al inventario). No se editan ni se borran.
 export function Reportes() {
   const [nuevo, setNuevo] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  const [local, setLocal] = useState('')
-  const [pagina, setPagina] = useState(1)
-  const filtros = { consignee: local ? Number(local) : undefined, page: pagina }
+  const { lista, porPagina, filtros, hayFiltros, cambiarPagina, barra } = useFiltrosDeConsignacion()
   const reportes = useQuery({
     queryKey: [...claves.consignacion, 'reportes', filtros],
     queryFn: ({ signal }) => listarReportes(filtros, signal),
     placeholderData: keepPreviousData,
   })
+  const seleccion = useSeleccion(reportes.data?.results, (reporte) => reporte.id)
   const inicioDelMes = `${useHoy().slice(0, 8)}01`
   const delMes = useConteo([...claves.consignacion, 'reportes', 'mes', inicioDelMes], (signal) =>
     listarReportes({ date_from: inicioDelMes, page_size: 1 }, signal),
   )
 
   return (
-    <>
+    <div className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.reportes.icono}
         titulo="Reportes"
         descripcion="Lo que cada local reporta como vendido o devuelto."
         acciones={
-            <button
-              type="button"
-              className="boton boton--auto"
-              onClick={() => {
-                setAviso(null)
-                setNuevo(true)
-              }}
-            >
-              <ClipboardCheck aria-hidden="true" size={16} />
-              Nuevo reporte
-            </button>
+          <button
+            type="button"
+            className="boton boton--auto"
+            onClick={() => {
+              setAviso(null)
+              setNuevo(true)
+            }}
+          >
+            <ClipboardCheck aria-hidden="true" size={16} />
+            Nuevo reporte
+          </button>
         }
       />
       <FranjaDeIndicadores
@@ -67,65 +77,86 @@ export function Reportes() {
           {aviso}
         </p>
       )}
-      <div className="filtros">
-        <SelectorDeLocal
-          etiqueta="Filtrar por local"
-          valor={local}
-          incluirInactivos
-          onCambiar={(v) => {
-            setLocal(v)
-            setPagina(1)
-          }}
-        />
-      </div>
-      {reportes.isPending && <Cargando />}
-      {reportes.isError && <ErrorDeCarga error={reportes.error} onReintentar={() => void reportes.refetch()} />}
-      {reportes.isSuccess &&
-        (reportes.data.count === 0 ? (
-          <EstadoVacio icono={DESTINOS.reportes.icono} mensaje="Todavía no hay reportes." />
-        ) : (
-          <>
-            <div className="tabla-contenedor">
-              <table className="tabla">
-                <caption className="solo-lectores">Reportes de los locales</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Fecha</th>
-                    <th scope="col">Local</th>
-                    <th scope="col">Vendido y devuelto</th>
-                    <th scope="col" className="tabla__numero">
-                      Sube el saldo
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportes.data.results.map((reporte) => (
-                    <tr key={reporte.id}>
-                      <td className="tabla__nowrap">{formatearFechaHora(reporte.created_at)}</td>
-                      <td>{reporte.consignee.name}</td>
-                      <td>
-                        {reporte.lines.map((l) => (
-                          <span key={l.item} className="tabla__detalle">
-                            {l.product.name}: vendió {l.sold}, devolvió {l.returned}
-                          </span>
-                        ))}
-                      </td>
-                      <td className="tabla__numero">{formatearPesos(reporte.total)}</td>
+      <BarraDeFiltros>
+        {barra}
+        {reportes.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
+            {reportes.data.count === 1 ? '1 reporte' : `${reportes.data.count} reportes`}
+          </p>
+        )}
+      </BarraDeFiltros>
+
+      <div className="libro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de reportes">
+          {reportes.isPending && <Cargando />}
+          {reportes.isError && <ErrorDeCarga error={reportes.error} onReintentar={() => void reportes.refetch()} />}
+          {reportes.isSuccess &&
+            (reportes.data.count === 0 ? (
+              <EstadoVacio icono={DESTINOS.reportes.icono} mensaje={hayFiltros ? 'Ningún reporte coincide con los filtros.' : 'Todavía no hay reportes.'} />
+            ) : (
+              <div className="tabla-contenedor" tabIndex={0} onKeyDown={seleccion.alTeclear} aria-describedby="ayuda-reportes">
+                <p id="ayuda-reportes" className="solo-lectores">
+                  Usa las flechas para ver las líneas de cada reporte.
+                </p>
+                <table className="tabla">
+                  <caption className="solo-lectores">Reportes de los locales</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Fecha</th>
+                      <th scope="col">Local</th>
+                      <th scope="col">Vendido y devuelto</th>
+                      <th scope="col" className="tabla__numero">
+                        Sube el saldo
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {reportes.data.results.map((reporte) => (
+                      <tr
+                        key={reporte.id}
+                        className="tabla__fila--elegible"
+                        aria-selected={seleccion.elegido?.id === reporte.id}
+                        onClick={seleccion.alHacerClic(reporte)}
+                      >
+                        <td className="tabla__nowrap">{formatearFechaHora(reporte.created_at)}</td>
+                        <th scope="row">
+                          {reporte.consignee.name}
+                          <span className="tabla__detalle">Registró {reporte.created_by}</span>
+                        </th>
+                        <td
+                          className="libro__recortado"
+                          title={reporte.lines.map((l) => `${l.product.name}: vendió ${l.sold}, devolvió ${l.returned}`).join('; ')}
+                        >
+                          {resumenDeReporte(reporte)}
+                          <span className="tabla__detalle">{reporte.lines.length === 1 ? '1 producto' : `${reporte.lines.length} productos`}</span>
+                        </td>
+                        <td className="tabla__numero">{formatearPesos(reporte.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          {reportes.isSuccess && (
             <Paginacion
               etiqueta="Páginas de reportes"
-              pagina={pagina}
+              pagina={filtros.page ?? 1}
               total={reportes.data.count}
+              tamano={porPagina}
               hayAnterior={Boolean(reportes.data.previous)}
               haySiguiente={Boolean(reportes.data.next)}
-              onCambiar={setPagina}
+              onCambiar={cambiarPagina}
+              mostrarSiempre
+              textoAnterior="Atrás"
             />
-          </>
-        ))}
+          )}
+        </section>
+        {seleccion.elegido ? (
+          <FichaDeReporte reporte={seleccion.elegido} onCerrar={seleccion.cerrar} />
+        ) : (
+          <RegistroVacio mensaje="Elige un reporte para ver lo vendido y lo devuelto." />
+        )}
+      </div>
       {nuevo && (
         <PanelLateral
           titulo="Nuevo reporte"
@@ -143,7 +174,53 @@ export function Reportes() {
           />
         </PanelLateral>
       )}
-    </>
+    </div>
+  )
+}
+
+/** El reporte elegido en el registro negro: cuánto sube el saldo del local y lo vendido y devuelto de cada producto. */
+function FichaDeReporte({ reporte, onCerrar }: { reporte: ConsignmentReport; onCerrar: () => void }) {
+  return (
+    <Registro titulo={`Reporte de ${reporte.consignee.name}`} modulo="Reportes" onCerrar={onCerrar}>
+      <p className="registro__cifra">
+        <span className="registro__total">{formatearPesos(reporte.total)}</span>
+        <span className="registro__detalle">sube el saldo del local</span>
+      </p>
+      <dl className="registro__datos">
+        <div>
+          <dt>Local</dt>
+          <dd>{reporte.consignee.name}</dd>
+        </div>
+        <div>
+          <dt>Fecha</dt>
+          <dd>{formatearFechaHora(reporte.created_at)}</dd>
+        </div>
+        <div>
+          <dt>Registró</dt>
+          <dd>{reporte.created_by}</dd>
+        </div>
+        {reporte.notes && (
+          <div>
+            <dt>Notas</dt>
+            <dd>{reporte.notes}</dd>
+          </div>
+        )}
+      </dl>
+      <h4 className="registro__subtitulo">Vendido y devuelto</h4>
+      <ul className="registro__lineas" aria-label="Líneas del reporte">
+        {reporte.lines.map((l) => (
+          <li key={l.item}>
+            <span>
+              {l.product.name}
+              <span className="registro__detalle">
+                Vendió {l.sold} · devolvió {l.returned} · {formatearPesos(l.unit_value)} por unidad
+              </span>
+            </span>
+            <span className="registro__monto">{formatearPesos(l.subtotal)}</span>
+          </li>
+        ))}
+      </ul>
+    </Registro>
   )
 }
 

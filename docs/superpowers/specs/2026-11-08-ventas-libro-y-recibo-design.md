@@ -164,3 +164,36 @@ fecha) de cada fila. Las direcciones directas siguen mostrando la página.
 Juan pidió que ningún botón lleve puntos suspensivos: «Pagar», «Recibir
 compra», «Devolver», «Anular venta», «Fechas». Solo los textos de carga
 («Guardando…») los conservan mientras algo trabaja.
+
+## Caja, Consignación y Configuración
+
+- **Cajas anteriores:** libro con registro negro. Período (abre en todas las fechas,
+  por día de apertura). El registro muestra el efectivo esperado, si cuadró, quién abrió
+  y cerró, la nota del cierre y el resumen por tipo en líneas. **Abrir la caja** (desde
+  el registro o la fecha de la fila) la muestra en la ventana emergente: cifras
+  alineadas (la cifra siempre abajo y sin partirse), resumen y movimientos de 10 en 10
+  con Atrás y Siguiente, una línea por movimiento.
+- **Caja de hoy:** «Ver resumen por tipo» se abre en el panel negro, no en la ficha
+  blanca. Como la tabla de tres columnas no cabe en 300px, cada tipo va como línea con
+  su total y debajo solo lo que no es cero («Efectivo +$ 5.000»); al final, el total en
+  efectivo y en transferencias.
+- **Locales:** libro con registro negro, como Proveedores: lo que debe, NIT, teléfono,
+  notas y **lo que tiene** (antes una pantalla aparte). «Registrar pago» abre el
+  formulario con el local ya elegido. Barra: búsqueda, Con saldo y Desactivados; Ctrl+N.
+- **Entregas y Reportes:** libro con registro negro (productos con lo vendido, devuelto
+  y pendiente; o lo vendido y devuelto con su subtotal). La fila resume en una línea
+  («1 producto · 2 unidades por reportar», «Vendió 5 · devolvió 1»).
+- **Pagos de los locales:** libro sin registro, como Abonos.
+- Las tres listas comparten `useFiltrosDeConsignacion`: período (abre en todas las
+  fechas), Local como lista con forma de botón y página en la URL.
+- **Usuarios:** libro sin registro, como Mecánicos: búsqueda sin tildes, Todos, Activos
+  e Inactivos; Editar y Cambiar la contraseña como iconos.
+- **Datos del negocio y Actualizar programa: no.** Son formularios, no listas.
+
+## Desplazamiento
+
+Con el programa abierto la página no se desplaza nunca (`html` y `body` sin
+desbordamiento): al llegar al final de una lista o de una ventana emergente la rueda ya
+no mueve todo ni deja ver franjas blancas. Las ventanas, los paneles laterales y el
+registro negro contienen su propio desplazamiento, y en el registro solo se desplaza el
+cuerpo: el título con su X y el botón del pie quedan siempre a la vista.

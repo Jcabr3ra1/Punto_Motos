@@ -12,9 +12,14 @@ export const abrirCaja = (efectivoInicial: number) =>
 export const cerrarCaja = (id: number, datos: { counted_cash?: number; notes: string }) =>
   api<CashSession>(`/cash-sessions/${id}/close`, { method: 'POST', body: datos })
 
-export const listarCajas = (filtros: { date_from?: string; date_to?: string; page?: number } = {}, signal?: AbortSignal) =>
+export const listarCajas = (filtros: { date_from?: string; date_to?: string; page?: number; page_size?: number } = {}, signal?: AbortSignal) =>
   api<Paginated<CashSession>>('/cash-sessions', {
-    query: { date_from: filtros.date_from, date_to: filtros.date_to, page: filtros.page && filtros.page > 1 ? filtros.page : undefined },
+    query: {
+      date_from: filtros.date_from,
+      date_to: filtros.date_to,
+      page: filtros.page && filtros.page > 1 ? filtros.page : undefined,
+      page_size: filtros.page_size,
+    },
     signal,
   })
 

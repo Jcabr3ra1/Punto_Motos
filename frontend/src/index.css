@@ -68,6 +68,14 @@ body {
   overscroll-behavior: none;
 }
 
+/* Con el programa abierto la ventana no se desplaza nunca: solo su contenido. Así, al llegar al final de una lista
+   o de una ventana emergente, la rueda no mueve la página entera ni deja ver una franja blanca arriba o abajo. */
+html:has(.estructura),
+body:has(.estructura) {
+  height: 100%;
+  overflow: hidden;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-foco);
   outline-offset: 1px;
@@ -3085,6 +3093,7 @@ kbd {
   min-height: 0;
   padding: var(--esp-4) var(--esp-4) 0 var(--esp-5);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* El formulario ocupa todo el alto: sus botones quedan al pie aunque tenga pocos campos. */
@@ -4384,18 +4393,26 @@ a.navbar__caja:hover .navbar__valor {
 
 .caja-hoy--con-resumen .caja-hoy__cajon { display: none; }
 
-.caja-hoy__resumen .ficha {
-  position: static;
+/* El resumen por tipo ocupa el lugar del cajón, en el mismo panel negro, de arriba abajo. */
+.caja-hoy__resumen .registro {
+  box-sizing: border-box;
   height: 100%;
-  max-height: none;
 }
 
-.caja-hoy__resumen .ficha__cuerpo {
-  min-height: 0;
-  overflow: auto;
+/* Los totales del resumen, separados de las líneas como el pie de un recibo. */
+.registro__totales {
+  padding-top: var(--esp-3);
+  border-top: 1px dashed var(--color-borde);
 }
 
-.caja-hoy__resumen .tabla { font-size: 12px; }
+.registro .registro__totales {
+  border-color: #3a3b3e;
+}
+
+.registro__totales dd {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 .caja-hoy__apertura {
   display: grid;
@@ -4723,7 +4740,8 @@ a.navbar__caja:hover .navbar__valor {
   min-width: 0;
   min-height: 0;
   padding: var(--esp-3) var(--esp-4);
-  overflow-y: auto;
+  /* Solo se desplaza el cuerpo: el título con su X y el botón del pie quedan siempre a la vista. */
+  overflow: hidden;
   color: var(--marco-texto);
   background: var(--marco);
   border-left: 3px solid var(--color-marca);
@@ -4775,8 +4793,17 @@ a.navbar__caja:hover .navbar__valor {
 
 .registro__cuerpo {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--esp-3);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.registro__cabecera,
+.registro__pie {
+  flex-shrink: 0;
 }
 
 .registro .registro__cifra,
@@ -5124,6 +5151,7 @@ a.navbar__caja:hover .navbar__valor {
   min-height: 0;
   padding: var(--esp-4) var(--esp-5);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Dentro de la ventana, el documento ocupa todo el ancho sin un segundo recuadro: la ventana ya es su marco.
@@ -5174,4 +5202,115 @@ button.tabla__codigo:hover {
 
 .ventana-de-documento__pie > .boton:only-child {
   margin-left: auto;
+}
+
+/* Una caja anterior completa: cifras, resumen y movimientos. La ventana se ensancha para la tabla de movimientos y,
+   como todos son del mismo día, cada movimiento muestra solo la hora. */
+.ventana-de-documento:has(.documento-de-caja) {
+  width: min(880px, calc(100vw - 48px));
+}
+
+.documento-de-caja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.documento-de-caja > * {
+  margin: 0;
+}
+
+.documento-de-caja .movimientos-caja__hora {
+  display: inline;
+}
+
+.documento-de-caja .movimientos-caja__fecha {
+  display: none;
+}
+
+/* Cifras alineadas: el rótulo arriba y la cifra siempre en la misma línea de abajo, aunque un rótulo ocupe dos
+   renglones («Efectivo esperado al cierre»). La cifra no se parte («Sobran $ 3.000»). */
+.documento-de-caja .avance {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  margin: 0;
+}
+
+.documento-de-caja .avance > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.documento-de-caja .avance dd {
+  margin-top: auto;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+/* Movimientos como en Caja de hoy: una línea por movimiento (el texto completo en `title`) y el pie con Atrás y
+   Siguiente siempre abajo. */
+.documento-de-caja .movimientos-caja {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+}
+
+.documento-de-caja .movimientos-caja__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.documento-de-caja .movimientos-caja__cabecera h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.documento-de-caja .movimientos-caja__cabecera .texto-suave {
+  font-size: 12px;
+}
+
+.documento-de-caja .movimientos-caja > .tabla-contenedor {
+  border: 0;
+  border-radius: 0;
+}
+
+.documento-de-caja .movimientos-caja .tabla {
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.documento-de-caja .movimientos-caja th:first-child { width: 96px; }
+.documento-de-caja .movimientos-caja th:nth-child(2) { width: 136px; }
+.documento-de-caja .movimientos-caja th:nth-child(4) { width: 104px; }
+.documento-de-caja .movimientos-caja th:nth-child(5) { width: 112px; }
+.documento-de-caja .movimientos-caja th:nth-child(6) { width: 88px; }
+
+.documento-de-caja .movimientos-caja td {
+  height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.documento-de-caja .movimientos-caja thead th {
+  font-size: 11.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.documento-de-caja .movimientos-caja > .paginacion {
+  margin: 0;
+  padding: var(--esp-2) var(--esp-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+.documento-de-caja .movimientos-caja > .estado-vacio,
+.documento-de-caja .movimientos-caja > .aviso,
+.documento-de-caja .movimientos-caja > .cargando {
+  margin: var(--esp-3) var(--esp-4);
 }

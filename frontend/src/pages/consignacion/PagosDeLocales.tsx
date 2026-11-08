@@ -7,6 +7,7 @@ import { claves } from '../../api/consultas'
 import { desglosarError } from '../../api/errors'
 import type { ConsigneePaymentInput, PaymentMethod } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
+import { BarraDeFiltros } from '../../components/BarraDeFiltros'
 import { Campo } from '../../components/Campo'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
@@ -22,14 +23,14 @@ import { SelectorDeLocal } from './SelectorDeLocal'
 import { PanelLateral } from '../../components/PanelLateral'
 import { EstadoVacio } from '../../components/EstadoVacio'
 import { useHoy } from '../../hooks/useHoy'
+import { useFiltrosDeConsignacion } from './useFiltrosDeConsignacion'
 
 // Pagos de los locales (solo el dueño): pagan por partes, cada pago baja su saldo y entra a la caja abierta.
+// Libro sin registro: un pago no tiene más detalle que su fila.
 export function PagosDeLocales() {
   const [nuevo, setNuevo] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  const [local, setLocal] = useState('')
-  const [pagina, setPagina] = useState(1)
-  const filtros = { consignee: local ? Number(local) : undefined, page: pagina }
+  const { lista, porPagina, filtros, hayFiltros, cambiarPagina, barra } = useFiltrosDeConsignacion()
   const pagos = useQuery({
     queryKey: [...claves.consignacion, 'pagos', filtros],
     queryFn: ({ signal }) => listarPagosDeLocales(filtros, signal),
@@ -42,23 +43,23 @@ export function PagosDeLocales() {
   )
 
   return (
-    <>
+    <div className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.pagosDeLocales.icono}
         titulo="Pagos de los locales"
         descripcion="Lo que los locales pagan por lo vendido."
         acciones={
-            <button
-              type="button"
-              className="boton boton--auto"
-              onClick={() => {
-                setAviso(null)
-                setNuevo(true)
-              }}
-            >
-              <HandCoins aria-hidden="true" size={16} />
-              Registrar pago
-            </button>
+          <button
+            type="button"
+            className="boton boton--auto"
+            onClick={() => {
+              setAviso(null)
+              setNuevo(true)
+            }}
+          >
+            <HandCoins aria-hidden="true" size={16} />
+            Registrar pago
+          </button>
         }
       />
       <FranjaDeIndicadores
@@ -69,61 +70,71 @@ export function PagosDeLocales() {
           {aviso}
         </p>
       )}
-      <div className="filtros">
-        <SelectorDeLocal
-          etiqueta="Filtrar por local"
-          valor={local}
-          incluirInactivos
-          onCambiar={(v) => {
-            setLocal(v)
-            setPagina(1)
-          }}
-        />
-      </div>
-      {pagos.isPending && <Cargando />}
-      {pagos.isError && <ErrorDeCarga error={pagos.error} onReintentar={() => void pagos.refetch()} />}
-      {pagos.isSuccess &&
-        (pagos.data.count === 0 ? (
-          <EstadoVacio icono={DESTINOS.pagosDeLocales.icono} mensaje="Todavía no hay pagos." />
-        ) : (
-          <>
-            <div className="tabla-contenedor">
-              <table className="tabla">
-                <caption className="solo-lectores">Pagos de los locales</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Fecha</th>
-                    <th scope="col">Local</th>
-                    <th scope="col" className="tabla__numero">
-                      Valor
-                    </th>
-                    <th scope="col">Medio</th>
-                    <th scope="col">Notas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagos.data.results.map((pago) => (
-                    <tr key={pago.id}>
-                      <td className="tabla__nowrap">{formatearFechaHora(pago.created_at)}</td>
-                      <td>{pago.consignee.name}</td>
-                      <td className="tabla__numero">{formatearPesos(pago.amount)}</td>
-                      <td>{pago.method_label}</td>
-                      <td>{pago.notes || '—'}</td>
+      <BarraDeFiltros>
+        {barra}
+        {pagos.isSuccess && (
+          <p role="status" className="barra-de-filtros__resultados">
+            {pagos.data.count === 1 ? '1 pago' : `${pagos.data.count} pagos`}
+          </p>
+        )}
+      </BarraDeFiltros>
+
+      <div className="libro libro--sin-registro">
+        <section ref={lista} className="libro__lista" aria-label="Lista de pagos">
+          {pagos.isPending && <Cargando />}
+          {pagos.isError && <ErrorDeCarga error={pagos.error} onReintentar={() => void pagos.refetch()} />}
+          {pagos.isSuccess &&
+            (pagos.data.count === 0 ? (
+              <EstadoVacio icono={DESTINOS.pagosDeLocales.icono} mensaje={hayFiltros ? 'Ningún pago coincide con los filtros.' : 'Todavía no hay pagos.'} />
+            ) : (
+              <div className="tabla-contenedor">
+                <table className="tabla">
+                  <caption className="solo-lectores">Pagos de los locales</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Fecha</th>
+                      <th scope="col">Local</th>
+                      <th scope="col" className="tabla__numero">
+                        Valor
+                      </th>
+                      <th scope="col">Medio</th>
+                      <th scope="col">Notas</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {pagos.data.results.map((pago) => (
+                      <tr key={pago.id}>
+                        <td className="tabla__nowrap">{formatearFechaHora(pago.created_at)}</td>
+                        <td>
+                          {pago.consignee.name}
+                          <span className="tabla__detalle">Registró {pago.created_by}</span>
+                        </td>
+                        <td className="tabla__numero">{formatearPesos(pago.amount)}</td>
+                        <td>{pago.method_label}</td>
+                        <td className="libro__recortado" title={pago.notes || undefined}>
+                          {pago.notes || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          {pagos.isSuccess && (
             <Paginacion
               etiqueta="Páginas de pagos"
-              pagina={pagina}
+              pagina={filtros.page ?? 1}
               total={pagos.data.count}
+              tamano={porPagina}
               hayAnterior={Boolean(pagos.data.previous)}
               haySiguiente={Boolean(pagos.data.next)}
-              onCambiar={setPagina}
+              onCambiar={cambiarPagina}
+              mostrarSiempre
+              textoAnterior="Atrás"
             />
-          </>
-        ))}
+          )}
+        </section>
+      </div>
       {nuevo && (
         <PanelLateral
           titulo="Registrar pago de un local"
@@ -140,13 +151,22 @@ export function PagosDeLocales() {
           />
         </PanelLateral>
       )}
-    </>
+    </div>
   )
 }
 
-function FormularioDePago({ onTerminar, onCancelar }: { onTerminar: (aviso: string) => void; onCancelar: () => void }) {
+/** El pago de un local. Con `localInicial` (desde Locales) el local ya viene elegido. */
+export function FormularioDePago({
+  localInicial,
+  onTerminar,
+  onCancelar,
+}: {
+  localInicial?: number
+  onTerminar: (aviso: string) => void
+  onCancelar: () => void
+}) {
   const clienteDeConsultas = useQueryClient()
-  const [local, setLocal] = useState('')
+  const [local, setLocal] = useState(localInicial ? String(localInicial) : '')
   const [valor, setValor] = useState('')
   const [medio, setMedio] = useState<PaymentMethod>('cash')
   const [notas, setNotas] = useState('')

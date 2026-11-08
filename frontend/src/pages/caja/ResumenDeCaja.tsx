@@ -99,13 +99,55 @@ export function ResumenPorTipo({ caja }: { caja: CashSession }) {
   )
 }
 
-/** Movimientos de una caja, del más reciente al más antiguo. */
-export function MovimientosDeCaja({ cajaId, deHoy = false }: { cajaId: number; deHoy?: boolean }) {
+/**
+ * Resumen por tipo para el panel negro (Caja de hoy y Cajas anteriores), donde no cabe la tabla de tres columnas:
+ * cada tipo con su total y, debajo, lo que fue en efectivo y en transferencia; al final, los dos totales.
+ */
+export function ResumenEnLineas({ caja }: { caja: CashSession }) {
+  if (!caja.summary) return <p className="registro__nota">El resumen de esta caja no está disponible.</p>
+  if (caja.summary.by_kind.length === 0) return <p className="registro__nota">Todavía no hay movimientos en esta caja.</p>
+  return (
+    <>
+      <ul className="registro__lineas" aria-label="Resumen por tipo de movimiento">
+        {caja.summary.by_kind.map((fila) => (
+          <li key={fila.kind}>
+            <span>
+              {fila.kind_label}
+              <span className="registro__detalle">
+                {[fila.cash !== 0 && `Efectivo ${pesosConSigno(fila.cash)}`, fila.transfer !== 0 && `Transferencia ${pesosConSigno(fila.transfer)}`]
+                  .filter(Boolean)
+                  .join(' · ') || 'Sin valor'}
+              </span>
+            </span>
+            <span className="registro__monto">{pesosConSigno(fila.cash + fila.transfer)}</span>
+          </li>
+        ))}
+      </ul>
+      <dl className="registro__datos registro__totales" aria-label="Totales del resumen">
+        <div>
+          <dt>Total en efectivo</dt>
+          <dd>{pesosConSigno(caja.summary.cash_total)}</dd>
+        </div>
+        <div>
+          <dt>Total en transferencias</dt>
+          <dd>{pesosConSigno(caja.summary.transfer_total)}</dd>
+        </div>
+      </dl>
+    </>
+  )
+}
+
+/**
+ * Movimientos de una caja, del más reciente al más antiguo. En Caja de hoy (`deHoy`) y en la ventana de una caja
+ * anterior (`enVentana`) van de 10 en 10 con el pie de Atrás y Siguiente siempre a la vista.
+ */
+export function MovimientosDeCaja({ cajaId, deHoy = false, enVentana = false }: { cajaId: number; deHoy?: boolean; enVentana?: boolean }) {
   const [pagina, setPagina] = useState(1)
-  const tamano = deHoy ? 10 : 50
+  const paginado = deHoy || enVentana
+  const tamano = paginado ? 10 : 50
   const movimientos = useQuery({
     queryKey: [...claves.caja, 'movimientos', cajaId, pagina, tamano],
-    queryFn: ({ signal }) => listarMovimientosDeCaja({ session: cajaId, page: pagina, page_size: deHoy ? tamano : undefined }, signal),
+    queryFn: ({ signal }) => listarMovimientosDeCaja({ session: cajaId, page: pagina, page_size: paginado ? tamano : undefined }, signal),
     placeholderData: keepPreviousData,
   })
   return (
@@ -168,8 +210,8 @@ export function MovimientosDeCaja({ cajaId, deHoy = false }: { cajaId: number; d
           hayAnterior={Boolean(movimientos.data.previous)}
           haySiguiente={Boolean(movimientos.data.next)}
           onCambiar={setPagina}
-          mostrarSiempre={deHoy}
-          textoAnterior={deHoy ? 'Atrás' : 'Anterior'}
+          mostrarSiempre={paginado}
+          textoAnterior={paginado ? 'Atrás' : 'Anterior'}
         />
       )}
     </section>
