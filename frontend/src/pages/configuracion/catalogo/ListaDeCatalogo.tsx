@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { listarCatalogo, type ElementoDeCatalogo, type TipoDeCatalogo } from '../../../api/catalogo'
 import { claves } from '../../../api/consultas'
-import { BarraDeFiltros, BotonDeFiltro } from '../../../components/BarraDeFiltros'
+import { BarraDeFiltros } from '../../../components/BarraDeFiltros'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
 import { EstadoVacio } from '../../../components/EstadoVacio'
 import { FiltroDeActivos } from '../../../components/FiltroDeActivos'
@@ -31,14 +31,12 @@ function cantidad(n: number, seccion: SeccionDeCatalogo): string {
 
 interface Props {
   seccion: SeccionDeCatalogo
-  secciones: readonly SeccionDeCatalogo[]
-  onSeccion: (tipo: TipoDeCatalogo) => void
   /** «Nuevo tipo / marca / moto» se pulsa en el encabezado de la pantalla. */
   creando: boolean
   onCerrarCreacion: () => void
 }
 
-export function ListaDeCatalogo({ seccion, secciones, onSeccion, creando, onCerrarCreacion }: Props) {
+export function ListaDeCatalogo({ seccion, creando, onCerrarCreacion }: Props) {
   const [editando, setEditando] = useState<number | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const consulta = useQuery({
@@ -84,13 +82,6 @@ export function ListaDeCatalogo({ seccion, secciones, onSeccion, creando, onCerr
           onCambiar: buscar,
         }}
       >
-        <div className="barra-de-filtros__grupo" role="group" aria-label="Sección del catálogo">
-          {secciones.map((s) => (
-            <BotonDeFiltro key={s.tipo} activo={s.tipo === seccion.tipo} onClick={() => onSeccion(s.tipo)}>
-              {s.etiqueta}
-            </BotonDeFiltro>
-          ))}
-        </div>
         <FiltroDeActivos valor={estado} onCambiar={filtrarEstado} />
         {consulta.isSuccess && (
           <p role="status" className="barra-de-filtros__resultados">

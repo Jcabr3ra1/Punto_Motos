@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { listarMarcas, listarMotos, listarTipos, type TipoDeCatalogo } from '../../../api/catalogo'
 import { claves } from '../../../api/consultas'
 import { EncabezadoDePantalla } from '../../../components/EncabezadoDePantalla'
-import { FranjaDeIndicadores } from '../../../components/FranjaDeIndicadores'
+import { useAtajo } from '../../../hooks/useAtajo'
 import { DESTINOS } from '../../../navegacion/destinos'
 import { ListaDeCatalogo, type SeccionDeCatalogo } from './ListaDeCatalogo'
 
@@ -43,16 +43,11 @@ export function Catalogo() {
   const [tipo, setTipo] = useState<TipoDeCatalogo>('categories')
   const [creando, setCreando] = useState(false)
   const seccion = SECCIONES.find((s) => s.tipo === tipo) ?? SECCIONES[0]
-  // Cuántos hay activos de cada uno: listas sin paginar, la cifra es exacta.
+  // Cuántos hay activos de cada uno (en las pestañas): listas sin paginar, la cifra es exacta.
   const tipos = useQuery({ queryKey: claves.catalogoActivo('categories'), queryFn: ({ signal }) => listarTipos(signal) })
   const marcas = useQuery({ queryKey: claves.catalogoActivo('brands'), queryFn: ({ signal }) => listarMarcas(signal) })
   const motos = useQuery({ queryKey: claves.catalogoActivo('motos'), queryFn: ({ signal }) => listarMotos(signal) })
-  const cifra = (consulta: typeof tipos | typeof marcas | typeof motos, rotulo: string) => ({
-    rotulo,
-    valor: String(consulta.data?.length ?? 0),
-    cargando: consulta.isPending,
-    error: consulta.isError,
-  })
+  useAtajo('n', () => setCreando(true))
 
   return (
     <section className="vista-libro">
@@ -61,22 +56,40 @@ export function Catalogo() {
         titulo="Tipos, marcas y motos"
         descripcion="La clasificación de los productos. No se borran: se desactivan."
         acciones={
-          <button type="button" className="boton boton--auto boton--con-icono" onClick={() => setCreando(true)}>
+          <button type="button" className="boton boton--auto boton--con-icono" onClick={() => setCreando(true)} aria-keyshortcuts="Control+N">
             <Plus aria-hidden="true" size={16} />
             {seccion.nuevo}
+            <kbd className="atajo-visible" aria-hidden="true">Ctrl+N</kbd>
           </button>
         }
       />
-      <FranjaDeIndicadores indicadores={[cifra(tipos, 'Tipos'), cifra(marcas, 'Marcas'), cifra(motos, 'Motos')]} />
+      {/* Lo primero que se ve: con cuál de las tres listas se trabaja. */}
+      <div className="secciones-catalogo" role="group" aria-label="Sección del catálogo">
+        {SECCIONES.map((s) => {
+          const consulta = s.tipo === 'categories' ? tipos : s.tipo === 'brands' ? marcas : motos
+          return (
+            <button
+              key={s.tipo}
+              type="button"
+              className="secciones-catalogo__boton"
+              aria-pressed={s.tipo === seccion.tipo}
+              onClick={() => {
+                setCreando(false)
+                setTipo(s.tipo)
+              }}
+            >
+              {s.etiqueta}
+              <span className="secciones-catalogo__cifra" aria-hidden="true">
+                {consulta.data?.length ?? '…'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
       {/* La clave reinicia la lista, sus filtros y sus formularios al cambiar de sección. */}
       <ListaDeCatalogo
         key={seccion.tipo}
         seccion={seccion}
-        secciones={SECCIONES}
-        onSeccion={(nueva) => {
-          setCreando(false)
-          setTipo(nueva)
-        }}
         creando={creando}
         onCerrarCreacion={() => setCreando(false)}
       />
