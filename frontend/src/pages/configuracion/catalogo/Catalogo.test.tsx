@@ -106,6 +106,15 @@ describe('barra de filtros y pie', () => {
 })
 
 describe('crear', () => {
+  it('Ctrl+N abre el formulario de la sección elegida', async () => {
+    const { u } = await abrir()
+
+    await u.click(screen.getByRole('button', { name: 'Marcas' }))
+    await u.keyboard('{Control>}n{/Control}')
+
+    expect(await screen.findByRole('dialog', { name: /Nueva marca/ })).toBeInTheDocument()
+  })
+
   it('crea un tipo con su sigla y vuelve a la lista actualizada', async () => {
     let tipos = [electrico, frenos]
     const nuevo = { id: 3, name: 'Llantas', abbreviation: 'LL', is_active: true }
