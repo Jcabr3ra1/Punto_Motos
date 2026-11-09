@@ -11,7 +11,8 @@ import { Casilla } from '../../components/Casilla'
 interface Props {
   /** Si se recibe, se edita ese proveedor; si no, se crea uno nuevo. */
   proveedor?: Supplier
-  onTerminar: (aviso: string) => void
+  /** Recibe el aviso y el proveedor tal como quedó guardado. */
+  onTerminar: (aviso: string, guardado: Supplier) => void
   onCancelar: () => void
 }
 
@@ -31,7 +32,7 @@ export function FormularioDeProveedor({ proveedor, onTerminar, onCancelar }: Pro
     },
     onSuccess: async (guardado) => {
       await clienteDeConsultas.invalidateQueries({ queryKey: claves.proveedores })
-      onTerminar(editando ? `Cambios de «${guardado.name}» guardados.` : `Proveedor «${guardado.name}» creado.`)
+      onTerminar(editando ? `Cambios de «${guardado.name}» guardados.` : `Proveedor «${guardado.name}» creado.`, guardado)
     },
   })
   const error = guardar.isError ? desglosarError(guardar.error) : null

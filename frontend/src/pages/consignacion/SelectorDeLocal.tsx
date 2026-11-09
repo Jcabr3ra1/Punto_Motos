@@ -4,13 +4,17 @@ import { claves } from '../../api/consultas'
 import { CampoSelector } from '../../components/CampoSelector'
 import { formatearPesos } from '../../utilidades/dinero'
 
-/** Desplegable de locales. Con `conSaldo`, cada opción muestra lo que debe. */
+/**
+ * Desplegable de locales. Con `conSaldo`, cada opción muestra lo que debe; con `soloConSaldo`, solo salen los que
+ * deben algo (más el ya elegido, para no perderlo de vista).
+ */
 export function SelectorDeLocal({
   valor,
   onCambiar,
   errores,
   etiqueta = 'Local',
   conSaldo = false,
+  soloConSaldo = false,
   incluirInactivos = false,
 }: {
   valor: string
@@ -18,6 +22,7 @@ export function SelectorDeLocal({
   errores?: string[]
   etiqueta?: string
   conSaldo?: boolean
+  soloConSaldo?: boolean
   incluirInactivos?: boolean
 }) {
   const locales = useQuery({
@@ -31,7 +36,9 @@ export function SelectorDeLocal({
       onChange={(e) => onCambiar(e.target.value)}
       opciones={[
         { valor: '', texto: locales.isPending ? 'Cargando…' : 'Elige un local' },
-        ...(locales.data ?? []).map((l) => ({
+        ...(locales.data ?? [])
+          .filter((l) => !soloConSaldo || l.balance_due > 0 || String(l.id) === valor)
+          .map((l) => ({
           valor: String(l.id),
           texto: `${l.name}${conSaldo ? ` · debe ${formatearPesos(l.balance_due)}` : ''}${l.is_active ? '' : ' (desactivado)'}`,
         })),

@@ -13,6 +13,7 @@ import { Campo } from '../../components/Campo'
 import { CampoSelector } from '../../components/CampoSelector'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { formatearPesos } from '../../utilidades/dinero'
+import { FormularioDeProveedor } from './FormularioDeProveedor'
 import { RecibirCompra } from './RecibirCompra'
 import { DialogoDeConfirmacion } from '../../components/DialogoDeConfirmacion'
 
@@ -63,6 +64,8 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
   const [lineas, setLineas] = useState<Linea[]>(() => lineasDe(compra))
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false)
+  // Crear un proveedor reemplaza el formulario por el del proveedor sin perder lo ya escrito en la compra.
+  const [creandoProveedor, setCreandoProveedor] = useState(false)
 
   const guardada = compra
     ? huella(String(compra.supplier.id), compra.document_number, compra.notes, lineasDe(compra))
@@ -149,6 +152,18 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
     guardar.mutate()
   }
 
+  if (creandoProveedor) {
+    return (
+      <FormularioDeProveedor
+        onTerminar={(_, creado) => {
+          setProveedor(String(creado.id))
+          setCreandoProveedor(false)
+        }}
+        onCancelar={() => setCreandoProveedor(false)}
+      />
+    )
+  }
+
   return (
     <>
       <form onSubmit={alEnviar} noValidate className="formulario formulario--ancho">
@@ -175,6 +190,12 @@ export function FormularioDeCompra({ compra, onYaRecibida, onGuardada, onRecibid
             autoComplete="off"
           />
         </div>
+        <p className="texto-suave">
+          ¿No está el proveedor?{' '}
+          <button type="button" className="boton-enlace" onClick={() => setCreandoProveedor(true)}>
+            Crear proveedor nuevo
+          </button>
+        </p>
 
         <BuscadorDeProductos etiqueta="Agregar producto" incluirAgotados onElegir={agregar} />
         <div role="status" className="texto-suave">
