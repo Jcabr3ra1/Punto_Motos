@@ -197,7 +197,7 @@ export function FormularioDePago({
   return (
     <form onSubmit={alEnviar} noValidate className="formulario">
       <AvisoDeError mensajes={error?.generales ?? []} />
-      <SelectorDeLocal valor={local} onCambiar={setLocal} conSaldo incluirInactivos errores={error?.campos.consignee} />
+      <SelectorDeLocal valor={local} onCambiar={setLocal} conSaldo soloConSaldo incluirInactivos errores={error?.campos.consignee} />
       <Campo
         etiqueta="Valor"
         type="number"

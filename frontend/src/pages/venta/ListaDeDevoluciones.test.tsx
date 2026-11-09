@@ -31,6 +31,15 @@ describe('lista de devoluciones', () => {
     expect(within(indicadores).getByRole('term')).toHaveTextContent('Devoluciones de hoy')
   })
 
+  it('«Nueva devolución» lleva a las ventas y explica cómo registrarla', async () => {
+    abrir()
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('link', { name: 'Nueva devolución' }))
+
+    expect(await screen.findByText(/elige la venta y pulsa «Devolver»/)).toBeInTheDocument()
+  })
+
   it('un clic en la fila abre la ficha con lo devuelto y Esc la cierra', async () => {
     abrir()
     const u = userEvent.setup()

@@ -135,6 +135,28 @@ describe('nueva compra', () => {
     })
   })
 
+  it('crea el proveedor desde la compra, lo deja elegido y conserva lo ya escrito', async () => {
+    const creado = proveedor({ id: 4, name: 'Motos y Más' })
+    let hayNuevo = false
+    simular({
+      'GET /suppliers*': () => ({ cuerpo: [proveedor({ balance_due: 105000 }), ...(hayNuevo ? [creado] : [])] }),
+      'POST /suppliers': () => {
+        hayNuevo = true
+        return { estado: 201, cuerpo: creado }
+      },
+    })
+    mostrarRutas(dueno, '/compras/lista/nueva')
+    const u = userEvent.setup()
+
+    await u.type(await screen.findByLabelText('Factura o remisión'), 'FV-77')
+    await u.click(screen.getByRole('button', { name: 'Crear proveedor nuevo' }))
+    await u.type(screen.getByLabelText('Nombre'), 'Motos y Más')
+    await u.click(screen.getByRole('button', { name: 'Crear proveedor' }))
+
+    expect(await screen.findByLabelText('Factura o remisión')).toHaveValue('FV-77')
+    expect(await enElPanel('Proveedor')).toHaveValue('4')
+  })
+
   it('elegir un producto que ya está suma una unidad en vez de repetir la línea', async () => {
     simular()
     mostrarRutas(dueno, '/compras/lista/nueva')

@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Plus, ReceiptText } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import { listarMecanicos } from '../../api/taller'
 import { listarVentas, type FiltrosDeVentas } from '../../api/ventas'
@@ -59,6 +59,7 @@ function leerFiltros(params: URLSearchParams, hoy: string, porPagina: number): F
 
 // Historial de ventas (todos los roles), de la más reciente a la más antigua.
 export function Ventas() {
+  const aviso = (useLocation().state as { aviso?: string } | null)?.aviso
   const [params, setParams] = useSearchParams()
   const hoy = useHoy()
   const lista = useRef<HTMLElement>(null)
@@ -130,6 +131,11 @@ export function Ventas() {
           </Link>
         }
       />
+      {aviso && (
+        <p role="status" className="aviso aviso--info">
+          {aviso}
+        </p>
+      )}
       <FranjaDeIndicadores
         indicadores={[
           { rotulo: 'Ventas de hoy', valor: formatearNumero(deHoy.data?.cantidad ?? 0), cargando: deHoy.isPending, error: deHoy.isError },

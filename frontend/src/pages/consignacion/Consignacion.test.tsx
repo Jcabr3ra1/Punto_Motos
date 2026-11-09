@@ -224,6 +224,18 @@ describe('pagos', () => {
     expect(api.llamadas.find((l) => l.clave === 'POST /consignee-payments')?.cuerpo).toEqual({ consignee: 1, amount: 5000, method: 'cash', notes: '' })
   })
 
+  it('en el pago solo salen los locales que deben algo', async () => {
+    const { u } = abrir('/consignacion/pagos', {
+      'GET /consignees*': () => ({ cuerpo: [centro, local({ id: 2, name: 'Motos del Sur', balance_due: 0 })] }),
+    })
+
+    await u.click(await screen.findByRole('button', { name: 'Registrar pago' }))
+
+    const selector = await within(await screen.findByRole('dialog')).findByLabelText('Local')
+    expect(within(selector).getByRole('option', { name: /Motos del Centro/ })).toBeInTheDocument()
+    expect(within(selector).queryByRole('option', { name: /Motos del Sur/ })).not.toBeInTheDocument()
+  })
+
   it('sin caja abierta lo explica', async () => {
     const { u } = abrir('/consignacion/pagos', {
       'POST /consignee-payments': () => errorDeApi(409, 'cash_session_closed', 'La caja está cerrada: ábrela para registrar dinero.'),

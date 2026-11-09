@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Undo2 } from 'lucide-react'
+import { Plus, Undo2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
@@ -113,6 +113,16 @@ export function Devoluciones() {
         icono={DESTINOS.devoluciones.icono}
         titulo="Devoluciones"
         descripcion="Lo que los clientes devolvieron. Se registran desde el detalle de cada venta."
+        acciones={
+          <Link
+            to={DESTINOS.ventas.ruta}
+            state={{ aviso: 'Para registrar una devolución, elige la venta y pulsa «Devolver» en su recibo.' }}
+            className="boton boton--auto boton--con-icono"
+          >
+            <Plus aria-hidden="true" size={16} />
+            Nueva devolución
+          </Link>
+        }
       />
       <FranjaDeIndicadores
         indicadores={[
