@@ -1,7 +1,8 @@
-# Punto Moto 0.5.1
+# Punto Moto 0.5.2
 
 ## Cambios de esta versión
 
+- **Corrige la 0.5.1:** esa versión salió con casi todos los estilos de la aplicación perdidos (Inicio y el resto de pantallas se veían sin diseño). Esta versión los restaura. Si instalaste la 0.5.1, actualiza a la 0.5.2.
 - **Crear proveedor desde la compra:** en Nueva compra, «Crear proveedor nuevo» abre el formulario del proveedor; al guardarlo queda elegido y no se pierde lo ya escrito en la compra.
 - **Pagos de locales:** al registrar el pago de un local solo salen los que deben algo.
 - **Devoluciones:** el botón «Nueva devolución» lleva a Ventas e indica cómo registrarla desde el recibo de la venta.
