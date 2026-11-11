@@ -1,13 +1,9 @@
-# Punto Moto 0.5.2
+# Punto Moto 0.5.3
 
 ## Cambios de esta versión
 
-- **Corrige la 0.5.1:** esa versión salió con casi todos los estilos de la aplicación perdidos (Inicio y el resto de pantallas se veían sin diseño). Esta versión los restaura. Si instalaste la 0.5.1, actualiza a la 0.5.2.
-- **Crear proveedor desde la compra:** en Nueva compra, «Crear proveedor nuevo» abre el formulario del proveedor; al guardarlo queda elegido y no se pierde lo ya escrito en la compra.
-- **Pagos de locales:** al registrar el pago de un local solo salen los que deben algo.
-- **Devoluciones:** el botón «Nueva devolución» lleva a Ventas e indica cómo registrarla desde el recibo de la venta.
-- **Tipos, marcas y motos:** las tres listas son pestañas grandes arriba, con su cantidad, y Ctrl+N crea en la sección elegida.
-- **Teclas rápidas más visibles:** las etiquetas de atajo (como Ctrl+N) y la tecla de la barra superior se ven con más contraste.
+- **Abrir la caja:** con la caja cerrada, la pantalla es ahora una sola tarjeta con el campo grande de efectivo del cajón, el sugerido del último cierre (con «Usar» para volver a él) y el botón «Abrir caja». Desaparecen los avisos repetidos y el panel negro.
+- **Servicios de la venta:** la columna «Qué se hizo» ocupa el ancho libre, trae un ejemplo y muestra un contador de 120 caracteres cerca del límite.
 
 No cambian el contrato de la API ni el esquema de datos.
 
