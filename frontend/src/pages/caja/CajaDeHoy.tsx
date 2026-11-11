@@ -1,4 +1,4 @@
-import { Banknote, Lock, Minus } from 'lucide-react'
+import { Lock, Minus, Unlock } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { abrirCaja, cerrarCaja, registrarSalida } from '../../api/caja'
@@ -8,10 +8,10 @@ import { desglosarError } from '../../api/errors'
 import type { CashSession, PaymentMethod, SpendInput } from '../../api/types'
 import { AvisoDeError } from '../../components/AvisoDeError'
 import { Campo } from '../../components/Campo'
+import { CampoPersonalizado }from '../../components/CampoPersonalizado'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { PanelLateral } from '../../components/PanelLateral'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
-import { EstadoVacio } from '../../components/EstadoVacio'
 import { Registro } from '../../components/Registro'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { DESTINOS } from '../../navegacion/destinos'
@@ -70,15 +70,6 @@ export function CajaDeHoy() {
       )}
       {!actual.data.is_open || !caja ? (
         <div className="caja-hoy__apertura">
-          <aside className="caja-hoy__antes-de-abrir">
-            <EstadoVacio icono={Banknote} mensaje="La caja está cerrada" />
-            <p>Cuenta el efectivo del cajón para empezar la jornada.</p>
-            <dl>
-              <dt>Efectivo sugerido</dt>
-              <dd>{formatearPesos(actual.data.suggested_opening_cash ?? 0)}</dd>
-            </dl>
-            <p>Lo que se contó en el último cierre.</p>
-          </aside>
           <AbrirCaja
             sugerido={actual.data.suggested_opening_cash ?? 0}
             onAbierta={(abierta) => {
@@ -219,27 +210,50 @@ function AbrirCaja({ sugerido, onAbierta }: { sugerido: number; onAbierta: (caja
     abrir.mutate()
   }
 
+  const distinto = sugerido > 0 && efectivo !== String(sugerido)
+
   return (
-    <form onSubmit={alEnviar} noValidate className="formulario">
-      <p role="status" className="aviso aviso--advertencia">
-        La caja está cerrada: no se puede vender ni registrar dinero de hoy hasta abrirla.
-      </p>
+    <form onSubmit={alEnviar} noValidate className="formulario apertura">
+      <div className="apertura__intro">
+        <h3>Abrir la jornada</h3>
+        <p>Mientras la caja esté cerrada no se puede vender ni registrar dinero de hoy.</p>
+      </div>
       <AvisoDeError mensajes={error?.generales ?? []} />
-      <Campo
-        etiqueta="Efectivo en el cajón al abrir"
-        type="number"
-        inputMode="numeric"
-        min={0}
-        step={1}
-        value={efectivo}
-        onChange={(e) => setEfectivo(e.target.value)}
-        errores={error?.campos.opening_cash}
-        ayuda={`Sugerido: ${formatearPesos(sugerido)}, lo que se contó en el último cierre.`}
-        autoFocus
-        required
-      />
-      <div className="acciones">
+      <CampoPersonalizado etiqueta="Efectivo en el cajón al abrir" errores={error?.campos.opening_cash}>
+        {(propiedades) => (
+          <div className="apertura__monto">
+            <span aria-hidden="true">$</span>
+            <input
+              {...propiedades}
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              value={efectivo}
+              onChange={(e) => setEfectivo(e.target.value)}
+              autoFocus
+              required
+            />
+          </div>
+        )}
+      </CampoPersonalizado>
+      {sugerido > 0 && (
+        <p className="apertura__sugerido">
+          {distinto ? (
+            <>
+              En el último cierre se contaron {formatearPesos(sugerido)}.{' '}
+              <button type="button" className="apertura__usar" onClick={() => setEfectivo(String(sugerido))}>
+                Usar {formatearPesos(sugerido)}
+              </button>
+            </>
+          ) : (
+            `Es lo que se contó en el último cierre (${formatearPesos(sugerido)}).`
+          )}
+        </p>
+      )}
+      <div className="apertura__acciones">
         <button type="submit" className="boton boton--auto" disabled={abrir.isPending || efectivo === ''}>
+          <Unlock aria-hidden="true" size={16} />
           {abrir.isPending ? 'Abriendo…' : 'Abrir caja'}
         </button>
       </div>
