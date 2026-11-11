@@ -1638,6 +1638,32 @@ kbd {
   border-top: 1px solid var(--color-borde);
 }
 
+/* En servicios, «Qué se hizo» toma todo el ancho que sobra: es lo que el cliente quiere leer. */
+.venta__servicios .tabla th:first-child { width: 24%; }
+.venta__servicios .tabla th:nth-child(3) { width: auto; }
+
+.venta__que-se-hizo { position: relative; }
+
+.venta__servicios .celda-texto {
+  min-height: 2.5rem;
+  padding-right: 52px;
+  font-size: 14px;
+  border-color: var(--color-acento);
+}
+
+.venta__servicios .celda-texto::placeholder { color: var(--texto-secundario); }
+
+.venta__contador {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-secundario);
+  pointer-events: none;
+}
+
 .venta__fila-servicio > * {
   background: #fafbf2;
 }

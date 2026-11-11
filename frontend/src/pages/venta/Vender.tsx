@@ -508,14 +508,21 @@ export function Vender() {
                             </select>
                           </td>
                           <td>
-                            <input
-                              className="celda-texto"
-                              aria-label={`Qué se hizo en ${nombre}`}
-                              value={servicio.detalles}
-                              maxLength={120}
-                              onChange={(e) => cambiarServicio(servicio.clave, { detalles: e.target.value })}
-                              placeholder="Opcional"
-                            />
+                            <div className="venta__que-se-hizo">
+                              <input
+                                className="celda-texto"
+                                aria-label={`Qué se hizo en ${nombre}`}
+                                value={servicio.detalles}
+                                maxLength={120}
+                                onChange={(e) => cambiarServicio(servicio.clave, { detalles: e.target.value })}
+                                placeholder="Ej. cambio de aceite y filtro, revisión de frenos"
+                              />
+                              {servicio.detalles.length >= 90 && (
+                                <span className="venta__contador" aria-hidden="true">
+                                  {servicio.detalles.length}/120
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="tabla__numero venta__subtotal">
                             {esDueno ? (

@@ -113,7 +113,7 @@ describe('servicios en la venta', () => {
     })
     await agregarServicio(u, /Cambio de aceite/)
     await agregarServicio(u, /Otro/)
-    expect(screen.getByLabelText('Qué se hizo en Otro (2)')).toHaveAttribute('placeholder', 'Opcional')
+    expect(screen.getByLabelText('Qué se hizo en Otro (2)')).toHaveAttribute('placeholder', 'Ej. cambio de aceite y filtro, revisión de frenos')
     await u.selectOptions(screen.getByLabelText('Mecánico de Cambio de aceite (1)'), 'Carlos Ruiz')
     await u.selectOptions(screen.getByLabelText('Mecánico de Otro (2)'), 'Carlos Ruiz')
     await elegirAna(u)
