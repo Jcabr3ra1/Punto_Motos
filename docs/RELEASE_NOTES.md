@@ -1,8 +1,9 @@
-# Punto Moto 0.6.1
+# Punto Moto 0.6.2
 
 ## Cambios de esta versión
 
-- **Corrige enlaces en tarjetas oscuras de Inicio:** los botones como «Ver ventas de hoy →» y «Ver mes en ventas →» conservan el fondo oscuro en reposo y pasan a texto oscuro sobre fondo lima al pasar el mouse, restaurando el contraste en tarjetas oscuras.
+- **Alineación simétrica en Inicio:** el tablero del dueño ahora organiza sus tarjetas en cuatro filas emparejadas de igual altura (Vendido hoy, Vendido este mes y Caja en una sola franja superior; Cómo vienen las ventas con Necesita tu atención; Cuentas del negocio con Devoluciones de hoy en tres tercios iguales; Últimas ventas con Existencias por reponer abajo), con cabeceras, franjas superiores y pies uniformes.
+- **Vista del vendedor:** las tarjetas de Consulta de precios y Ventas de hoy comparten ahora altura y remate visual consistente.
 
 No cambian el contrato de la API ni el esquema de datos (`0.11.0`).
 
