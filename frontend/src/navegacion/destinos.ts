@@ -82,7 +82,7 @@ export const DESTINOS = {
   historialDeLiquidaciones: { icono: History, descripcion: 'Liquidaciones anteriores', ruta: '/taller/historial', etiqueta: 'Historial de liquidaciones', roles: SOLO_DUENO },
   configuracion: { icono: Settings, descripcion: 'Negocio, catálogo y usuarios', ruta: '/configuracion', etiqueta: 'Configuración', roles: TODOS },
   negocio: { icono: Building, descripcion: 'Nombre y datos del negocio', ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
-  catalogo: { icono: Tags, descripcion: 'Clasificación de los productos', ruta: '/inventario/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
+  catalogo: { icono: Tags, descripcion: 'Organiza tipos de repuesto, marcas y modelos de moto', ruta: '/inventario/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
   usuarios: { icono: Users, descripcion: 'Quién entra al programa', ruta: '/configuracion/usuarios', etiqueta: 'Usuarios', roles: SOLO_DUENO },
   tiposDeServicio: { icono: ListChecks, descripcion: 'Servicios que ofrece el taller', ruta: '/taller/servicios', etiqueta: 'Tipos de servicio', roles: SOLO_DUENO },
   mecanicos: { icono: HardHat, descripcion: 'Mecánicos y su porcentaje', ruta: '/taller/mecanicos', etiqueta: 'Mecánicos', roles: SOLO_DUENO },

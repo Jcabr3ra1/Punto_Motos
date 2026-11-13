@@ -1,14 +1,16 @@
-import { Pencil, Plus } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
+import { isApiError } from '../../../api/client'
 import { claves } from '../../../api/consultas'
 import { desglosarError } from '../../../api/errors'
-import { crearMecanico, editarMecanico, listarMecanicos } from '../../../api/taller'
+import { crearMecanico, editarMecanico, eliminarMecanico, listarMecanicos } from '../../../api/taller'
 import type { Mechanic } from '../../../api/types'
 import { AvisoDeError } from '../../../components/AvisoDeError'
 import { BarraDeFiltros } from '../../../components/BarraDeFiltros'
 import { Campo } from '../../../components/Campo'
 import { Casilla } from '../../../components/Casilla'
+import { DialogoDeConfirmacion } from '../../../components/DialogoDeConfirmacion'
 import { Cargando, ErrorDeCarga } from '../../../components/EstadoDeCarga'
 import { EncabezadoDePantalla } from '../../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../../components/FranjaDeIndicadores'
@@ -23,14 +25,35 @@ import { useListaLocal } from '../../../hooks/useListaLocal'
 type Vista = { tipo: 'lista' } | { tipo: 'crear' } | { tipo: 'editar'; mecanico: Mechanic }
 
 // Mecánicos (solo el dueño). Son registros de empleado: no inician sesión. Su porcentaje de la mano de obra
-// es el propio o el general de Datos del negocio. No se borran: se desactivan.
+// es el propio o el general de Datos del negocio. Los que nunca tuvieron servicios se pueden borrar; con historial se desactivan.
 export function Mecanicos() {
+  const clienteDeConsultas = useQueryClient()
   const [vista, setVista] = useState<Vista>({ tipo: 'lista' })
   const [aviso, setAviso] = useState<string | null>(null)
+  const [eliminando, setEliminando] = useState<Mechanic | null>(null)
   const mecanicos = useQuery({
     queryKey: claves.mecanicos(true),
     queryFn: ({ signal }) => listarMecanicos(true, signal),
   })
+  const eliminar = useMutation({
+    mutationFn: (m: Mechanic) => eliminarMecanico(m.id),
+    onSuccess: async (_, borrado) => {
+      setEliminando(null)
+      setAviso(`Mecánico «${borrado.name}» eliminado.`)
+      await clienteDeConsultas.invalidateQueries({ queryKey: claves.taller })
+    },
+  })
+  const desactivar = useMutation({
+    mutationFn: (m: Mechanic) => editarMecanico(m.id, { is_active: false }),
+    onSuccess: async (desactivado) => {
+      setEliminando(null)
+      setAviso(`Mecánico «${desactivado.name}» desactivado.`)
+      await clienteDeConsultas.invalidateQueries({ queryKey: claves.taller })
+    },
+  })
+  const falloEliminar = desactivar.error ?? eliminar.error
+  const errorEliminar = falloEliminar ? desglosarError(falloEliminar) : null
+  const tieneHistorial = isApiError(eliminar.error) && eliminar.error.code === 'mechanic_has_history'
   const { lista, porPagina, busqueda, buscar, estado, filtrarEstado, visibles, enPagina, pagina, paginas, setPagina } =
     useListaLocal(mecanicos.data ?? [], (m) => [m.name, m.phone ?? ''])
 
@@ -134,6 +157,20 @@ export function Mecanicos() {
                           <button type="button" className="boton-icono" aria-label={`Editar a ${mecanico.name}`} title="Editar" onClick={() => ir({ tipo: 'editar', mecanico })}>
                             <Pencil aria-hidden="true" size={16} strokeWidth={1.75} />
                           </button>
+                          <button
+                            type="button"
+                            className="boton-icono boton-icono--peligro"
+                            aria-label={`Eliminar a ${mecanico.name}`}
+                            title="Eliminar"
+                            onClick={() => {
+                              setAviso(null)
+                              eliminar.reset()
+                              desactivar.reset()
+                              setEliminando(mecanico)
+                            }}
+                          >
+                            <Trash2 aria-hidden="true" size={16} strokeWidth={1.75} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -157,6 +194,40 @@ export function Mecanicos() {
         </section>
       </div>
       {panel}
+      {eliminando && (
+        <DialogoDeConfirmacion
+          titulo={`¿Eliminar a ${eliminando.name}?`}
+          accion={eliminar.isPending ? 'Eliminando…' : 'Sí, eliminar'}
+          cancelar="Volver"
+          peligro
+          ocupado={eliminar.isPending || desactivar.isPending}
+          onConfirmar={() => {
+            desactivar.reset()
+            eliminar.mutate(eliminando)
+          }}
+          onCancelar={() => {
+            eliminar.reset()
+            desactivar.reset()
+            setEliminando(null)
+          }}
+          otrasAcciones={
+            tieneHistorial &&
+            eliminando.is_active && (
+              <button
+                type="button"
+                className="boton boton--secundario boton--auto"
+                disabled={desactivar.isPending || eliminar.isPending}
+                onClick={() => desactivar.mutate(eliminando)}
+              >
+                {desactivar.isPending ? 'Desactivando…' : 'Desactivar mecánico'}
+              </button>
+            )
+          }
+        >
+          <p>Solo se puede eliminar si nunca ha tenido servicios, liquidaciones ni descuentos. Si ya tiene historial, puedes desactivarlo.</p>
+          <AvisoDeError mensajes={errorEliminar?.generales ?? []} />
+        </DialogoDeConfirmacion>
+      )}
     </section>
   )
 }

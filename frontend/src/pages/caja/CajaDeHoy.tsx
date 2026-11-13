@@ -180,8 +180,12 @@ export function CajaDeHoy() {
               setVista('resumen')
               setAviso(
                 `Caja cerrada. Contado: ${formatearPesos(cerrada.counted_cash ?? 0)}. ${
-                  !cerrada.difference ? 'Cuadró.' : cerrada.difference > 0 ? `Sobraron ${formatearPesos(cerrada.difference)}.` : `Faltaron ${formatearPesos(-cerrada.difference)}.`
-                }`,
+                  !cerrada.difference
+                    ? 'Cuadró.'
+                    : cerrada.difference > 0
+                      ? `Sobraron ${formatearPesos(cerrada.difference)}.`
+                      : `Faltaron ${formatearPesos(-cerrada.difference)}.`
+                }${cerrada.closing_notes ? ` Motivo: ${cerrada.closing_notes}.` : ''}`,
               )
             }}
             onCancelar={() => setVista('resumen')}

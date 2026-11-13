@@ -37,6 +37,9 @@ export const crearMecanico = (datos: MechanicInput) => api<Mechanic>('/mechanics
 export const editarMecanico = (id: number, datos: Partial<MechanicInput>) =>
   api<Mechanic>(`/mechanics/${id}`, { method: 'PATCH', body: datos })
 
+/** Solo el dueño: elimina un mecánico que nunca tuvo servicios, liquidaciones ni descuentos. */
+export const eliminarMecanico = (id: number) => api<void>(`/mechanics/${id}`, { method: 'DELETE' })
+
 /** Solo el dueño: saca un insumo de taller sin cobrarlo. */
 export const registrarConsumoDelTaller = (datos: WorkshopUseInput) =>
   api<InventoryMovement>('/inventory/workshop-use', { method: 'POST', body: datos })

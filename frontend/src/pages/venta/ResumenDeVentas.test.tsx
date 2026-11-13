@@ -1,10 +1,16 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SaleSummary } from '../../api/types'
 import { dueno, simularApi, vendedor } from '../../test/apiSimulada'
 import { mostrarRutas } from '../../test/mostrar'
+import { exportarExcel } from '../../utilidades/excel'
 import { hoyEnColombia, moverDia } from '../../utilidades/fechas'
+
+vi.mock('../../utilidades/excel', async (importActual) => {
+  const real = await importActual<typeof import('../../utilidades/excel')>()
+  return { ...real, exportarExcel: vi.fn().mockResolvedValue(undefined) }
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -92,5 +98,25 @@ describe('resumen de ventas', () => {
     const hoy = hoyEnColombia()
     const hace6 = moverDia(hoy, -6)
     expect(api.llamadas.some((l) => l.clave.includes(`date_from=${hace6}`) && l.clave.includes(`date_to=${hoy}`))).toBe(true)
+  })
+
+  it('exporta a Excel al pulsar Exportar Excel', async () => {
+    simularApi({ 'GET /sales/summary*': () => ({ cuerpo: resumenEjemplo }) })
+    mostrarRutas(dueno, '/venta/resumen')
+    const u = userEvent.setup()
+
+    await screen.findByText('$ 860.000')
+    await u.click(screen.getByRole('button', { name: 'Exportar Excel' }))
+
+    await waitFor(() => expect(exportarExcel).toHaveBeenCalledTimes(1))
+    expect(exportarExcel).toHaveBeenCalledWith(
+      'resumen-ventas-2026-11-13',
+      expect.arrayContaining([
+        expect.objectContaining({ nombre: 'Resumen' }),
+        expect.objectContaining({ nombre: 'Por tipo de producto' }),
+        expect.objectContaining({ nombre: 'Por servicio' }),
+        expect.objectContaining({ nombre: 'Por producto' }),
+      ]),
+    )
   })
 })

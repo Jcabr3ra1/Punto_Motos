@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DailySettlement } from '../../api/types'
-import { dueno, simularApi } from '../../test/apiSimulada'
+import { dueno, errorDeApi, simularApi } from '../../test/apiSimulada'
 import { caja, liquidacion, mecanico, paginaDe, tipoDeServicio } from '../../test/datos'
 import { mostrarRutas } from '../../test/mostrar'
 
@@ -81,5 +81,46 @@ describe('vistas de taller', () => {
 
     const leer = await cifras()
     await waitFor(() => expect(leer()).toEqual(['1']))
+  })
+
+  it('mecánicos permite eliminar uno sin historial', async () => {
+    const api = simularApi({
+      'GET /mechanics*': () => ({ cuerpo: [mecanico({ id: 1, name: 'Carlos Pérez', is_active: true })] }),
+      'DELETE /mechanics/1': () => ({ estado: 204 }),
+    })
+    mostrarRutas(dueno, '/taller/mecanicos')
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Eliminar a Carlos Pérez' }))
+    const dialogo = screen.getByRole('alertdialog', { name: '¿Eliminar a Carlos Pérez?' })
+    await u.click(within(dialogo).getByRole('button', { name: 'Sí, eliminar' }))
+
+    await waitFor(() => expect(api.llamadas.some((l) => l.clave === 'DELETE /mechanics/1')).toBe(true))
+    expect(await screen.findByText('Mecánico «Carlos Pérez» eliminado.')).toBeInTheDocument()
+  })
+
+  it('mecánicos ofrece desactivar si tiene historial (409)', async () => {
+    const api = simularApi({
+      'GET /mechanics*': () => ({ cuerpo: [mecanico({ id: 1, name: 'Carlos Pérez', is_active: true })] }),
+      'DELETE /mechanics/1': () =>
+        errorDeApi(409, 'mechanic_has_history', 'Este mecánico ya tiene servicios, liquidaciones o descuentos y no se puede eliminar.'),
+      'PATCH /mechanics/1': () => ({ cuerpo: mecanico({ id: 1, name: 'Carlos Pérez', is_active: false }) }),
+    })
+    mostrarRutas(dueno, '/taller/mecanicos')
+    const u = userEvent.setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Eliminar a Carlos Pérez' }))
+    const dialogo = screen.getByRole('alertdialog', { name: '¿Eliminar a Carlos Pérez?' })
+    await u.click(within(dialogo).getByRole('button', { name: 'Sí, eliminar' }))
+
+    expect(
+      await within(dialogo).findByText('Este mecánico ya tiene servicios, liquidaciones o descuentos y no se puede eliminar.'),
+    ).toBeInTheDocument()
+    await u.click(within(dialogo).getByRole('button', { name: 'Desactivar mecánico' }))
+
+    await waitFor(() =>
+      expect(api.llamadas.some((l) => l.clave === 'PATCH /mechanics/1' && JSON.stringify(l.cuerpo) === '{"is_active":false}')).toBe(true),
+    )
+    expect(await screen.findByText('Mecánico «Carlos Pérez» desactivado.')).toBeInTheDocument()
   })
 })

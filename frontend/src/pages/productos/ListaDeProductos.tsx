@@ -369,7 +369,7 @@ function TablaDeProductos({
   )
 }
 
-/** Existencia como un medidor: llena al doble del mínimo, naranja cuando hay que reponer. */
+/** Existencia actual en la tabla (sin mostrar el mínimo). */
 function Medidor({ actual, minimo, alerta }: { actual: number; minimo: number; alerta: boolean }) {
   const lleno = Math.max(0, Math.min(1, actual / Math.max(minimo * 2, 1)))
   return (
@@ -377,7 +377,7 @@ function Medidor({ actual, minimo, alerta }: { actual: number; minimo: number; a
       <span className="medidor__barra" aria-hidden="true">
         <span style={{ width: `${Math.round(lleno * 100)}%` }} />
       </span>
-      <span>{minimo > 0 ? `${actual} / ${minimo}` : actual}</span>
+      <span>{actual}</span>
     </span>
   )
 }

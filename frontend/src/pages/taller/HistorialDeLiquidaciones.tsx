@@ -5,6 +5,7 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import { listarLiquidaciones, listarMecanicos, obtenerLiquidacion } from '../../api/taller'
 import { BarraDeFiltros, ListaDeFiltro } from '../../components/BarraDeFiltros'
+import { BotonExportarExcel } from '../../components/BotonExportarExcel'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { EstadoVacio } from '../../components/EstadoVacio'
@@ -20,6 +21,7 @@ import { useHoy } from '../../hooks/useHoy'
 import { useSeleccion } from '../../hooks/useSeleccion'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
+import { exportarExcel, todasLasPaginas } from '../../utilidades/excel'
 import { formatearDia, formatearFechaHora } from '../../utilidades/fechas'
 import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
 import { FichaDeLiquidacion } from './FichaDeLiquidacion'
@@ -74,12 +76,48 @@ export function HistorialDeLiquidaciones() {
   const hayFiltros = Boolean(filtros.mechanic || periodo !== PERIODO_INICIAL)
   const [hojaAbierta, setHojaAbierta] = useState<{ id: number; mecanico: string } | null>(null)
 
+  async function exportarLiquidaciones() {
+    const todasLasLiq = await todasLasPaginas((page, page_size) => listarLiquidaciones({ ...filtros, page, page_size }))
+    await exportarExcel(`liquidaciones-${hoy}`, [
+      {
+        nombre: 'Liquidaciones',
+        encabezados: [
+          'Día liquidado',
+          'Pagado el',
+          'Mecánico',
+          'Servicios',
+          'Mano de obra (COP)',
+          'Porcentaje (%)',
+          'Descuentos (COP)',
+          'Pagado (COP)',
+          'Medio',
+          'Registró',
+        ],
+        filas: todasLasLiq.map((l) => [
+          formatearDia(l.date),
+          formatearFechaHora(l.created_at),
+          l.mechanic.name,
+          l.services_count,
+          l.labor_total,
+          l.percentage,
+          l.deductions_total,
+          l.amount,
+          l.method_label,
+          l.created_by,
+        ]),
+      },
+    ])
+  }
+
   return (
     <div className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.historialDeLiquidaciones.icono}
         titulo="Historial de liquidaciones"
         descripcion="Lo que se les pagó a los mecánicos. Elige una para ver sus servicios."
+        acciones={
+          <BotonExportarExcel onExportar={exportarLiquidaciones} disabled={!liquidaciones.isSuccess || liquidaciones.data.count === 0} />
+        }
       />
       <FranjaDeIndicadores
         indicadores={[{ rotulo: 'Liquidaciones', valor: String(todas.data ?? 0), cargando: todas.isPending, error: todas.isError }]}

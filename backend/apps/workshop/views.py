@@ -1,6 +1,7 @@
 from django.db.models import F
+from django.db.models.deletion import ProtectedError
 from django.utils import timezone
-from rest_framework import generics, status
+from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsOwner
@@ -8,6 +9,7 @@ from apps.catalog.views import CatalogViewSet, _flag, _id_param
 from apps.core.pagination import StandardPagination
 from apps.inventory.views import _date_param
 
+from .exceptions import MechanicHasHistory
 from .models import Mechanic, MechanicDeduction, MechanicSettlement, ServiceType
 from .serializers import (
     SETTLEMENT_DETAIL_PREFETCH,
@@ -32,14 +34,22 @@ class ServiceTypeViewSet(CatalogViewSet):
     serializer_class = ServiceTypeSerializer
 
 
-class MechanicViewSet(CatalogViewSet):
-    """Mecánicos. Todos los consultan para elegirlos en la venta; solo el dueño los crea y edita.
+class MechanicViewSet(mixins.DestroyModelMixin, CatalogViewSet):
+    """Mecánicos. Todos los consultan para elegirlos en la venta; solo el dueño los crea, edita y elimina.
 
-    El vendedor no recibe los porcentajes de la mano de obra.
+    El vendedor no recibe los porcentajes de la mano de obra. Solo se elimina si
+    nunca se usó; con historial responde 409 y se desactiva.
     """
 
     queryset = Mechanic.objects.all()
     serializer_class = MechanicSerializer
+    http_method_names = [*CatalogViewSet.http_method_names, "delete"]
+
+    def perform_destroy(self, instance):
+        try:
+            instance.delete()
+        except ProtectedError:
+            raise MechanicHasHistory()
 
 
 class DailySettlementView(generics.GenericAPIView):

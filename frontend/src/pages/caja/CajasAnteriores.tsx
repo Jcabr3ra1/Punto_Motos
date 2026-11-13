@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { listarCajas, obtenerCaja } from '../../api/caja'
 import { claves } from '../../api/consultas'
 import { BarraDeFiltros } from '../../components/BarraDeFiltros'
+import { BotonExportarExcel } from '../../components/BotonExportarExcel'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { EstadoVacio } from '../../components/EstadoVacio'
@@ -18,6 +19,7 @@ import { useHoy } from '../../hooks/useHoy'
 import { useSeleccion } from '../../hooks/useSeleccion'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
+import { exportarExcel, todasLasPaginas } from '../../utilidades/excel'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
 import { cuadreDeCaja } from './cuadreDeCaja'
@@ -66,12 +68,46 @@ export function CajasAnteriores() {
   const todas = useConteo([...claves.caja, 'cuantas'], (signal) => listarCajas({ page_size: 1 }, signal))
   const [cajaAbierta, setCajaAbierta] = useState<{ id: number; abierta: string } | null>(null)
 
+  async function exportarCajas() {
+    const todas = await todasLasPaginas((page, page_size) => listarCajas({ ...filtros, page, page_size }))
+    await exportarExcel(`cajas-${hoy}`, [
+      {
+        nombre: 'Cajas',
+        encabezados: [
+          'Apertura',
+          'Abrió',
+          'Cierre',
+          'Cerró',
+          'Base (COP)',
+          'Esperado (COP)',
+          'Contado (COP)',
+          'Diferencia (COP)',
+          'Resultado',
+          'Nota del cierre',
+        ],
+        filas: todas.map((c) => [
+          formatearFechaHora(c.opened_at),
+          c.opened_by,
+          c.closed_at ? formatearFechaHora(c.closed_at) : 'Abierta',
+          c.closed_by ?? '',
+          c.opening_cash,
+          c.expected_cash,
+          c.counted_cash ?? '',
+          c.difference ?? '',
+          cuadreDeCaja(c),
+          c.closing_notes || '',
+        ]),
+      },
+    ])
+  }
+
   return (
     <div className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.cajaHistorial.icono}
         titulo="Cajas anteriores"
         descripcion="Cada día de caja con su cierre. Elige una para ver su resumen."
+        acciones={<BotonExportarExcel onExportar={exportarCajas} disabled={!cajas.isSuccess || cajas.data.count === 0} />}
       />
       <FranjaDeIndicadores
         indicadores={[{ rotulo: 'Cajas registradas', valor: String(todas.data ?? 0), cargando: todas.isPending, error: todas.isError }]}

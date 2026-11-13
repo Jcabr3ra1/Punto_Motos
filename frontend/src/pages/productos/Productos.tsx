@@ -4,12 +4,14 @@ import { useUsuario } from '../../auth/useUsuario'
 import { Plus } from 'lucide-react'
 import { claves } from '../../api/consultas'
 import { listarProductos } from '../../api/productos'
+import { BotonExportarExcel } from '../../components/BotonExportarExcel'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { PanelLateral } from '../../components/PanelLateral'
 import { useAtajo } from '../../hooks/useAtajo'
 import { useConteo } from '../../hooks/useConteo'
 import { DESTINOS } from '../../navegacion/destinos'
+import { exportarExcel, todasLasPaginas } from '../../utilidades/excel'
 import { formatearNumero } from '../../utilidades/numeros'
 import { FormularioDeProducto } from './FormularioDeProducto'
 import { FILTROS_INICIALES, type EstadoDeFiltros } from './filtros'
@@ -44,6 +46,36 @@ export function Productos() {
     listarProductos({ workshop_supply: true, page_size: 1 }, signal),
   )
 
+  async function exportarProductos() {
+    const lista = await todasLasPaginas((page, page_size) =>
+      listarProductos({
+        q: filtros.busqueda || undefined,
+        category: filtros.tipo ? Number(filtros.tipo) : undefined,
+        moto: filtros.moto ? Number(filtros.moto) : undefined,
+        workshop_supply: filtros.insumos,
+        include_inactive: filtros.desactivados,
+        ordering: filtros.orden,
+        page,
+        page_size,
+      }),
+    )
+    const encabezados = esDueno
+      ? ['Código', 'Producto', 'Tipo', 'Marca', 'Moto', 'Costo (COP)', 'Precio venta (COP)', 'Existencias', 'Ubicación', 'Activo']
+      : ['Código', 'Producto', 'Tipo', 'Marca', 'Moto', 'Precio venta (COP)', 'Existencias', 'Ubicación', 'Activo']
+    await exportarExcel('productos-inventario', [
+      {
+        nombre: 'Productos',
+        encabezados,
+        filas: lista.map((p) => {
+          const moto = p.is_universal ? 'Universal' : (p.moto?.name ?? '')
+          return esDueno
+            ? [p.code, p.name, p.category.name, p.brand?.name ?? '', moto, p.cost_price ?? 0, p.sale_price, p.stock, p.location, p.is_active]
+            : [p.code, p.name, p.category.name, p.brand?.name ?? '', moto, p.sale_price, p.stock, p.location, p.is_active]
+        }),
+      },
+    ])
+  }
+
   return (
     <section className="vista-libro">
       <EncabezadoDePantalla
@@ -51,13 +83,16 @@ export function Productos() {
         titulo="Productos"
         descripcion="Existencias, precios y códigos. Elige un producto para ver su ficha."
         acciones={
-          esDueno && (
-            <button type="button" className="boton boton--auto boton--con-icono" onClick={crear} aria-keyshortcuts="Control+N">
-              <Plus aria-hidden="true" size={16} />
-              Nuevo producto
-              <kbd className="atajo-visible" aria-hidden="true">Ctrl+N</kbd>
-            </button>
-          )
+          <div className="acciones">
+            <BotonExportarExcel onExportar={exportarProductos} />
+            {esDueno && (
+              <button type="button" className="boton boton--auto boton--con-icono" onClick={crear} aria-keyshortcuts="Control+N">
+                <Plus aria-hidden="true" size={16} />
+                Nuevo producto
+                <kbd className="atajo-visible" aria-hidden="true">Ctrl+N</kbd>
+              </button>
+            )}
+          </div>
         }
       />
       <FranjaDeIndicadores

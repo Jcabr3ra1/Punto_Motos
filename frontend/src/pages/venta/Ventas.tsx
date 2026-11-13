@@ -6,6 +6,7 @@ import { claves } from '../../api/consultas'
 import { listarMecanicos } from '../../api/taller'
 import { listarVentas, type FiltrosDeVentas } from '../../api/ventas'
 import { BarraDeFiltros, BotonDeFiltro, ListaDeFiltro } from '../../components/BarraDeFiltros'
+import { BotonExportarExcel } from '../../components/BotonExportarExcel'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { Paginacion } from '../../components/Paginacion'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
@@ -19,6 +20,7 @@ import { useSeleccion } from '../../hooks/useSeleccion'
 import { useVentasDeHoy } from '../../hooks/useVentasDeHoy'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
+import { exportarExcel, todasLasPaginas } from '../../utilidades/excel'
 import { formatearFechaHora } from '../../utilidades/fechas'
 import { formatearNumero } from '../../utilidades/numeros'
 import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
@@ -117,6 +119,26 @@ export function Ventas() {
           ? 'Todavía no hay ventas.'
           : 'No hay ventas en esas fechas.'
 
+  async function exportarVentas() {
+    const todas = await todasLasPaginas((page, page_size) => listarVentas({ ...consulta, page, page_size }))
+    await exportarExcel(`ventas-${hoy}`, [
+      {
+        nombre: 'Ventas',
+        encabezados: ['Recibo N.º', 'Fecha', 'Cliente', 'Teléfono', 'Vendió', 'Servicios', 'Estado', 'Total (COP)'],
+        filas: todas.map((v) => [
+          v.number,
+          formatearFechaHora(v.created_at),
+          v.customer?.name ?? 'Sin cliente',
+          v.customer?.phone ?? '',
+          v.created_by,
+          v.services_count,
+          v.is_voided ? 'Anulada' : 'Vigente',
+          v.total,
+        ]),
+      },
+    ])
+  }
+
   return (
     <div className="vista-libro">
       <EncabezadoDePantalla
@@ -124,11 +146,14 @@ export function Ventas() {
         titulo="Ventas"
         descripcion="Lo vendido, de lo más reciente a lo más antiguo. Elige una venta para ver su recibo."
         acciones={
-          <Link to={DESTINOS.vender.ruta} className="boton boton--auto boton--con-icono" aria-keyshortcuts="Control+N">
-            <Plus aria-hidden="true" size={16} />
-            Nueva venta
-            <kbd className="atajo-visible" aria-hidden="true">Ctrl+N</kbd>
-          </Link>
+          <div className="acciones">
+            <BotonExportarExcel onExportar={exportarVentas} disabled={!ventas.isSuccess || ventas.data.count === 0} />
+            <Link to={DESTINOS.vender.ruta} className="boton boton--auto boton--con-icono" aria-keyshortcuts="Control+N">
+              <Plus aria-hidden="true" size={16} />
+              Nueva venta
+              <kbd className="atajo-visible" aria-hidden="true">Ctrl+N</kbd>
+            </Link>
+          </div>
         }
       />
       {aviso && (

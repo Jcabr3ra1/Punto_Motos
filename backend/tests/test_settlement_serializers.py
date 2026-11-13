@@ -89,13 +89,27 @@ class SettleSerializerTests(SettlementTestCase):
 
 class PreviewSerializerTests(SettlementTestCase):
     def test_serializes_rows(self):
-        self.service_sale(self.carlos)
+        sale = self.service_sale(self.carlos)
+        service = sale.services.get()
 
         data = SettlementPreviewSerializer(MechanicSettlement.objects.preview(self.today), many=True).data
 
         self.assertEqual([dict(row) for row in data], [{
             "mechanic": {"id": self.carlos.pk, "name": "Carlos Ruiz"}, "services_count": 1, "labor_total": 15000,
             "percentage": 60, "share": 9000, "deductions_total": 0, "amount": 9000,
+            "services": [{
+                "id": service.pk,
+                "sale_id": sale.pk,
+                "sale_number": sale.number,
+                "customer": "Juan Pérez",
+                "service_type": {
+                    "id": service.service_type_id,
+                    "code": service.service_type.code,
+                    "name": service.service_type.name,
+                },
+                "details": service.details,
+                "labor_price": service.labor_price,
+            }],
         }])
 
 

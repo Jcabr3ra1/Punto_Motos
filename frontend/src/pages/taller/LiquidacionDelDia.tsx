@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { isApiError } from '../../api/client'
 import { claves } from '../../api/consultas'
@@ -14,6 +14,7 @@ import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { EstadoVacio } from '../../components/EstadoVacio'
 import { FranjaDeIndicadores } from '../../components/FranjaDeIndicadores'
 import { Titulo } from '../../components/Titulo'
+import { VentanaDeDocumento } from '../../components/VentanaDeDocumento'
 import { useCajaActual } from '../../hooks/useCajaActual'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
@@ -22,6 +23,17 @@ import { MedioDePago } from '../compras/MedioDePago'
 import { HojaDeLiquidacion } from './HojaDeLiquidacion'
 
 const TAMANO_DE_PAGINA = 50
+
+function resumirServicios(servicios: SettlementPreviewRow['services']): string {
+  if (!servicios || servicios.length === 0) return ''
+  const conteos = new Map<string, number>()
+  for (const s of servicios) {
+    conteos.set(s.service_type.name, (conteos.get(s.service_type.name) ?? 0) + 1)
+  }
+  return Array.from(conteos.entries())
+    .map(([nombre, n]) => (n > 1 ? `${nombre} (×${n})` : nombre))
+    .join(' · ')
+}
 
 // Liquidación del día (solo el dueño): a cada mecánico se le paga su porcentaje de la mano de obra de los
 // servicios sin pagar de ese día. El dinero sale de la caja abierta de hoy, aunque el día sea anterior.
@@ -33,6 +45,10 @@ export function LiquidacionDelDia() {
   const [hoja, setHoja] = useState<MechanicSettlementDetail | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [paginaDescuentos, setPaginaDescuentos] = useState(1)
+  const botonVolver = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (pagando) botonVolver.current?.focus()
+  }, [pagando])
   const caja = useCajaActual()
   const claveDelDia = [...claves.liquidaciones, 'dia', fecha]
   const dia = useQuery({ queryKey: claveDelDia, queryFn: ({ signal }) => consultarLiquidacionDelDia(fecha, signal), enabled: fecha !== '' })
@@ -154,37 +170,52 @@ export function LiquidacionDelDia() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dia.data.mechanics.map((fila) => (
-                      <tr key={fila.mechanic.id} aria-selected={pagando?.mechanic.id === fila.mechanic.id}>
-                        <th scope="row">{fila.mechanic.name}</th>
-                        <td className="tabla__numero">{fila.services_count}</td>
-                        <td className="tabla__numero">{formatearPesos(fila.labor_total)}</td>
-                        <td className="tabla__numero">{fila.percentage} %</td>
-                        <td className="tabla__numero">
-                          <strong>{formatearPesos(fila.amount)}</strong>
-                          {fila.deductions_total > 0 && (
-                            <span className="tabla__detalle">
-                              Su parte {formatearPesos(fila.share)} − descuento {formatearPesos(fila.deductions_total)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="tabla__acciones">
-                          <button
-                            type="button"
-                            className="boton boton--auto"
-                            disabled={cajaCerrada || pagar.isPending}
-                            aria-label={`Pagar a ${fila.mechanic.name}`}
-                            onClick={() => {
-                              pagar.reset()
-                              setMedio('cash')
-                              setPagando(fila)
-                            }}
-                          >
-                            Pagar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {dia.data.mechanics.map((fila) => {
+                      const resumen = resumirServicios(fila.services)
+                      const abrirVentana = () => {
+                        pagar.reset()
+                        setMedio('cash')
+                        setPagando(fila)
+                      }
+                      return (
+                        <tr
+                          key={fila.mechanic.id}
+                          className="tabla__fila--elegible"
+                          aria-selected={pagando?.mechanic.id === fila.mechanic.id}
+                          onClick={abrirVentana}
+                        >
+                          <th scope="row">
+                            {fila.mechanic.name}
+                            {resumen && <span className="tabla__detalle">{resumen}</span>}
+                          </th>
+                          <td className="tabla__numero">{fila.services_count}</td>
+                          <td className="tabla__numero">{formatearPesos(fila.labor_total)}</td>
+                          <td className="tabla__numero">{fila.percentage} %</td>
+                          <td className="tabla__numero">
+                            <strong>{formatearPesos(fila.amount)}</strong>
+                            {fila.deductions_total > 0 && (
+                              <span className="tabla__detalle">
+                                Su parte {formatearPesos(fila.share)} − descuento {formatearPesos(fila.deductions_total)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="tabla__acciones">
+                            <button
+                              type="button"
+                              className="boton boton--auto"
+                              disabled={cajaCerrada || pagar.isPending}
+                              aria-label={`Pagar a ${fila.mechanic.name}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                abrirVentana()
+                              }}
+                            >
+                              Pagar
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                   <tfoot>
                     <tr>
@@ -264,50 +295,111 @@ export function LiquidacionDelDia() {
           )}
         </section>
 
-        {/* El pago, en el panel negro como el cajón de Caja: el total del día o la confirmación del mecánico elegido. */}
+        {/* Resumen del día en el panel negro; al elegir un mecánico se despliega la ventana interactiva. */}
         <aside className="registro" aria-label="Pago al mecánico">
-          {pagando ? (
-            <div role="group" aria-labelledby="titulo-pagar" className="registro__cuerpo">
-              <p className="registro__titulo">Pagar a {pagando.mechanic.name}</p>
-              <h3 id="titulo-pagar" className="solo-lectores">
-                ¿Pagarle {formatearPesos(pagando.amount)} a {pagando.mechanic.name}?
-              </h3>
-              <p className="registro__cifra">
-                <span className="registro__total">{formatearPesos(pagando.amount)}</span>
-              </p>
-              <p className="registro__nota">
-                Son {pagando.services_count === 1 ? '1 servicio' : `${pagando.services_count} servicios`} con{' '}
-                {formatearPesos(pagando.labor_total)} de mano de obra, al {pagando.percentage} %.
-                {pagando.deductions_total > 0
-                  ? ` Su parte es ${formatearPesos(pagando.share)} y se le descuentan ${formatearPesos(pagando.deductions_total)} por mal servicio.`
-                  : ' El dinero sale de la caja abierta de hoy.'}
-              </p>
-              <MedioDePago nombre="medio-liquidacion" valor={medio} onCambiar={setMedio} errores={error?.campos.method} />
-              <div className="registro__pie">
-                <button type="button" className="boton" disabled={pagar.isPending} onClick={() => pagar.mutate(pagando)}>
-                  {pagar.isPending ? 'Pagando…' : 'Sí, pagar'}
-                </button>
-                <button type="button" className="boton boton--secundario" onClick={() => setPagando(null)} autoFocus>
-                  Volver
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="registro__cuerpo">
-              <p className="registro__titulo">Total que saldría de la caja</p>
-              <p className="registro__cifra">
-                <span className="registro__total">{formatearPesos(dia.data?.total ?? 0)}</span>
-              </p>
-              <p className="registro__nota">
-                {dia.data && dia.data.mechanics.length > 0
-                  ? `${dia.data.mechanics.length === 1 ? '1 mecánico' : `${dia.data.mechanics.length} mecánicos`} · ${serviciosDelDia === 1 ? '1 servicio' : `${serviciosDelDia} servicios`}. Pulsa «Pagar» en un mecánico para liquidarlo.`
-                  : 'Nada por pagar ese día.'}
-              </p>
-              {cajaCerrada && <p className="registro__alerta">La caja está cerrada: ábrela para poder pagar.</p>}
-            </div>
-          )}
+          <div className="registro__cuerpo">
+            <p className="registro__titulo">Total que saldría de la caja</p>
+            <p className="registro__cifra">
+              <span className="registro__total">{formatearPesos(dia.data?.total ?? 0)}</span>
+            </p>
+            <p className="registro__nota">
+              {dia.data && dia.data.mechanics.length > 0
+                ? `${dia.data.mechanics.length === 1 ? '1 mecánico' : `${dia.data.mechanics.length} mecánicos`} · ${serviciosDelDia === 1 ? '1 servicio' : `${serviciosDelDia} servicios`}. Elige un mecánico o pulsa «Pagar» para revisar sus servicios y liquidar.`
+                : 'Nada por pagar ese día.'}
+            </p>
+            {cajaCerrada && <p className="registro__alerta">La caja está cerrada: ábrela para poder pagar.</p>}
+          </div>
         </aside>
       </div>
+
+      {pagando && (
+        <VentanaDeDocumento titulo={`Liquidación de ${pagando.mechanic.name}`} onCerrar={() => setPagando(null)}>
+          <div role="group" aria-labelledby="titulo-pagar" className="liquidacion-ventana">
+            <h3 id="titulo-pagar" className="solo-lectores">
+              ¿Pagarle {formatearPesos(pagando.amount)} a {pagando.mechanic.name}?
+            </h3>
+            <p className="texto-suave">
+              Son {pagando.services_count === 1 ? '1 servicio' : `${pagando.services_count} servicios`} con{' '}
+              {formatearPesos(pagando.labor_total)} de mano de obra, al {pagando.percentage} %.
+              {pagando.deductions_total > 0
+                ? ` Su parte es ${formatearPesos(pagando.share)} y se le descuentan ${formatearPesos(pagando.deductions_total)} por mal servicio.`
+                : ' El dinero sale de la caja abierta de hoy.'}
+            </p>
+
+            {pagando.services && pagando.services.length > 0 && (
+              <div className="tabla-contenedor">
+                <table className="tabla">
+                  <caption className="solo-lectores">Servicios realizados por {pagando.mechanic.name}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Venta</th>
+                      <th scope="col">Servicio</th>
+                      <th scope="col">Cliente</th>
+                      <th scope="col" className="tabla__numero">Mano de obra</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagando.services.map((s) => (
+                      <tr key={s.id}>
+                        <td>N.º {s.sale_number}</td>
+                        <th scope="row">
+                          {s.service_type.code} · {s.service_type.name}
+                          {s.details && <span className="tabla__detalle">{s.details}</span>}
+                        </th>
+                        <td>{s.customer || 'Sin cliente'}</td>
+                        <td className="tabla__numero">{formatearPesos(s.labor_price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <dl className="avance">
+              <div>
+                <dt>Mano de obra</dt>
+                <dd>{formatearPesos(pagando.labor_total)}</dd>
+              </div>
+              <div>
+                <dt>Su parte ({pagando.percentage} %)</dt>
+                <dd>{formatearPesos(pagando.share)}</dd>
+              </div>
+              {pagando.deductions_total > 0 && (
+                <div>
+                  <dt>Descuento por mal servicio</dt>
+                  <dd className="cantidad--sale">−{formatearPesos(pagando.deductions_total)}</dd>
+                </div>
+              )}
+              <div className="avance__destacado">
+                <dt>Total a pagar</dt>
+                <dd>{formatearPesos(pagando.amount)}</dd>
+              </div>
+            </dl>
+
+            {cajaCerrada ? (
+              <p role="status" className="aviso aviso--advertencia">
+                La caja está cerrada: abre la caja de hoy para registrar el pago. <Link to="/caja/actual">Abrir la caja</Link>
+              </p>
+            ) : (
+              <MedioDePago nombre="medio-liquidacion" valor={medio} onCambiar={setMedio} errores={error?.campos.method} />
+            )}
+
+            <div className="acciones">
+              <button
+                type="button"
+                className="boton boton--auto"
+                disabled={cajaCerrada || pagar.isPending}
+                onClick={() => pagar.mutate(pagando)}
+              >
+                {pagar.isPending ? 'Pagando…' : `Sí, pagar ${formatearPesos(pagando.amount)}`}
+              </button>
+              <button ref={botonVolver} type="button" className="boton boton--secundario boton--auto" onClick={() => setPagando(null)}>
+                Volver
+              </button>
+            </div>
+          </div>
+        </VentanaDeDocumento>
+      )}
     </div>
   )
 }

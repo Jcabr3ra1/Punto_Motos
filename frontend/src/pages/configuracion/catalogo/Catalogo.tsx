@@ -15,8 +15,8 @@ const SECCIONES: readonly SeccionDeCatalogo[] = [
     nuevo: 'Nuevo tipo',
     creado: (nombre) => `Tipo «${nombre}» creado.`,
     conSigla: true,
-    ayudaSigla: 'De 2 a 8 letras. Es la primera parte del código del producto, por ejemplo FRE para Frenos.',
-    descripcion: 'Familias de repuestos, como Frenos o Eléctrico. Su sigla arma el código de cada producto.',
+    ayudaSigla: 'De 2 a 8 letras. Se usa al inicio del código del producto, por ejemplo FRE para Frenos o ACE para Aceites.',
+    descripcion: 'Categorías para agrupar tus repuestos (ej. Llantas, Aceites, Frenos). Sirven para filtrar el inventario, armar los códigos y ver cuánto vendiste por cada categoría.',
   },
   {
     tipo: 'brands',
@@ -24,7 +24,7 @@ const SECCIONES: readonly SeccionDeCatalogo[] = [
     nuevo: 'Nueva marca',
     creado: (nombre) => `Marca «${nombre}» creada.`,
     conSigla: false,
-    descripcion: 'Fabricantes de los repuestos, como NGK o Bosch.',
+    descripcion: 'Fabricantes o marcas de los repuestos y consumibles (ej. Motul, NGK, Bosch, Pirelli) para distinguir productos equivalentes.',
   },
   {
     tipo: 'motos',
@@ -33,8 +33,8 @@ const SECCIONES: readonly SeccionDeCatalogo[] = [
     creado: (nombre) => `Moto «${nombre}» creada.`,
     conSigla: true,
     ayudaSigla:
-      'De 2 a 8 letras. Es la segunda parte del código: Pulsar 180 y Pulsar 200 pueden compartir PUL. UNI está reservada para los repuestos universales.',
-    descripcion: 'Modelos de moto a los que se asocian los repuestos.',
+      'De 2 a 8 letras. Se usa como segunda parte del código: Pulsar 180 y Pulsar 200 pueden compartir PUL. La sigla UNI queda reservada para repuestos universales.',
+    descripcion: 'Referencias o líneas de moto (ej. Pulsar 180, Boxer CT 100, NKD 125). Ayudan a encontrar rápido qué repuesto le sirve a la moto del cliente.',
   },
 ]
 
@@ -54,7 +54,7 @@ export function Catalogo() {
       <EncabezadoDePantalla
         icono={DESTINOS.catalogo.icono}
         titulo="Tipos, marcas y motos"
-        descripcion="La clasificación de los productos. No se borran: se desactivan."
+        descripcion="Organiza cómo clasificas los repuestos para crear códigos ordenados, filtrar en inventario y encontrar rápido lo que busca el cliente. Si algo ya no se usa, se desactiva sin borrar el historial."
         acciones={
           <button type="button" className="boton boton--auto boton--con-icono" onClick={() => setCreando(true)} aria-keyshortcuts="Control+N">
             <Plus aria-hidden="true" size={16} />

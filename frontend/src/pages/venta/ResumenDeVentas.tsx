@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
 import { consultarResumenDeVentas } from '../../api/ventas'
 import { BarraDeFiltros, ListaDeFiltro } from '../../components/BarraDeFiltros'
+import { BotonExportarExcel } from '../../components/BotonExportarExcel'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
 import { Cargando, ErrorDeCarga } from '../../components/EstadoDeCarga'
 import { EstadoVacio } from '../../components/EstadoVacio'
@@ -14,6 +15,7 @@ import { Titulo } from '../../components/Titulo'
 import { useHoy } from '../../hooks/useHoy'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
+import { exportarExcel } from '../../utilidades/excel'
 import { formatearNumero } from '../../utilidades/numeros'
 import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
 import { sinTildes } from '../../utilidades/texto'
@@ -66,12 +68,44 @@ export function ResumenDeVentas() {
     return sinTildes(p.name.toLowerCase()).includes(texto) || sinTildes(p.code.toLowerCase()).includes(texto)
   })
 
+  async function exportarResumen() {
+    if (!datos) return
+    const nombre = datos.date_from === datos.date_to ? `resumen-ventas-${datos.date_from}` : `resumen-ventas-${datos.date_from}-a-${datos.date_to}`
+    await exportarExcel(nombre, [
+      {
+        nombre: 'Resumen',
+        encabezados: ['Concepto', 'Cantidad', 'Total (COP)'],
+        filas: [
+          ['Productos vendidos', datos.totals.products_quantity, datos.totals.products_total],
+          ['Servicios realizados', datos.totals.services_count, datos.totals.services_total],
+          ['Total recaudado', '', datos.totals.grand_total],
+        ],
+      },
+      {
+        nombre: 'Por tipo de producto',
+        encabezados: ['Tipo', 'Unidades', 'Recaudado (COP)'],
+        filas: datos.categories.map((c) => [c.name, c.quantity, c.total]),
+      },
+      {
+        nombre: 'Por servicio',
+        encabezados: ['Servicio', 'Cantidad', 'Recaudado (COP)'],
+        filas: datos.services.map((s) => [s.name, s.count, s.total]),
+      },
+      {
+        nombre: 'Por producto',
+        encabezados: ['Código', 'Producto', 'Tipo', 'Unidades', 'Recaudado (COP)'],
+        filas: productosFiltrados.map((p) => [p.code, p.name, p.category_name, p.quantity, p.total]),
+      },
+    ])
+  }
+
   return (
     <div className="vista-libro">
       <EncabezadoDePantalla
         icono={DESTINOS.resumenVentas.icono}
         titulo="Resumen de ventas"
         descripcion="Totales netos por tipo de producto, servicio y producto. Descuenta anulaciones y devoluciones."
+        acciones={<BotonExportarExcel onExportar={exportarResumen} disabled={!datos} />}
       />
       <FranjaDeIndicadores
         indicadores={[

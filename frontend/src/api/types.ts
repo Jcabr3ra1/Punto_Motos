@@ -655,6 +655,8 @@ export interface SettlementPreviewRow {
   deductions_total: number
   /** Lo que se le pagaría: share - deductions_total. */
   amount: number
+  /** Servicios pendientes que entrarían en esta liquidación. */
+  services?: SettledService[]
 }
 
 export interface DailySettlement {

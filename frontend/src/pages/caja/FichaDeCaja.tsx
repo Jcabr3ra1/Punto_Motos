@@ -73,7 +73,7 @@ export function FichaDeCaja({ id, abierta, onCerrar }: { id: number; abierta: st
               </div>
               {datos.closing_notes && (
                 <div>
-                  <dt>Nota del cierre</dt>
+                  <dt>{datos.difference ? 'Explicación de la diferencia' : 'Nota del cierre'}</dt>
                   <dd>{datos.closing_notes}</dd>
                 </div>
               )}

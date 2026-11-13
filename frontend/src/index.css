@@ -309,11 +309,19 @@ summary {
   background: var(--color-marca);
   border: 1px solid var(--color-sobre-marca);
   border-radius: var(--radio);
-  cursor: default;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease;
 }
 
 .boton:hover:not(:disabled) {
-  background: var(--color-marca-hover);
+  background: #dcf21a;
+  filter: brightness(1.04);
+  box-shadow: 0 0 0 3px rgba(205, 228, 9, 0.34);
 }
 
 .boton:disabled {
@@ -337,17 +345,22 @@ summary {
 }
 
 .boton--peligro:hover:not(:disabled) {
-  background: #8f1d17;
+  background: #ca2e25;
+  filter: brightness(1.05);
+  box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.24);
 }
 
 .boton--secundario {
   color: var(--color-sobre-marca);
-  background: transparent;
+  background: var(--color-superficie);
 }
 
 .boton--secundario:hover:not(:disabled) {
-  color: var(--color-marca);
-  background: var(--color-negro);
+  color: var(--color-sobre-marca);
+  background: var(--color-acento-fondo);
+  border-color: var(--color-acento);
+  filter: none;
+  box-shadow: 0 0 0 3px rgba(205, 228, 9, 0.24);
 }
 
 /* Barra de estado inferior */
@@ -944,13 +957,22 @@ kbd {
 }
 
 .boton-enlace {
-  padding: var(--esp-1) 0;
+  padding: var(--esp-1) 4px;
   font: inherit;
-  color: var(--color-acento);
+  font-weight: 600;
+  color: var(--color-acento-oscuro);
   text-decoration: underline;
+  text-underline-offset: 3px;
   background: none;
   border: 0;
+  border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.boton-enlace:hover:not(:disabled) {
+  color: var(--color-sobre-marca);
+  background: var(--color-acento-fondo);
 }
 
 .solo-lectores {
@@ -2376,18 +2398,28 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: var(--esp-1);
-  font-size: 12.5px;
+  padding: 2px 8px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--color-acento);
+  color: var(--color-acento-oscuro);
+  background: var(--color-acento-fondo);
+  border: 1px solid rgba(74, 87, 0, 0.25);
+  border-radius: 999px;
   text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .estructura__contenido .instrumento--oscuro a.instrumento__enlace {
   color: var(--color-marca);
+  background: rgba(205, 228, 9, 0.14);
+  border-color: rgba(205, 228, 9, 0.38);
 }
 
 .estructura__contenido a.instrumento__enlace:hover {
-  text-decoration: underline;
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+  border-color: var(--color-sobre-marca);
+  box-shadow: 0 0 0 3px rgba(205, 228, 9, 0.28);
 }
 
 .instrumento__lista {
@@ -2518,10 +2550,22 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: var(--esp-1);
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--color-acento);
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-acento-oscuro);
+  background: var(--color-acento-fondo);
+  border: 1px solid rgba(74, 87, 0, 0.3);
+  border-radius: 999px;
   text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.estructura__contenido a.panel-inicio__enlace:hover {
+  color: var(--color-sobre-marca);
+  background: var(--color-marca);
+  border-color: var(--color-sobre-marca);
+  box-shadow: 0 0 0 3px rgba(205, 228, 9, 0.28);
 }
 
 .panel-inicio__vacio {
@@ -4125,11 +4169,19 @@ kbd {
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: 14px;
-  cursor: default;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .filtro:hover {
-  border-color: #b9b7af;
+  background: var(--color-acento-fondo);
+  border-color: var(--color-acento);
+  box-shadow: 0 0 0 2px rgba(205, 228, 9, 0.25);
+}
+
+.filtro[aria-pressed='true']:hover {
+  background: #232629;
+  border-color: var(--color-marca);
 }
 
 .filtro[aria-pressed='true'] {
@@ -5315,20 +5367,25 @@ a.navbar__caja:hover .navbar__valor {
   border: 1px solid transparent;
   border-radius: var(--radio);
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .boton-icono + .boton-icono {
   margin-left: var(--esp-1);
 }
 
-.boton-icono:hover {
-  color: var(--color-texto);
-  background: var(--color-superficie);
-  border-color: var(--color-borde);
+.boton-icono:hover:not(:disabled) {
+  color: var(--color-sobre-marca);
+  background: var(--color-acento-fondo);
+  border-color: var(--color-acento);
+  box-shadow: 0 0 0 2px rgba(205, 228, 9, 0.25);
 }
 
-.boton-icono--peligro:hover {
+.boton-icono--peligro:hover:not(:disabled) {
   color: var(--color-error);
+  background: var(--color-error-fondo);
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px rgba(179, 38, 30, 0.18);
 }
 
 /* «Anulada» como texto rojo bajo el número, sin recuadro, para que la fila no se corra. */
@@ -6040,4 +6097,28 @@ button.tabla__codigo:hover {
 .documento-de-caja .movimientos-caja > .aviso,
 .documento-de-caja .movimientos-caja > .cargando {
   margin: var(--esp-3) var(--esp-4);
+}
+
+/* Ventana interactiva de liquidación de mecánico: servicios realizados, cálculo y confirmación. */
+.ventana-de-documento:has(.liquidacion-ventana) {
+  width: min(760px, calc(100vw - 48px));
+}
+
+.liquidacion-ventana {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.liquidacion-ventana > p {
+  margin: 0;
+}
+
+.liquidacion-ventana .avance {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  margin: 0;
+}
+
+.liquidacion-ventana .acciones {
+  margin-top: var(--esp-1);
 }
