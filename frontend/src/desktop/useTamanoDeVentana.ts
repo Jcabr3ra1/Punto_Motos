@@ -5,15 +5,30 @@ import { useEffect, useRef } from 'react'
 
 /** Ventana pequeña para entrar, como la de un lanzador; la misma de `tauri.conf.json`. */
 export const VENTANA_DE_ACCESO = { ancho: 760, alto: 500 }
-/** Ventana de trabajo y el mínimo por debajo del cual el programa no se encoge. */
-export const VENTANA_DE_TRABAJO = { ancho: 1280, alto: 800, anchoMinimo: 900, altoMinimo: 560 }
+/** Ventana de trabajo y el mínimo desde el que el programa se adapta sin recortarse. */
+export const VENTANA_DE_TRABAJO = { ancho: 1280, alto: 800, anchoMinimo: 640, altoMinimo: 500 }
+
+/** Ajusta el tamaño inicial al espacio útil de la pantalla sin desbordar portátiles 720p/768p ni escalado DPI. */
+export function calcularTamanoDeTrabajo(): { ancho: number; alto: number } {
+  const { ancho, alto, anchoMinimo, altoMinimo } = VENTANA_DE_TRABAJO
+  const dispAncho = typeof window !== 'undefined' ? window.screen?.availWidth ?? 0 : 0
+  const dispAlto = typeof window !== 'undefined' ? window.screen?.availHeight ?? 0 : 0
+  if (dispAncho < anchoMinimo || dispAlto < altoMinimo) {
+    return { ancho, alto }
+  }
+  return {
+    ancho: Math.max(anchoMinimo, Math.min(ancho, dispAncho - 32)),
+    alto: Math.max(altoMinimo, Math.min(alto, dispAlto - 32)),
+  }
+}
 
 async function agrandar() {
   const ventana = getCurrentWindow()
+  const { ancho, alto } = calcularTamanoDeTrabajo()
   await ventana.setResizable(true)
   await ventana.setMaximizable(true)
   await ventana.setMinSize(new LogicalSize(VENTANA_DE_TRABAJO.anchoMinimo, VENTANA_DE_TRABAJO.altoMinimo))
-  await ventana.setSize(new LogicalSize(VENTANA_DE_TRABAJO.ancho, VENTANA_DE_TRABAJO.alto))
+  await ventana.setSize(new LogicalSize(ancho, alto))
   await ventana.center()
 }
 

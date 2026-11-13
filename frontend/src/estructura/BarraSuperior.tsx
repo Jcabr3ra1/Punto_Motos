@@ -62,9 +62,8 @@ export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
         )}
       </div>
 
-      {/* A la derecha, todo con la misma forma: rótulo pequeño arriba y valor abajo, separados por líneas finas. */}
+      {/* A la derecha, información operativa en orden y acciones del programa al borde derecho. */}
       <div className="navbar__lado">
-        <Notificaciones />
         <button type="button" className="navbar__buscar" onClick={onBuscar} aria-label="Buscar pantalla" aria-keyshortcuts="Control+K">
           <Search aria-hidden="true" size={16} strokeWidth={1.75} />
           <span>Buscar</span>
@@ -76,8 +75,8 @@ export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
             <EstadoDeLaCaja abierta={caja.data.is_open} esperado={caja.data.session?.expected_cash} esDueno={esDueno} />
           </>
         )}
-        <span className="navbar__divisor" aria-hidden="true" />
-        <p className="navbar__dato" aria-label="Fecha y hora">
+        <span className="navbar__divisor navbar__divisor--fecha" aria-hidden="true" />
+        <p className="navbar__dato navbar__fecha" aria-label="Fecha y hora">
           <span className="navbar__rotulo">{conMayuscula(formatoDeFecha.format(ahora))}</span>
           <strong className="navbar__valor navbar__valor--hora">{formatoDeHora.format(ahora)}</strong>
         </p>
@@ -86,9 +85,13 @@ export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
           <p className="navbar__rotulo">{usuario.role_label}</p>
           <p className="navbar__valor">{usuario.display_name}</p>
         </div>
-        <button type="button" className="navbar__salir" onClick={alSalir} disabled={saliendo} aria-label="Cerrar sesión" title="Cerrar sesión">
-          <LogOut aria-hidden="true" size={18} strokeWidth={1.75} />
-        </button>
+        <span className="navbar__divisor" aria-hidden="true" />
+        <div className="navbar__acciones">
+          <Notificaciones />
+          <button type="button" className="navbar__salir" onClick={alSalir} disabled={saliendo} aria-label="Cerrar sesión" title="Cerrar sesión">
+            <LogOut aria-hidden="true" size={18} strokeWidth={1.75} />
+          </button>
+        </div>
       </div>
     </header>
   )

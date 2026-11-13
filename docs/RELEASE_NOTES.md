@@ -1,13 +1,12 @@
-# Punto Moto 0.6.3
+# Punto Moto 0.6.4
 
 ## Cambios de esta versión
 
-- **Trabajo sin internet sin bloqueos:** las consultas y formularios locales ya no se quedan en *Cargando…* ni *Guardando…* cuando el computador pierde la conexión a internet. Todos los movimientos se guardan al instante en el SQLite local de tu equipo.
-- **Copias de seguridad descargables:** nueva pantalla **Configuración → Copias de seguridad** para que el dueño descargue en cualquier momento una copia `.sqlite3` verificada (`PRAGMA integrity_check`) y la conserve fuera del equipo (USB, otro disco o nube), con registro de la última descarga (`last_backup_at`).
-- **Botón de notificaciones en la barra superior:** nueva campanita con contador que alerta al equipo sobre productos agotados o en stock mínimo y, al dueño, sobre copias de seguridad faltantes o vencidas (≥ 7 días), caja abierta de un día anterior, mecánicos por liquidar y compras en borrador.
-- **Recuento mensual diseñado en Excel (`.xlsx`):** nueva sección en **Mostrador → Resumen** que consulta `GET /api/v1/reports/monthly` y genera un libro `.xlsx` de 5 hojas con formato corporativo (*Resumen del mes*, *Por día*, *Tipos y servicios*, *Productos vendidos* y *Por reponer*).
+- **Panel de notificaciones corregido:** se corrigieron el contraste y el fondo sólido del desplegable de notificaciones para que todas las alertas y productos por acabarse se lean con claridad sin superponerse con el contenido de la pantalla.
+- **Mejor ubicación de notificaciones:** el botón de la campana ahora se ubica en la esquina derecha de la barra superior junto a **Cerrar sesión**, con el resto de acciones de la cuenta.
+- **Diseño responsive para todo tipo de pantallas y resoluciones:** la ventana inicial y su tamaño mínimo (`640×500`) se adaptan a pantallas compactas (`1280×720`, `1366×768` o con escala de Windows de 125%–150%), ventanas divididas y monitores amplios (`1920×1080`, `2560×1440+`), reordenando columnas, barra lateral, barra superior y modales sin recortes.
 
-Incluye migración del backend (`core.0003_businesssettings_last_backup_at`) con respaldo automático previo a la migración al iniciar el programa actualizado.
+Incluye las mejoras de `0.6.3` (trabajo sin internet, copias de seguridad SQLite descargables, notificaciones y recuento mensual en Excel).
 
 ## Funciones disponibles
 

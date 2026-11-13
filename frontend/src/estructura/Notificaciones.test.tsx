@@ -122,4 +122,18 @@ describe('Notificaciones en barra superior', () => {
     expect(within(panel).getByText('Al día')).toBeInTheDocument()
     expect(within(panel).getByText('No hay productos por acabarse ni avisos pendientes.')).toBeInTheDocument()
   })
+
+  it('ubica el botón de notificaciones en el grupo de acciones junto a Cerrar sesión', async () => {
+    simularApi({
+      'GET /notifications': () => ({
+        cuerpo: { low_stock_count: 0, low_stock: [], alerts: [] },
+      }),
+    })
+    mostrarRutas(vendedor, '/')
+
+    const notificaciones = await screen.findByRole('button', { name: 'Notificaciones' })
+    const acciones = notificaciones.closest('.navbar__acciones')
+    expect(acciones).not.toBeNull()
+    expect(within(acciones as HTMLElement).getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+  })
 })

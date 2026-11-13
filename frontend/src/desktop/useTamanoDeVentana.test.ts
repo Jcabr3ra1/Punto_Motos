@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useTamanoDeVentana } from './useTamanoDeVentana'
+import { calcularTamanoDeTrabajo, useTamanoDeVentana } from './useTamanoDeVentana'
 
 const llamadas: string[] = []
 const ventana = {
@@ -30,7 +30,13 @@ describe('useTamanoDeVentana', () => {
 
     rerender({ conSesion: true })
 
-    await waitFor(() => expect(llamadas).toEqual(['resizable:true', 'maximizable:true', 'min:900x560', 'tam:1280x800', 'centrar']))
+    await waitFor(() => expect(llamadas).toEqual(['resizable:true', 'maximizable:true', 'min:640x500', 'tam:1280x800', 'centrar']))
+  })
+
+  it('adapta el tamaño objetivo si la pantalla disponible es más baja (por ejemplo 1366×768 o 1280×720)', () => {
+    vi.stubGlobal('screen', { availWidth: 1280, availHeight: 720 })
+    expect(calcularTamanoDeTrabajo()).toEqual({ ancho: 1248, alto: 688 })
+    vi.unstubAllGlobals()
   })
 
   it('si el programa arranca con la sesión abierta, también agranda', async () => {

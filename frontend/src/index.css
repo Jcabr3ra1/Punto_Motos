@@ -405,10 +405,10 @@ summary {
 .estructura {
   display: grid;
   grid-template-columns: 228px minmax(0, 1fr);
+  width: 100%;
   /* Ventana fija: no hay scroll de página, solo se desplaza el contenido. */
-  height: 100vh;
-  /* Ancho mínimo de ventana (el mismo de Tauri): la aplicación no se apila como una página web. */
-  min-width: 900px;
+  height: 100dvh;
+  min-height: 0;
   overflow: hidden;
   background: var(--fondo-trabajo);
 }
@@ -713,9 +713,16 @@ summary {
   container: area / inline-size;
 }
 
-/* En pantallas grandes el trabajo no se estira de más: queda junto al menú. */
+/* En pantallas grandes el contenido mantiene ancho cómodo; las vistas de trabajo completo aprovechan todo el área. */
 .estructura__contenido > * {
-  max-width: 1600px;
+  max-width: 1680px;
+  margin-inline: auto;
+}
+
+.estructura__contenido:has(.venta) > *,
+.estructura__contenido:has(.caja-hoy) > *,
+.estructura__contenido:has(.vista-libro) > * {
+  max-width: none;
 }
 
 .estructura__contenido:focus {
@@ -1430,10 +1437,10 @@ kbd {
    trabajo: ventana menos barra superior (64px), barra de estado (24px) y márgenes (32px). */
 .venta {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 24vw, 390px);
   gap: var(--esp-4);
-  height: calc(100vh - 120px);
-  min-height: 420px;
+  height: 100%;
+  min-height: 400px;
 }
 
 .venta__trabajo {
@@ -3000,7 +3007,7 @@ kbd {
 
 .inicio-panorama__encabezado > .encabezado-pantalla {
   max-width: 1600px;
-  margin-bottom: 0;
+  margin: 0 auto;
 }
 
 .inicio-panorama__encabezado .encabezado-pantalla__titulo,
@@ -3024,6 +3031,7 @@ kbd {
   flex-direction: column;
   gap: var(--esp-3);
   max-width: 1600px;
+  margin-inline: auto;
 }
 
 .inicio-aviso-caja {
@@ -3835,7 +3843,8 @@ kbd {
 
 .dialogo {
   width: min(26rem, 100%);
-  overflow: hidden;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   background: var(--color-superficie);
   border-radius: 6px;
   box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
@@ -4231,7 +4240,7 @@ kbd {
 /* Tabla con ficha: la lista y el detalle lado a lado, del mismo alto. */
 .con-ficha {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 23vw, 360px);
   align-items: start;
   gap: var(--esp-3);
 }
@@ -4931,7 +4940,7 @@ a.navbar__caja:hover .navbar__valor {
 
 .caja-hoy__cuerpo {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 23vw, 360px);
   gap: var(--esp-3);
   flex: 1;
   min-height: 0;
@@ -5275,18 +5284,7 @@ a.navbar__caja:hover .navbar__valor {
   .caja-hoy__cierre .caja-hoy__ayuda-cierre { display: none; }
 }
 
-/* Ventana angosta: el buscador queda en su icono y se ocultan el usuario y su separador. */
-@media (max-width: 1150px) {
-  .navbar__buscar span,
-  .navbar__usuario,
-  .navbar__divisor--usuario {
-    display: none;
-  }
-
-  .navbar__lado {
-    gap: var(--esp-4);
-  }
-}
+/* Ventana angosta: adaptado en la sección responsiva final. */
 
 /* Libro con registro: una lista con su detalle en el panel negro de la derecha, como la caja registradora de Vender y
    el cajón de Caja. Base de las pantallas de listas (empezó en Ventas). Ocupa todo el alto: solo se desplaza la tabla. */
@@ -5316,7 +5314,7 @@ a.navbar__caja:hover .navbar__valor {
 
 .libro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 23vw, 360px);
   gap: var(--esp-3);
   flex: 1 1 auto;
   min-height: 240px;
@@ -6155,6 +6153,13 @@ button.tabla__codigo:hover {
   margin-top: var(--esp-1);
 }
 
+/* Acciones de utilidades al borde derecho de la barra superior. */
+.navbar__acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
 /* Campanita de notificaciones en la barra superior. */
 .notificaciones {
   position: relative;
@@ -6168,7 +6173,7 @@ button.tabla__codigo:hover {
   width: 36px;
   height: 36px;
   padding: 0;
-  color: var(--marco-texto);
+  color: var(--marco-texto-suave);
   background: transparent;
   border: 0;
   border-radius: var(--radio);
@@ -6177,6 +6182,7 @@ button.tabla__codigo:hover {
 
 .navbar__notificaciones:hover {
   background: var(--marco-elevado);
+  color: var(--color-marca);
 }
 
 .navbar__notificaciones[aria-expanded='true'] {
@@ -6197,7 +6203,7 @@ button.tabla__codigo:hover {
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
-  color: #141517;
+  color: var(--color-sobre-marca);
   background: var(--color-marca);
   border-radius: 999px;
 }
@@ -6206,16 +6212,16 @@ button.tabla__codigo:hover {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  z-index: 30;
+  z-index: 50;
   width: min(380px, calc(100vw - 24px));
-  max-height: min(72vh, 520px);
+  max-height: min(72dvh, 520px);
   display: flex;
   flex-direction: column;
-  background: var(--color-papel);
-  color: var(--color-tinta);
+  background: var(--color-superficie);
+  color: var(--color-texto);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
-  box-shadow: 0 12px 32px rgba(20, 21, 23, 0.22);
+  box-shadow: 0 14px 36px rgb(11 11 12 / 0.28);
   overflow: hidden;
 }
 
@@ -6224,8 +6230,8 @@ button.tabla__codigo:hover {
   align-items: center;
   justify-content: space-between;
   padding: var(--esp-3) var(--esp-4);
-  background: #141517;
-  color: #f4f4ee;
+  background: var(--marco);
+  color: var(--marco-texto);
   border-bottom: 2px solid var(--color-marca);
 }
 
@@ -6233,6 +6239,7 @@ button.tabla__codigo:hover {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
+  color: #ffffff;
 }
 
 .notificaciones__cabecera span {
@@ -6247,13 +6254,15 @@ button.tabla__codigo:hover {
   display: flex;
   flex-direction: column;
   gap: var(--esp-3);
+  background: var(--color-superficie);
 }
 
 .notificaciones__vacio {
   margin: 0;
   padding: var(--esp-5) var(--esp-4);
   font-size: 13px;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
+  background: var(--color-superficie);
   text-align: center;
 }
 
@@ -6276,13 +6285,13 @@ button.tabla__codigo:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
 }
 
 .notificaciones__ver-todo {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-tinta);
+  color: var(--color-acento);
   text-decoration: none;
 }
 
@@ -6305,16 +6314,17 @@ button.tabla__codigo:hover {
   justify-content: space-between;
   gap: var(--esp-2);
   padding: var(--esp-2) var(--esp-3);
-  background: var(--color-superficie);
+  background: var(--color-fondo);
   border: 1px solid var(--color-borde);
   border-left-width: 3px;
   border-radius: var(--radio);
-  color: var(--color-tinta);
+  color: var(--color-texto);
   text-decoration: none;
 }
 
 .notificaciones__item:hover {
-  background: #f4f6e6;
+  background: var(--color-acento-fondo);
+  border-color: #b7c270;
 }
 
 .notificaciones__item--urgente {
@@ -6329,12 +6339,13 @@ button.tabla__codigo:hover {
   display: block;
   font-size: 13px;
   line-height: 1.3;
+  color: var(--color-texto);
 }
 
 .notificaciones__item p {
   margin: 2px 0 0;
   font-size: 12px;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
 }
 
 .notificaciones__estado {
@@ -6361,7 +6372,7 @@ button.tabla__codigo:hover {
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-tinta);
+  color: var(--color-acento);
   text-decoration: none;
   padding: 2px 0;
 }
@@ -6379,9 +6390,9 @@ button.tabla__codigo:hover {
   gap: var(--esp-3);
   padding: var(--esp-3) var(--esp-4);
   margin-bottom: var(--esp-4);
-  background: var(--color-papel);
+  background: var(--color-superficie);
   border: 1px solid var(--color-borde);
-  border-top: 3px solid #141517;
+  border-top: 3px solid var(--marco);
   border-radius: var(--radio);
 }
 
@@ -6389,12 +6400,13 @@ button.tabla__codigo:hover {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
+  color: var(--color-texto);
 }
 
 .resumen-mensual__texto p {
   margin: 2px 0 0;
   font-size: 13px;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
 }
 
 .resumen-mensual__controles {
@@ -6410,7 +6422,7 @@ button.tabla__codigo:hover {
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
 }
 
 .resumen-mensual__campo input {
@@ -6418,8 +6430,8 @@ button.tabla__codigo:hover {
   padding: 0 var(--esp-2);
   font: inherit;
   font-size: 14px;
-  color: var(--color-tinta);
-  background: var(--color-papel);
+  color: var(--color-texto);
+  background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
 }
@@ -6433,7 +6445,7 @@ button.tabla__codigo:hover {
 
 .respaldo-estado {
   padding: var(--esp-3) var(--esp-4);
-  background: var(--color-superficie);
+  background: var(--color-fondo);
   border: 1px solid var(--color-borde);
   border-left: 4px solid #3f6212;
   border-radius: var(--radio);
@@ -6448,19 +6460,20 @@ button.tabla__codigo:hover {
   margin: 0;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
 }
 
 .respaldo-estado__valor {
   margin: 2px 0 4px;
   font-size: 16px;
   font-weight: 700;
+  color: var(--color-texto);
 }
 
 .respaldo-estado__detalle {
   margin: 0;
   font-size: 13px;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
 }
 
 .respaldo-acciones {
@@ -6487,5 +6500,197 @@ button.tabla__codigo:hover {
   flex-direction: column;
   gap: 6px;
   font-size: 13px;
-  color: var(--color-tinta-suave);
+  color: var(--color-texto-suave);
+}
+
+/* Adaptación progresiva a todo tipo de resoluciones y proporciones de pantalla. */
+@media (max-width: 1240px) {
+  .estructura:not(.estructura--recogida) {
+    grid-template-columns: 204px minmax(0, 1fr);
+  }
+
+  .navbar__buscar kbd,
+  .navbar__usuario,
+  .navbar__divisor--usuario {
+    display: none;
+  }
+
+  .navbar__lado {
+    gap: var(--esp-3);
+  }
+}
+
+@media (max-width: 960px) {
+  .navbar {
+    gap: var(--esp-3);
+    padding: 0 var(--esp-3) 0 var(--esp-4);
+  }
+
+  .navbar__buscar span,
+  .navbar__fecha,
+  .navbar__divisor--fecha {
+    display: none;
+  }
+
+  .navbar__buscar {
+    width: 36px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .navbar__migas {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  .estructura {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .menu-lateral__marca {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .menu-lateral__titulo,
+  .menu-lateral__nombre,
+  .menu-lateral__flecha {
+    display: none;
+  }
+
+  .menu-lateral__seccion,
+  .menu-lateral__alternar {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 10px 0;
+  }
+
+  .menu-lateral__pantallas {
+    display: none;
+  }
+
+  .estructura__contenido {
+    padding: var(--esp-3);
+  }
+
+  .panel-lateral,
+  .panel-lateral--ancho,
+  .panel-lateral--amplio {
+    max-width: calc(100vw - 16px);
+  }
+}
+
+@media (max-width: 680px) {
+  .acceso {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .acceso__arte {
+    padding: var(--esp-5) var(--esp-4);
+  }
+
+  .acceso__pinon {
+    width: 140px;
+  }
+
+  .acceso__arte > .acceso__estado {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .navbar__negocio {
+    display: none;
+  }
+
+  .navbar__lado {
+    gap: var(--esp-2);
+  }
+
+  .navbar__caja .navbar__rotulo {
+    font-size: 10px;
+  }
+
+  .navbar__caja .navbar__valor {
+    font-size: 13px;
+  }
+
+  .notificaciones__panel {
+    position: fixed;
+    top: 66px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+}
+
+@media (max-height: 640px) {
+  .estructura__contenido:has(.caja-hoy),
+  .estructura__contenido:has(.vista-libro) {
+    overflow: auto;
+  }
+
+  .estructura__contenido:has(.caja-hoy) > .seccion,
+  .estructura__contenido:has(.vista-libro) > .seccion,
+  .caja-hoy,
+  .vista-libro,
+  .venta {
+    height: auto;
+    min-height: 0;
+  }
+
+  .ficha {
+    max-height: none;
+  }
+}
+
+@container area (max-width: 820px) {
+  .estructura__contenido:has(.venta),
+  .estructura__contenido:has(.caja-hoy),
+  .estructura__contenido:has(.vista-libro) {
+    overflow: auto;
+  }
+
+  .estructura__contenido:has(.caja-hoy) > .seccion,
+  .estructura__contenido:has(.vista-libro) > .seccion,
+  .caja-hoy,
+  .vista-libro {
+    height: auto;
+  }
+
+  .venta {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
+  }
+
+  .caja-hoy__cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container area (max-width: 580px) {
+  .indicadores,
+  .campos-en-fila,
+  .venta__entrada,
+  .selector-de-pago {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .indicador:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .resumen-mensual,
+  .resumen-mensual__controles {
+    align-items: stretch;
+  }
+
+  .dialogo__acciones {
+    flex-wrap: wrap;
+  }
 }
