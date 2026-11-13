@@ -2409,13 +2409,16 @@ kbd {
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.estructura__contenido .instrumento--oscuro a.instrumento__enlace {
+.estructura__contenido .instrumento--oscuro a.instrumento__enlace,
+.estructura__contenido .inicio-celda-ventas--oscura a.instrumento__enlace {
   color: var(--color-marca);
   background: rgba(205, 228, 9, 0.14);
-  border-color: rgba(205, 228, 9, 0.38);
+  border-color: rgba(205, 228, 9, 0.45);
 }
 
-.estructura__contenido a.instrumento__enlace:hover {
+.estructura__contenido a.instrumento__enlace:hover,
+.estructura__contenido .instrumento--oscuro a.instrumento__enlace:hover,
+.estructura__contenido .inicio-celda-ventas--oscura a.instrumento__enlace:hover {
   color: var(--color-sobre-marca);
   background: var(--color-marca);
   border-color: var(--color-sobre-marca);
@@ -3167,10 +3170,6 @@ kbd {
   min-height: 24px;
   margin-top: auto;
   padding-top: var(--esp-2);
-}
-
-.estructura__contenido .inicio-celda-ventas--oscura a.instrumento__enlace {
-  color: var(--color-marca);
 }
 
 .inicio-franja-ventas__nota {
