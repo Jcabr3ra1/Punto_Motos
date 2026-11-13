@@ -3,7 +3,10 @@ import { ClipboardCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { claves } from '../../api/consultas'
+import { isApiError } from '../../api/client'
+import { consultarReporteMensual } from '../../api/negocio'
 import { consultarResumenDeVentas } from '../../api/ventas'
+import { AvisoDeError } from '../../components/AvisoDeError'
 import { BarraDeFiltros, ListaDeFiltro } from '../../components/BarraDeFiltros'
 import { BotonExportarExcel } from '../../components/BotonExportarExcel'
 import { EncabezadoDePantalla } from '../../components/EncabezadoDePantalla'
@@ -16,6 +19,7 @@ import { useHoy } from '../../hooks/useHoy'
 import { DESTINOS } from '../../navegacion/destinos'
 import { formatearPesos } from '../../utilidades/dinero'
 import { exportarExcel } from '../../utilidades/excel'
+import { exportarRecuentoMensual } from '../../utilidades/excelMensual'
 import { formatearNumero } from '../../utilidades/numeros'
 import { leerPeriodo, rangoDePeriodo, type Periodo } from '../../utilidades/periodos'
 import { sinTildes } from '../../utilidades/texto'
@@ -32,6 +36,8 @@ export function ResumenDeVentas() {
   const hasta = params.get('date_to') ?? ''
   const [tipoElegido, setTipoElegido] = useState<number | null>(null)
   const [busqueda, setBusqueda] = useState('')
+  const [mesRecuento, setMesRecuento] = useState(() => hoy.slice(0, 7))
+  const [errorMensual, setErrorMensual] = useState<string | null>(null)
 
   function cambiar(parcial: Record<string, string | undefined>) {
     const siguiente = new URLSearchParams(params)
@@ -99,6 +105,16 @@ export function ResumenDeVentas() {
     ])
   }
 
+  async function exportarRecuentoDelMes() {
+    setErrorMensual(null)
+    try {
+      const reporte = await consultarReporteMensual(mesRecuento)
+      await exportarRecuentoMensual(reporte)
+    } catch (err) {
+      setErrorMensual(isApiError(err) ? err.message : 'No se pudo generar el recuento mensual en Excel.')
+    }
+  }
+
   return (
     <div className="vista-libro">
       <EncabezadoDePantalla
@@ -107,6 +123,31 @@ export function ResumenDeVentas() {
         descripcion="Totales netos por tipo de producto, servicio y producto. Descuenta anulaciones y devoluciones."
         acciones={<BotonExportarExcel onExportar={exportarResumen} disabled={!datos} />}
       />
+      <section className="resumen-mensual" aria-label="Recuento mensual en Excel">
+        <div className="resumen-mensual__texto">
+          <h2>Recuento completo del mes (.xlsx)</h2>
+          <p>
+            Genera el libro con portada del negocio, ventas netas, caja, compras, taller, consignaciones y existencias por reponer.
+          </p>
+        </div>
+        <div className="resumen-mensual__controles">
+          <label className="resumen-mensual__campo">
+            <span>Mes del recuento</span>
+            <input
+              type="month"
+              value={mesRecuento}
+              max={hoy.slice(0, 7)}
+              onChange={(e) => setMesRecuento(e.target.value)}
+            />
+          </label>
+          <BotonExportarExcel
+            etiqueta="Descargar recuento (.xlsx)"
+            onExportar={exportarRecuentoDelMes}
+            disabled={!mesRecuento}
+          />
+        </div>
+      </section>
+      {errorMensual && <AvisoDeError mensajes={[errorMensual]} />}
       <FranjaDeIndicadores
         indicadores={[
           {

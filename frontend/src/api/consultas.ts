@@ -3,6 +3,7 @@ import { QueryClient } from '@tanstack/react-query'
 /** Claves de la caché de consultas. Se invalidan tras guardar para volver a pedir lo que cambió. */
 export const claves = {
   negocio: ['negocio'] as const,
+  notificaciones: ['notificaciones'] as const,
   usuarios: ['usuarios'] as const,
   /** Listas que alimentan los desplegables: solo lo activo. */
   catalogoActivo: (tipo: string) => ['catalogo', tipo, 'activo'] as const,
@@ -35,12 +36,18 @@ export function crearClienteDeConsultas(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
+        // La API local escucha en 127.0.0.1: nunca debe pausarse esperando conexión a internet.
+        networkMode: 'always',
         // Los errores de la API (400, 403, 404) no mejoran al repetir la llamada.
         retry: false,
         // Evita recargar mientras la persona está escribiendo en un formulario.
         refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
       },
-      mutations: { retry: false },
+      mutations: {
+        networkMode: 'always',
+        retry: false,
+      },
     },
   })
 }

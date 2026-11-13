@@ -232,6 +232,9 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET`, `POST /consignment-deliveries` y `GET /consignment-deliveries/{id}` | Dueño | Entregas en consignación |
 | `GET`, `POST /consignment-reports` y `GET /consignment-reports/{id}` | Dueño | Reportes de lo vendido y devuelto |
 | `GET`, `POST /consignee-payments` y `GET /consignee-payments/{id}` | Dueño | Pagos de los locales |
+| `GET /backups/download` | Dueño | Descarga una copia SQLite verificada del negocio |
+| `GET /reports/monthly` | Dueño | Recuento mensual consolidado del negocio |
+| `GET /notifications` | Sesión | Existencias por reponer y alertas operativas (las operativas solo dueño) |
 
 ### Estado del backend
 
@@ -349,6 +352,7 @@ Datos que se imprimen en el encabezado del recibo. Hay un solo registro por inst
   "phone": "3001234567",
   "receipt_footer": "Gracias por su compra",
   "default_mechanic_percentage": 60,
+  "last_backup_at": "2026-11-13T10:15:00-05:00",
   "updated_at": "2026-10-30T18:56:04.523678-05:00"
 }
 ```
@@ -367,6 +371,7 @@ Datos que se imprimen en el encabezado del recibo. Hay un solo registro por inst
 | `phone` | texto | Opcional; máximo 40 |
 | `receipt_footer` | texto | Opcional; texto al pie del recibo, sin límite |
 | `default_mechanic_percentage` | entero | De 0 a 100; por defecto 60. Parte de la mano de obra para los mecánicos que no tienen porcentaje propio; el resto es del local |
+| `last_backup_at` | fecha o `null` | Solo lectura; fecha y hora de la última copia externa descargada con éxito |
 | `updated_at` | fecha | Solo lectura |
 
 Errores: `validation_error` con `fields.name` si el nombre llega vacío, o con el campo que exceda su longitud.
@@ -379,10 +384,11 @@ interface BusinessSettings {
   phone: string;
   receipt_footer: string;
   default_mechanic_percentage: number;   // 0 a 100
+  last_backup_at: string | null;
   updated_at: string;
 }
 
-type BusinessSettingsInput = Omit<BusinessSettings, "updated_at">;
+type BusinessSettingsInput = Omit<BusinessSettings, "updated_at" | "last_backup_at">;
 ```
 
 ### Catálogo: tipos, marcas y motos
@@ -1797,6 +1803,110 @@ Errores en `fields`:
 - Reporte: `lines` "Indica al menos una unidad vendida o devuelta."; `lines.N.item` "Esta línea es de una entrega a otro local." o "... está repetido: deja una sola línea."; `lines.N.sold` "Al local le quedan 3 de FRE-PUL-PAS."
 - Pago: `amount` "El local debe $30.000: no se pueden pagar $30.001." o "El local no debe nada: no se puede registrar el pago."; 409 `cash_session_closed`.
 - Local: `name` "Ya existe un local con ese nombre."
+### Copias de seguridad
+
+**Solo el dueño** (`403 permission_denied` para el vendedor).
+
+`GET /backups/download`
+
+Genera una copia SQLite consistente mediante respaldo en línea, verifica su integridad (`PRAGMA integrity_check`) y actualiza `BusinessSettings.last_backup_at`.
+
+- Responde `200` con `Content-Type: application/x-sqlite3`.
+- Cabeceras expuestas por CORS:
+  - `Content-Disposition`: `attachment; filename="punto-moto-respaldo-AAAA-MM-DD.sqlite3"`
+  - `X-Backup-Sha256`: huella SHA-256 en hexadecimal de la copia generada.
+
+### Recuento mensual
+
+**Solo el dueño** (`403 permission_denied` para el vendedor).
+
+`GET /reports/monthly?month=AAAA-MM`
+
+Devuelve el consolidado de ventas netas, caja, compras recibidas y pagadas, liquidaciones de taller, consignaciones, desglose diario, tipos, servicios, productos vendidos y existencias por reponer del mes pedido. Si se omite `month`, toma el mes actual en Colombia (`America/Bogota`).
+
+Errores: `400 validation_error` con `fields.month` si `month` no tiene formato `AAAA-MM` válido.
+
+```ts
+interface MonthlyReport {
+  month: string;          // AAAA-MM
+  date_from: string;      // AAAA-MM-01
+  date_to: string;        // último día del mes
+  business: {
+    name: string;
+    tax_id: string;
+    address: string;
+    phone: string;
+  };
+  sales: {
+    count: number;
+    voided_count: number;
+    products_quantity: number;
+    products_total: number;
+    services_count: number;
+    services_total: number;
+    gross_total: number;
+    returns_count: number;
+    returns_total: number;
+    net_total: number;
+    cash_total: number;
+    transfer_total: number;
+  };
+  cash: {
+    sessions_count: number;
+    expenses_total: number;
+    owner_withdrawals_total: number;
+    incoming_total: number;
+    outgoing_total: number;
+  };
+  purchases: {
+    received_count: number;
+    received_total: number;
+    payments_total: number;
+  };
+  workshop: {
+    settlements_count: number;
+    labor_total: number;
+    mechanic_paid_total: number;
+    deductions_total: number;
+    shop_share_total: number;
+  };
+  consignments: {
+    deliveries_count: number;
+    reports_total: number;
+    payments_total: number;
+  };
+  categories: { id: number; name: string; quantity: number; total: number }[];
+  services: { id: number; name: string; count: number; total: number }[];
+  products: { id: number; code: string; name: string; category_name: string; quantity: number; total: number }[];
+  daily: { date: string; sales_count: number; gross_total: number; returns_total: number; net_total: number }[];
+  low_stock: { id: number; code: string; name: string; stock: number; min_stock: number }[];
+}
+```
+
+### Notificaciones
+
+**Sesión** (cualquier usuario recibe existencias por reponer; **solo el dueño** recibe alertas operativas en `alerts`).
+
+`GET /notifications`
+
+Devuelve el total y los 5 primeros productos activos en mínimo o agotados (`low_stock`), más las alertas pendientes del negocio para el dueño (caja abierta de un día anterior, copia externa faltante o de hace ≥ 7 días, mecánicos con servicios pendientes hoy y compras en borrador).
+
+```ts
+interface NotificationAlert {
+  key: string;
+  title: string;
+  detail: string;
+  route: string;
+  level: "urgent" | "warning";
+}
+
+interface BusinessNotifications {
+  low_stock_count: number;
+  low_stock: { id: number; code: string; name: string; stock: number; min_stock: number }[];
+  alerts: NotificationAlert[];
+}
+```
+
 ## Distribución y migraciones del backend local
 
 Desde la integración del instalador, Django también se ejecuta como `backend.exe` empaquetado con PyInstaller. El contrato HTTP y sus credenciales no cambian. Antes de aplicar migraciones pendientes sobre una base existente, el arranque guarda una copia SQLite consistente, `secret_key` y un manifiesto en `data/backups/pre-migration/`. Si falla el respaldo o la migración, no habilita la API; la ventana informa el fallo de arranque. No se añaden endpoints ni tipos TypeScript. Véase [publicación y recuperación](../PUBLICACION.md).

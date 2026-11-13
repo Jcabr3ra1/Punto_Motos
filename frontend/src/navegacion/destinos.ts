@@ -7,6 +7,7 @@ import {
   Calculator,
   ClipboardCheck,
   ClipboardList,
+  DatabaseBackup,
   FileText,
   HandCoins,
   HardHat,
@@ -84,6 +85,7 @@ export const DESTINOS = {
   negocio: { icono: Building, descripcion: 'Nombre y datos del negocio', ruta: '/configuracion/negocio', etiqueta: 'Datos del negocio', roles: TODOS },
   catalogo: { icono: Tags, descripcion: 'Organiza tipos de repuesto, marcas y modelos de moto', ruta: '/inventario/catalogo', etiqueta: 'Tipos, marcas y motos', roles: SOLO_DUENO },
   usuarios: { icono: Users, descripcion: 'Quién entra al programa', ruta: '/configuracion/usuarios', etiqueta: 'Usuarios', roles: SOLO_DUENO },
+  respaldos: { icono: DatabaseBackup, descripcion: 'Descargar copia de seguridad de los datos', ruta: '/configuracion/respaldos', etiqueta: 'Copias de seguridad', roles: SOLO_DUENO },
   tiposDeServicio: { icono: ListChecks, descripcion: 'Servicios que ofrece el taller', ruta: '/taller/servicios', etiqueta: 'Tipos de servicio', roles: SOLO_DUENO },
   mecanicos: { icono: HardHat, descripcion: 'Mecánicos y su porcentaje', ruta: '/taller/mecanicos', etiqueta: 'Mecánicos', roles: SOLO_DUENO },
   actualizaciones: { icono: RefreshCw, descripcion: 'Buscar e instalar una versión nueva', ruta: '/configuracion/actualizaciones', etiqueta: 'Actualizar programa', roles: SOLO_DUENO },
@@ -100,7 +102,12 @@ export const MENU_PRINCIPAL: readonly Destino[] = [
   DESTINOS.configuracion,
 ]
 
-export const MENU_CONFIGURACION: readonly Destino[] = [DESTINOS.negocio, DESTINOS.usuarios, DESTINOS.actualizaciones]
+export const MENU_CONFIGURACION: readonly Destino[] = [
+  DESTINOS.negocio,
+  DESTINOS.usuarios,
+  DESTINOS.respaldos,
+  DESTINOS.actualizaciones,
+]
 
 export const MENU_INVENTARIO: readonly Destino[] = [
   DESTINOS.productos,

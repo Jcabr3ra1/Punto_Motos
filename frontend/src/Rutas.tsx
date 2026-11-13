@@ -5,6 +5,7 @@ import { DESTINOS, RUTAS_ANTERIORES } from './navegacion/destinos'
 import { Inicio } from './pages/inicio/Inicio'
 import { NoEncontrada } from './pages/NoEncontrada'
 import { ActualizarPrograma } from './pages/configuracion/ActualizarPrograma'
+import { CopiasDeSeguridad } from './pages/configuracion/CopiasDeSeguridad'
 import { DatosDelNegocio } from './pages/configuracion/DatosDelNegocio'
 import { Abonos } from './pages/compras/Abonos'
 import { ListaDeCompras } from './pages/compras/ListaDeCompras'
@@ -141,6 +142,14 @@ export function Rutas() {
             element={
               <Permiso destino={DESTINOS.usuarios} nivel={2}>
                 <Usuarios />
+              </Permiso>
+            }
+          />
+          <Route
+            path="respaldos"
+            element={
+              <Permiso destino={DESTINOS.respaldos} nivel={2}>
+                <CopiasDeSeguridad />
               </Permiso>
             }
           />

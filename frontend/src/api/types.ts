@@ -70,10 +70,88 @@ export interface BusinessSettings {
   receipt_footer: string
   /** De 0 a 100: parte de la mano de obra para los mecánicos sin porcentaje propio. */
   default_mechanic_percentage: number
+  last_backup_at: string | null
   updated_at: string
 }
 
-export type BusinessSettingsInput = Omit<BusinessSettings, 'updated_at'>
+export type BusinessSettingsInput = Omit<BusinessSettings, 'updated_at' | 'last_backup_at'>
+
+export interface MonthlyReport {
+  month: string
+  date_from: string
+  date_to: string
+  business: {
+    name: string
+    tax_id: string
+    address: string
+    phone: string
+  }
+  sales: {
+    count: number
+    voided_count: number
+    products_quantity: number
+    products_total: number
+    services_count: number
+    services_total: number
+    gross_total: number
+    returns_count: number
+    returns_total: number
+    net_total: number
+    cash_total: number
+    transfer_total: number
+  }
+  cash: {
+    sessions_count: number
+    expenses_total: number
+    owner_withdrawals_total: number
+    incoming_total: number
+    outgoing_total: number
+  }
+  purchases: {
+    received_count: number
+    received_total: number
+    payments_total: number
+  }
+  workshop: {
+    settlements_count: number
+    labor_total: number
+    mechanic_paid_total: number
+    deductions_total: number
+    shop_share_total: number
+  }
+  consignments: {
+    deliveries_count: number
+    reports_total: number
+    payments_total: number
+  }
+  categories: { id: number; name: string; quantity: number; total: number }[]
+  services: { id: number; name: string; count: number; total: number }[]
+  products: { id: number; code: string; name: string; category_name: string; quantity: number; total: number }[]
+  daily: { date: string; sales_count: number; gross_total: number; returns_total: number; net_total: number }[]
+  low_stock: { id: number; code: string; name: string; stock: number; min_stock: number }[]
+}
+
+export interface NotificationAlert {
+  key: string
+  title: string
+  detail: string
+  route: string
+  level: 'urgent' | 'warning'
+}
+
+export interface LowStockAlertItem {
+  id: number
+  code: string
+  name: string
+  stock: number
+  min_stock: number
+}
+
+export interface BusinessNotifications {
+  low_stock_count: number
+  low_stock: LowStockAlertItem[]
+  alerts: NotificationAlert[]
+}
 
 export interface UserCreateInput {
   username: string

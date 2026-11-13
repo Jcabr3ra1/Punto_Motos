@@ -51,6 +51,8 @@ class LocalApiGuardMiddleware:
                 f"Content-Type, Authorization, {settings.PUNTO_MOTO_TOKEN_HEADER}"
             )
             response["Access-Control-Max-Age"] = "600"
+        else:
+            response["Access-Control-Expose-Headers"] = "Content-Disposition, X-Backup-Sha256"
         return response
 
 

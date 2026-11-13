@@ -1,14 +1,17 @@
 from django.conf import settings
 from django.db import connection
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsOwnerOrReadOnly
+from apps.accounts.permissions import IsOwner, IsOwnerOrReadOnly
 
+from .backups import create_verified_backup_bytes
 from .models import BusinessSettings
+from .monthly_report import build_monthly_report
+from .notifications import build_notifications
 from .serializers import BusinessSettingsSerializer
 
 
@@ -56,3 +59,39 @@ class BusinessSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class BackupDownloadView(APIView):
+    """Genera y descarga una copia SQLite verificada del negocio (solo dueño)."""
+
+    permission_classes = [IsOwner]
+
+    def get(self, request):
+        data, sha256 = create_verified_backup_bytes()
+        now = timezone.now()
+        settings_obj = BusinessSettings.load()
+        settings_obj.last_backup_at = now
+        settings_obj.save(update_fields=["last_backup_at"])
+        today = timezone.localdate(now).isoformat()
+        response = HttpResponse(data, content_type="application/x-sqlite3")
+        response["Content-Disposition"] = f'attachment; filename="punto-moto-respaldo-{today}.sqlite3"'
+        response["X-Backup-Sha256"] = sha256
+        return response
+
+
+class MonthlyReportView(APIView):
+    """Recuento mensual consolidado del negocio para descarga o consulta (solo dueño)."""
+
+    permission_classes = [IsOwner]
+
+    def get(self, request):
+        return Response(build_monthly_report(request.query_params.get("month")))
+
+
+class NotificationsView(APIView):
+    """Alertas rápidas y existencias por reponer para la barra superior."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(build_notifications(request.user))
