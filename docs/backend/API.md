@@ -209,6 +209,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `POST /sales` | Sesión | Confirma una venta pagada completa |
 | `GET /sales` | Sesión | Ventas paginadas con filtros |
 | `GET /sales/{id}` | Sesión | Una venta con sus líneas y pagos (recibo) |
+| `GET /sales/summary` | Dueño | Resumen neto de ventas por tipo, servicio y producto |
 | `POST /sales/{id}/void` | Dueño | Anula una venta |
 | `POST /sales/{id}/returns` | Sesión (mal servicio: dueño) | Registra una devolución parcial o total |
 | `GET /sale-returns` y `/sale-returns/{id}` | Sesión | Devoluciones; una con sus líneas |
@@ -1371,6 +1372,33 @@ Errores en `fields` (los de una línea llegan anidados: `items.1.quantity`):
 Conflictos: 409 `cash_session_closed` (no hay caja abierta) y 409 `initial_count_open` (el inventario inicial sigue abierto).
 
 **`GET /sales`** responde `Paginated<Sale>`, de la más reciente a la más antigua. Filtros: `?number=`, `?customer=`, `?mechanic=` (ventas con algún servicio de ese mecánico), `?voided=true|false`, `?date_from=` y `?date_to=` (día de la venta, ambos incluidos). **`GET /sales/{id}`** responde `SaleDetail`, para ver o reimprimir el recibo.
+
+**`GET /sales/summary`** (solo el dueño) responde `SaleSummary` con las ventas netas del rango `?date_from=` y `?date_to=` (AAAA-MM-DD, ambos incluidos; por defecto el día actual en Colombia). Excluye ventas anuladas, descuenta unidades devueltas en productos y excluye servicios devueltos.
+
+```ts
+export interface SaleSummary {
+  date_from: string
+  date_to: string
+  totals: {
+    products_quantity: number
+    products_total: number
+    services_count: number
+    services_total: number
+    grand_total: number
+  }
+  categories: { id: number; name: string; quantity: number; total: number }[]
+  services: { id: number; name: string; count: number; total: number }[]
+  products: {
+    id: number
+    code: string
+    name: string
+    category_id: number
+    category_name: string
+    quantity: number
+    total: number
+  }[]
+}
+```
 
 **`POST /sales/{id}/void`** (solo el dueño) recibe `{ "reason": "Se cobró al cliente equivocado" }` y responde `SaleDetail` anulada. Errores: `fields.reason` "Indica por qué se anula la venta.", 409 `sale_voided` si ya estaba anulada, 409 `sale_has_settled_services` si alguno de sus servicios ya se le pagó al mecánico, 409 `sale_has_returns` si ya tiene devoluciones y 409 `cash_session_closed`.
 

@@ -806,3 +806,26 @@ export interface SaleReturnInput {
   services?: number[]
   refunds: { method: PaymentMethod; amount: number }[]
 }
+
+export interface SaleSummary {
+  date_from: string
+  date_to: string
+  totals: {
+    products_quantity: number
+    products_total: number
+    services_count: number
+    services_total: number
+    grand_total: number
+  }
+  categories: { id: number; name: string; quantity: number; total: number }[]
+  services: { id: number; name: string; count: number; total: number }[]
+  products: {
+    id: number
+    code: string
+    name: string
+    category_id: number
+    category_name: string
+    quantity: number
+    total: number
+  }[]
+}

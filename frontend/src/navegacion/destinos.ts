@@ -54,6 +54,7 @@ export const DESTINOS = {
   venta: { icono: ShoppingCart, descripcion: 'Cobrar en el mostrador y revisar lo vendido', ruta: '/venta', etiqueta: 'Mostrador', roles: TODOS },
   vender: { icono: ShoppingCart, descripcion: 'Carrito y cobro', ruta: '/venta/vender', etiqueta: 'Vender', roles: TODOS },
   ventas: { icono: ReceiptText, descripcion: 'Historial y anulación', ruta: '/venta/historial', etiqueta: 'Ventas', roles: TODOS },
+  resumenVentas: { icono: ClipboardCheck, descripcion: 'Totales por tipo, servicio y producto', ruta: '/venta/resumen', etiqueta: 'Resumen', roles: SOLO_DUENO },
   devoluciones: { icono: Undo2, descripcion: 'Lo que los clientes devolvieron', ruta: '/venta/devoluciones', etiqueta: 'Devoluciones', roles: TODOS },
   inventario: { icono: Boxes, descripcion: 'Productos, existencias y clasificación', ruta: '/inventario', etiqueta: 'Inventario', roles: TODOS },
   productos: { icono: Package, descripcion: 'Existencias, precios y códigos', ruta: '/inventario/productos', etiqueta: 'Productos', roles: TODOS },
@@ -114,7 +115,7 @@ export function puedeVer(destino: Destino, rol: Role): boolean {
 
 export const MENU_COMPRAS: readonly Destino[] = [DESTINOS.comprasLista, DESTINOS.proveedores, DESTINOS.abonos]
 
-export const MENU_VENTA: readonly Destino[] = [DESTINOS.vender, DESTINOS.ventas, DESTINOS.devoluciones]
+export const MENU_VENTA: readonly Destino[] = [DESTINOS.vender, DESTINOS.ventas, DESTINOS.resumenVentas, DESTINOS.devoluciones]
 
 export const MENU_CAJA: readonly Destino[] = [DESTINOS.cajaActual, DESTINOS.cajaHistorial]
 

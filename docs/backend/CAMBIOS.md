@@ -11,6 +11,16 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-13 · Resumen neto de ventas por tipo, servicio y producto
+
+**Qué cambió**
+
+- **`GET /sales/summary`** (solo el dueño): devuelve los totales netos y el desglose por tipo de producto (`categories`), tipo de servicio (`services`) y producto individual (`products`) en el rango `?date_from=` y `?date_to=` (por defecto, hoy en Colombia). Excluye ventas anuladas y descuenta devoluciones.
+
+**Qué debe hacer el frontend**
+
+Ya está hecho en este mismo cambio: pantalla **Mostrador → Resumen** (`/venta/resumen`) para el dueño.
+
 ## 2026-11-06 · Venta sin cliente y sin placa (0.11.0)
 
 **Qué cambió**
