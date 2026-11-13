@@ -51,6 +51,9 @@ class DailySettlementApiTests(SettlementApiTestCase):
             [(row["mechanic"]["name"], row["labor_total"], row["percentage"], row["amount"]) for row in data["mechanics"]],
             [("Carlos Ruiz", 30000, 60, 18000), ("Pedro Gómez", 15000, 50, 7500)],
         )
+        self.assertEqual(len(data["mechanics"][0]["services"]), 2)
+        self.assertEqual(data["mechanics"][0]["services"][0]["service_type"]["name"], "Cambio de aceite")
+        self.assertEqual(data["mechanics"][0]["services"][0]["labor_price"], 15000)
         self.assertEqual(data["total"], 25500)
 
         response = self.post(DAILY, {"mechanic": self.carlos.pk})

@@ -86,18 +86,6 @@ class MechanicSummarySerializer(serializers.ModelSerializer):
 # --- Liquidación diaria ------------------------------------------------------
 
 
-class SettlementPreviewSerializer(serializers.Serializer):
-    """Lo que se le debe a un mecánico por los servicios sin pagar de un día. Se calcula, no se guarda."""
-
-    mechanic = MechanicSummarySerializer()
-    services_count = serializers.IntegerField()
-    labor_total = serializers.IntegerField()
-    percentage = serializers.IntegerField()
-    share = serializers.IntegerField(help_text="Su parte de la mano de obra, antes de descuentos.")
-    deductions_total = serializers.IntegerField(help_text="Lo que se le descontará en este pago.")
-    amount = serializers.IntegerField(help_text="Lo que recibe: share menos deductions_total.")
-
-
 class SettledServiceSerializer(serializers.Serializer):
     """Servicio pagado en la liquidación, con la venta de donde salió (para la hoja impresa)."""
 
@@ -108,6 +96,19 @@ class SettledServiceSerializer(serializers.Serializer):
     service_type = ServiceTypeSummarySerializer()
     details = serializers.CharField()
     labor_price = serializers.IntegerField()
+
+
+class SettlementPreviewSerializer(serializers.Serializer):
+    """Lo que se le debe a un mecánico por los servicios sin pagar de un día. Se calcula, no se guarda."""
+
+    mechanic = MechanicSummarySerializer()
+    services_count = serializers.IntegerField()
+    labor_total = serializers.IntegerField()
+    percentage = serializers.IntegerField()
+    share = serializers.IntegerField(help_text="Su parte de la mano de obra, antes de descuentos.")
+    deductions_total = serializers.IntegerField(help_text="Lo que se le descontará en este pago.")
+    amount = serializers.IntegerField(help_text="Lo que recibe: share menos deductions_total.")
+    services = SettledServiceSerializer(many=True)
 
 
 class DeductedServiceSerializer(serializers.Serializer):

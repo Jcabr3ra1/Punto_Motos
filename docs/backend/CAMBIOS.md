@@ -11,6 +11,17 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-13 · Eliminar mecánicos sin historial y detallar servicios en liquidación diaria
+
+**Qué cambió**
+
+- **`DELETE /mechanics/{id}`** (solo el dueño): elimina un mecánico sin servicios, liquidaciones ni descuentos (responde 204). Si tiene historial, responde 409 `mechanic_has_history`.
+- **`GET /mechanic-settlements/daily`**: cada fila de `mechanics` incluye ahora `services` (`SettledService[]`) con los servicios pendientes del mecánico para ese día.
+
+**Qué debe hacer el frontend**
+
+Ya está hecho en este mismo cambio: botón **Eliminar** en **Configuración / Taller → Mecánicos** y detalle de servicios + ventana interactiva en **Liquidación del día**.
+
 ## 2026-11-13 · Resumen neto de ventas por tipo, servicio y producto
 
 **Qué cambió**

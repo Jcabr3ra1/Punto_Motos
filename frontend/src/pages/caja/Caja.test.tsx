@@ -147,6 +147,7 @@ describe('caja abierta', () => {
     await u.click(within(screen.getByRole('dialog', { name: 'Cerrar la caja' })).getByRole('button', { name: 'Cerrar caja' }))
 
     expect(await screen.findByText(/Caja cerrada\. Contado: \$\s?74\.000\. Faltaron \$\s?1\.000\./)).toBeInTheDocument()
+    expect(screen.getByText(/Motivo: Faltó sencillo\./)).toBeInTheDocument()
     expect(api.llamadas.filter((l) => l.clave === 'POST /cash-sessions/3/close').at(-1)?.cuerpo).toEqual({ counted_cash: 74000, notes: 'Faltó sencillo' })
   })
 })
@@ -155,7 +156,7 @@ describe('cajas anteriores', () => {
   it('lista las cajas con su diferencia y abre el detalle', async () => {
     simularApi({
       'GET /cash-sessions*': () => ({ cuerpo: paginaDe([caja({ is_open: false, counted_cash: 74000, difference: -1000, closed_at: '2026-11-03T19:00:00-05:00', summary: undefined })]) }),
-      'GET /cash-sessions/3': () => ({ cuerpo: caja({ is_open: false, counted_cash: 74000, difference: -1000 }) }),
+      'GET /cash-sessions/3': () => ({ cuerpo: caja({ is_open: false, counted_cash: 74000, difference: -1000, closing_notes: 'Faltó sencillo' }) }),
       'GET /cash-movements*': () => ({ cuerpo: paginaDe([movimiento]) }),
     })
     mostrarRutas(dueno, '/caja/historial')
@@ -167,6 +168,8 @@ describe('cajas anteriores', () => {
 
     const ventana = await screen.findByRole('dialog', { name: /Caja del/ })
     expect(await within(ventana).findByLabelText('Cifras de la caja')).toHaveTextContent(/Faltan \$\s?1\.000/)
+    expect(within(ventana).getByLabelText('Cifras de la caja')).toHaveTextContent('Explicación de la diferencia')
+    expect(within(ventana).getByLabelText('Cifras de la caja')).toHaveTextContent('Faltó sencillo')
     expect(screen.getByRole('heading', { level: 2, name: 'Cajas anteriores' })).toBeInTheDocument()
   })
 })

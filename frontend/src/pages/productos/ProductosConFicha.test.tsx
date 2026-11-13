@@ -44,7 +44,7 @@ describe('productos', () => {
     abrir()
 
     const fila = (await screen.findByText('Pastillas de freno Pulsar 180')).closest('tr')!
-    expect(within(fila).getByText('2 / 8').closest('.medidor')).toHaveClass('medidor--alerta')
+    expect(within(fila).getByText('2').closest('.medidor')).toHaveClass('medidor--alerta')
   })
 
   it('un clic en la fila abre la ficha con el costo, el margen y los últimos movimientos', async () => {

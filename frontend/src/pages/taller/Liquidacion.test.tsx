@@ -10,8 +10,55 @@ import { hoyEnColombia, moverDia } from '../../utilidades/fechas'
 const conDeuda: DailySettlement = {
   date: '2026-11-03',
   mechanics: [
-    { mechanic: { id: 1, name: 'Carlos Ruiz' }, services_count: 2, labor_total: 30000, percentage: 60, share: 18000, deductions_total: 0, amount: 18000 },
-    { mechanic: { id: 2, name: 'Pedro Gómez' }, services_count: 1, labor_total: 15000, percentage: 50, share: 7500, deductions_total: 0, amount: 7500 },
+    {
+      mechanic: { id: 1, name: 'Carlos Ruiz' },
+      services_count: 2,
+      labor_total: 30000,
+      percentage: 60,
+      share: 18000,
+      deductions_total: 0,
+      amount: 18000,
+      services: [
+        {
+          id: 9,
+          sale_id: 41,
+          sale_number: 41,
+          customer: 'Juan Pérez',
+          service_type: { id: 1, code: 101, name: 'Cambio de aceite' },
+          details: 'Aceite 20W50',
+          labor_price: 15000,
+        },
+        {
+          id: 10,
+          sale_id: 42,
+          sale_number: 42,
+          customer: '',
+          service_type: { id: 2, code: 102, name: 'Deshinchada' },
+          details: '',
+          labor_price: 15000,
+        },
+      ],
+    },
+    {
+      mechanic: { id: 2, name: 'Pedro Gómez' },
+      services_count: 1,
+      labor_total: 15000,
+      percentage: 50,
+      share: 7500,
+      deductions_total: 0,
+      amount: 7500,
+      services: [
+        {
+          id: 11,
+          sale_id: 43,
+          sale_number: 43,
+          customer: 'Ana Gómez',
+          service_type: { id: 1, code: 101, name: 'Cambio de aceite' },
+          details: '',
+          labor_price: 15000,
+        },
+      ],
+    },
   ],
   total: 25500,
 }
@@ -37,11 +84,12 @@ describe('liquidación del día', () => {
     abrir()
 
     const fila = await screen.findByRole('row', { name: /Carlos Ruiz/ })
+    expect(fila).toHaveTextContent('Cambio de aceite · Deshinchada')
     expect(fila).toHaveTextContent(/2\$\s?30\.00060 %\$\s?18\.000/)
     expect(screen.getByRole('row', { name: /Total que saldría de la caja/ })).toHaveTextContent(/\$\s?25\.500/)
   })
 
-  it('paga con confirmación y el medio elegido, y muestra la hoja del mecánico', async () => {
+  it('abre ventana interactiva con los servicios realizados, paga y muestra la hoja del mecánico', async () => {
     let datos = conDeuda
     const { api, u } = abrir({
       'GET /mechanic-settlements/daily*': () => ({ cuerpo: datos }),
@@ -52,18 +100,22 @@ describe('liquidación del día', () => {
     })
 
     await u.click(await screen.findByRole('button', { name: 'Pagar a Carlos Ruiz' }))
-    const confirmacion = screen.getByRole('group', { name: /¿Pagarle \$\s?18\.000 a Carlos Ruiz\?/ })
+    const ventana = screen.getByRole('dialog', { name: 'Liquidación de Carlos Ruiz' })
+    expect(ventana).toHaveTextContent('101 · Cambio de aceite')
+    expect(ventana).toHaveTextContent('102 · Deshinchada')
+    expect(ventana).toHaveTextContent('N.º 41')
+    const confirmacion = within(ventana).getByRole('group', { name: /¿Pagarle \$\s?18\.000 a Carlos Ruiz\?/ })
     expect(confirmacion).toHaveTextContent(/2 servicios con \$\s?30\.000 de mano de obra, al 60 %/)
     expect(within(confirmacion).getByRole('button', { name: 'Volver' })).toHaveFocus()
-    await u.click(screen.getByLabelText('Transferencia'))
-    await u.click(screen.getByRole('button', { name: 'Sí, pagar' }))
+    await u.click(within(ventana).getByLabelText('Transferencia'))
+    await u.click(within(ventana).getByRole('button', { name: /Sí, pagar/ }))
 
     expect(await screen.findByText(/Se le pagaron \$\s?18\.000 a Carlos Ruiz\./)).toBeInTheDocument()
     const hoja = screen.getByRole('article', { name: 'Hoja de liquidación de Carlos Ruiz' })
     expect(hoja).toHaveTextContent('Juan Pérez')
     expect(hoja).toHaveTextContent(/Pagado al mecánico \(60 %\)\$\s?18\.000/)
     expect(api.llamadas.find((l) => l.clave === 'POST /mechanic-settlements/daily')?.cuerpo).toMatchObject({ mechanic: 1, method: 'transfer' })
-    await waitFor(() => expect(screen.queryByRole('row', { name: /Carlos Ruiz 2/ })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('row', { name: /Carlos Ruiz/ })).not.toBeInTheDocument())
   })
 
   it('envía una sola vez aunque se pulse varias veces', async () => {
@@ -71,7 +123,7 @@ describe('liquidación del día', () => {
     const { api, u } = abrir({ 'POST /mechanic-settlements/daily': () => new Promise<Respuesta>((r) => (terminar = r)) })
 
     await u.click(await screen.findByRole('button', { name: 'Pagar a Carlos Ruiz' }))
-    const pagar = screen.getByRole('button', { name: 'Sí, pagar' })
+    const pagar = screen.getByRole('button', { name: /Sí, pagar/ })
     await u.dblClick(pagar)
 
     expect(api.cuantas('POST /mechanic-settlements/daily')).toBe(1)
@@ -84,7 +136,7 @@ describe('liquidación del día', () => {
     })
 
     await u.click(await screen.findByRole('button', { name: 'Pagar a Carlos Ruiz' }))
-    await u.click(screen.getByRole('button', { name: 'Sí, pagar' }))
+    await u.click(screen.getByRole('button', { name: /Sí, pagar/ }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('El mecánico no tiene servicios pendientes de pago ese día.')
     await waitFor(() => expect(api.llamadas.filter((l) => l.clave.startsWith('GET /mechanic-settlements/daily')).length).toBeGreaterThan(1))
@@ -97,7 +149,7 @@ describe('liquidación del día', () => {
     expect(screen.getByRole('button', { name: 'Pagar a Carlos Ruiz' })).toBeDisabled()
   })
 
-  it('el panel de pago muestra el total del día y, al pulsar Pagar, la confirmación del mecánico', async () => {
+  it('el panel muestra el total del día y la ventana interactiva se cierra con Volver', async () => {
     const { u } = abrir()
 
     const panel = await screen.findByRole('complementary', { name: 'Pago al mecánico' })
@@ -105,9 +157,9 @@ describe('liquidación del día', () => {
     expect(panel).toHaveTextContent('2 mecánicos · 3 servicios')
 
     await u.click(screen.getByRole('button', { name: 'Pagar a Carlos Ruiz' }))
-    expect(within(panel).getByRole('group', { name: /¿Pagarle \$\s?18\.000 a Carlos Ruiz\?/ })).toBeInTheDocument()
-    await u.click(within(panel).getByRole('button', { name: 'Volver' }))
-    expect(panel).toHaveTextContent('Total que saldría de la caja')
+    const ventana = screen.getByRole('dialog', { name: 'Liquidación de Carlos Ruiz' })
+    await u.click(within(ventana).getByRole('button', { name: 'Volver' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('Ayer y Hoy cambian el día a liquidar', async () => {
@@ -192,7 +244,7 @@ describe('liquidación del día', () => {
 
     const confirmacion = screen.getByRole('group', { name: /¿Pagarle \$\s?0 a Carlos Ruiz\?/ })
     expect(confirmacion).toHaveTextContent(/Su parte es \$\s?9\.000 y se le descuentan \$\s?9\.000/)
-    await u.click(within(confirmacion).getByRole('button', { name: 'Sí, pagar' }))
+    await u.click(within(confirmacion).getByRole('button', { name: /Sí, pagar/ }))
 
     const hoja = await screen.findByRole('article', { name: 'Hoja de liquidación de Carlos Ruiz' })
     expect(hoja).toHaveTextContent(/Descuento por mal servicio-\$\s?9\.000/)

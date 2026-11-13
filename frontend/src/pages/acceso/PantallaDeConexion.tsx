@@ -4,7 +4,7 @@ export function Conectando() {
   return (
     <MarcoDeAcceso titulo="Conectando…" conEstado={false}>
       <p role="status" className="acceso__descripcion">
-        Preparando el programa.
+        Preparando el sistema local. Funciona sin internet; la primera vez puede tardar unos segundos.
       </p>
     </MarcoDeAcceso>
   )

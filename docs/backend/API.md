@@ -216,6 +216,7 @@ Columna **Acceso**: *Abierto* no pide sesión; *Sesión* pide cualquier usuario;
 | `GET /service-types`, `/mechanics` | Sesión | Tipos de servicio y mecánicos activos |
 | `POST /service-types`, `/mechanics` | Dueño | Crea un tipo de servicio o un mecánico |
 | `GET` y `PATCH /service-types/{id}`, `/mechanics/{id}` | Sesión / Dueño | Consulta o edita uno |
+| `DELETE /mechanics/{id}` | Dueño | Elimina un mecánico sin historial (409 si ya se usó) |
 | `GET /mechanic-settlements/daily` | Dueño | Lo que se le debe a cada mecánico en un día |
 | `POST /mechanic-settlements/daily` | Dueño | Le paga a un mecánico su parte del día |
 | `GET /mechanic-settlements` y `/mechanic-settlements/{id}` | Dueño | Liquidaciones pagadas; una con sus servicios |
@@ -974,6 +975,8 @@ Errores: `fields.code` con "Ya existe un tipo de servicio con ese código."; `fi
 
 Errores: `fields.name` con "Ya existe un mecánico con ese nombre."; `fields.labor_percentage` si pasa de 100.
 
+**`DELETE /mechanics/{id}`** (solo el dueño) elimina un mecánico que nunca tuvo servicios, liquidaciones ni descuentos y responde **204**. Si ya tiene historial responde **409** `mechanic_has_history` y solo se puede desactivar.
+
 ```ts
 interface ServiceType {
   id: number;
@@ -1027,12 +1030,26 @@ La vista previa solo lista mecánicos con servicios sin pagar ese día, así que
     {
       "mechanic": { "id": 1, "name": "Carlos Ruiz" },
       "services_count": 2, "labor_total": 30000, "percentage": 60,
-      "share": 18000, "deductions_total": 0, "amount": 18000
+      "share": 18000, "deductions_total": 0, "amount": 18000,
+      "services": [
+        {
+          "id": 9, "sale_id": 41, "sale_number": 41, "customer": "Ana Gómez",
+          "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
+          "details": "", "labor_price": 15000
+        }
+      ]
     },
     {
       "mechanic": { "id": 2, "name": "Pedro Gómez" },
       "services_count": 1, "labor_total": 15000, "percentage": 50,
-      "share": 7500, "deductions_total": 0, "amount": 7500
+      "share": 7500, "deductions_total": 0, "amount": 7500,
+      "services": [
+        {
+          "id": 10, "sale_id": 43, "sale_number": 43, "customer": "Juan Pérez",
+          "service_type": { "id": 1, "code": 101, "name": "Cambio de aceite" },
+          "details": "", "labor_price": 15000
+        }
+      ]
     }
   ],
   "total": 25500
@@ -1098,6 +1115,7 @@ interface SettlementPreviewRow {
   share: number;                   // su parte, antes de descuentos
   deductions_total: number;        // lo que se le descontaría en este pago
   amount: number;                  // lo que se le pagaría: share - deductions_total
+  services: SettledService[];      // servicios pendientes que se liquidarían
 }
 
 interface DailySettlement {

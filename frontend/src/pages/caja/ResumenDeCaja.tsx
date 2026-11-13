@@ -45,6 +45,12 @@ export function CifrasDeCaja({ caja }: { caja: CashSession }) {
                   : `Faltan ${formatearPesos(-caja.difference)}`}
             </dd>
           </div>
+          {caja.closing_notes && (
+            <div>
+              <dt>{caja.difference ? 'Explicación de la diferencia' : 'Nota del cierre'}</dt>
+              <dd>{caja.closing_notes}</dd>
+            </div>
+          )}
         </>
       )}
     </dl>

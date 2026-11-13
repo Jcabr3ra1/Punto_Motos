@@ -118,15 +118,18 @@ class MechanicSettlementManager(models.Manager):
             services__sale__created_at__date=day,
         ).distinct()
         for mechanic in mechanics:
-            labor = [service.labor_price for service in self.pending_services(mechanic, day)]
+            pending_services = list(
+                self.pending_services(mechanic, day).select_related("service_type", "sale__customer").order_by("id")
+            )
+            labor_sum = sum(service.labor_price for service in pending_services)
             percentage = mechanic.effective_percentage
-            share = mechanic_share(sum(labor), percentage)
+            share = mechanic_share(labor_sum, percentage)
             pending = sum(deduction.pending_amount for deduction in MechanicDeduction.objects.pending(mechanic))
             deductions_total = min(share, pending)
             result.append({
-                "mechanic": mechanic, "services_count": len(labor), "labor_total": sum(labor),
+                "mechanic": mechanic, "services_count": len(pending_services), "labor_total": labor_sum,
                 "percentage": percentage, "share": share, "deductions_total": deductions_total,
-                "amount": share - deductions_total,
+                "amount": share - deductions_total, "services": pending_services,
             })
         return result
 

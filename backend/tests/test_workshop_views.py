@@ -85,6 +85,37 @@ class MechanicApiTests(WorkshopApiTestCase):
         carlos = Mechanic.objects.create(name="Carlos Ruiz")
         self.assertEqual(self.client.get(f"/api/v1/mechanics/{carlos.pk}").json()["effective_percentage"], 55)
 
+    def test_owner_deletes_unused_mechanic_and_blocks_with_history(self):
+        carlos = Mechanic.objects.create(name="Carlos Ruiz")
+        pedro = Mechanic.objects.create(name="Pedro Gómez")
+        oil = make_service_type()
+        login_client(self.client, self.seller)
+        self.assertEqual(self.client.delete(f"/api/v1/mechanics/{carlos.pk}").status_code, 403)
+
+        login_client(self.client, self.owner)
+        self.assertEqual(self.client.delete(f"/api/v1/mechanics/{carlos.pk}").status_code, 204)
+        self.assertFalse(Mechanic.objects.filter(pk=carlos.pk).exists())
+
+        from apps.core.models import PaymentMethod
+        from apps.sales.models import Sale
+        from .helpers import open_cash
+        from .test_sales_models import finish_initial_count
+
+        finish_initial_count(self.owner)
+        open_cash(self.owner)
+        Sale.objects.confirm(
+            customer=None,
+            items=[],
+            services=[{"service_type": oil, "mechanic": pedro}],
+            payments=[{"method": PaymentMethod.CASH, "amount": oil.suggested_price}],
+            user=self.owner,
+            idempotency_key=str(uuid.uuid4()),
+        )
+        blocked = self.client.delete(f"/api/v1/mechanics/{pedro.pk}")
+        self.assertEqual(blocked.status_code, 409)
+        self.assertEqual(blocked.json()["code"], "mechanic_has_history")
+        self.assertTrue(Mechanic.objects.filter(pk=pedro.pk).exists())
+
 
 class SaleWithServicesApiTests(SalesApiTestCase):
     def setUp(self):
