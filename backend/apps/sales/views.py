@@ -1,4 +1,5 @@
-from django.db.models import Q
+from django.db.models import Count, F, Q, Sum
+from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from apps.catalog.views import _flag, _id_param
 from apps.core.pagination import StandardPagination
 from apps.inventory.views import _date_param
 
-from .models import Customer, Sale, SaleReturn
+from .models import Customer, Sale, SaleItem, SaleReturn, SaleService
 from .serializers import (
     CustomerSerializer,
     SaleDetailSerializer,
@@ -76,7 +77,7 @@ class SaleViewSet(
     pagination_class = StandardPagination
 
     def get_permissions(self):
-        if self.action == "void":
+        if self.action in ("void", "summary"):
             return [IsOwner()]
         return super().get_permissions()
 
@@ -124,6 +125,110 @@ class SaleViewSet(
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED if serializer.created else status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """Resumen neto de ventas por tipo de producto, servicio y producto (solo dueño)."""
+        today = timezone.localdate()
+        date_from = _date_param(request, "date_from") or today
+        date_to = _date_param(request, "date_to") or today
+
+        product_rows = (
+            SaleItem.objects.filter(
+                sale__voided_at__isnull=True,
+                sale__created_at__date__gte=date_from,
+                sale__created_at__date__lte=date_to,
+                quantity__gt=F("returned_quantity"),
+            )
+            .annotate(
+                net_quantity=F("quantity") - F("returned_quantity"),
+                net_total=(F("quantity") - F("returned_quantity")) * F("unit_price"),
+            )
+            .values(
+                "product_id",
+                "product__code",
+                "product__name",
+                "product__category_id",
+                "product__category__name",
+            )
+            .annotate(quantity=Sum("net_quantity"), total=Sum("net_total"))
+            .order_by("-total", "product__name")
+        )
+
+        products = []
+        categories_map = {}
+        products_quantity = 0
+        products_total = 0
+        for row in product_rows:
+            qty = row["quantity"] or 0
+            total = row["total"] or 0
+            cat_id = row["product__category_id"]
+            cat_name = row["product__category__name"]
+            products.append(
+                {
+                    "id": row["product_id"],
+                    "code": row["product__code"],
+                    "name": row["product__name"],
+                    "category_id": cat_id,
+                    "category_name": cat_name,
+                    "quantity": qty,
+                    "total": total,
+                }
+            )
+            if cat_id not in categories_map:
+                categories_map[cat_id] = {"id": cat_id, "name": cat_name, "quantity": 0, "total": 0}
+            categories_map[cat_id]["quantity"] += qty
+            categories_map[cat_id]["total"] += total
+            products_quantity += qty
+            products_total += total
+
+        categories = sorted(categories_map.values(), key=lambda c: (-c["total"], c["name"]))
+
+        service_rows = (
+            SaleService.objects.filter(
+                sale__voided_at__isnull=True,
+                sale__created_at__date__gte=date_from,
+                sale__created_at__date__lte=date_to,
+                return_line__isnull=True,
+            )
+            .values("service_type_id", "service_type__name")
+            .annotate(count=Count("id"), total=Sum("labor_price"))
+            .order_by("-total", "service_type__name")
+        )
+
+        services = []
+        services_count = 0
+        services_total = 0
+        for row in service_rows:
+            cnt = row["count"] or 0
+            total = row["total"] or 0
+            services.append(
+                {
+                    "id": row["service_type_id"],
+                    "name": row["service_type__name"],
+                    "count": cnt,
+                    "total": total,
+                }
+            )
+            services_count += cnt
+            services_total += total
+
+        return Response(
+            {
+                "date_from": date_from.isoformat(),
+                "date_to": date_to.isoformat(),
+                "totals": {
+                    "products_quantity": products_quantity,
+                    "products_total": products_total,
+                    "services_count": services_count,
+                    "services_total": services_total,
+                    "grand_total": products_total + services_total,
+                },
+                "categories": categories,
+                "services": services,
+                "products": products,
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def void(self, request, pk=None):

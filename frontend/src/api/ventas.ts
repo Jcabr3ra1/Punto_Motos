@@ -10,6 +10,7 @@ import type {
   SaleReturn,
   SaleReturnDetail,
   SaleReturnInput,
+  SaleSummary,
 } from './types'
 
 // Clientes y ventas (docs/backend/API.md#clientes-y-ventas). Cualquier usuario con sesión vende.
@@ -94,3 +95,6 @@ export const listarDevoluciones = (filtros: FiltrosDeDevoluciones = {}, signal?:
   })
 
 export const obtenerDevolucion = (id: number, signal?: AbortSignal) => api<SaleReturnDetail>(`/sale-returns/${id}`, { signal })
+
+export const consultarResumenDeVentas = (rango: { date_from?: string; date_to?: string } = {}, signal?: AbortSignal) =>
+  api<SaleSummary>('/sales/summary', { query: { date_from: rango.date_from, date_to: rango.date_to }, signal })
