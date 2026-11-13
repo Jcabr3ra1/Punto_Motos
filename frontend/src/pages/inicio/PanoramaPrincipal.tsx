@@ -1,6 +1,6 @@
 import type { UseQueryResult } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { Consignee, CurrentCash, Supplier } from '../../api/types'
 import { BotonDeFiltro } from '../../components/BarraDeFiltros'
@@ -80,17 +80,19 @@ export function AvisoDeCajaAnterior({ hoy, caja }: { hoy: string; caja: UseQuery
   )
 }
 
-/** Franja superior en dos celdas contiguas de igual altura: Vendido hoy (en negro) y Vendido este mes (en claro). */
+/** Franja superior en celdas contiguas de igual altura: Vendido hoy (en negro), Vendido este mes (en claro) y opcionalmente Caja (en negro). */
 export function FranjaDeVentas({
   hoy,
   actual,
   mesAnterior,
   intervaloMesAnterior,
+  extraCelda,
 }: {
   hoy: string
   actual: UseQueryResult<DatosDePanoramaDeVentas>
   mesAnterior: UseQueryResult<{ desde: string; hasta: string; total: number; cantidad: number }>
   intervaloMesAnterior: { desde: string; hasta: string }
+  extraCelda?: ReactNode
 }) {
   const idHoy = useId()
   const idMes = useId()
@@ -100,7 +102,7 @@ export function FranjaDeVentas({
 
   return (
     <div className="inicio-franja-ventas">
-      <div className="inicio-franja-ventas__celdas">
+      <div className={`inicio-franja-ventas__celdas${extraCelda ? ' inicio-franja-ventas__celdas--tres' : ''}`}>
         <section className="inicio-celda-ventas inicio-celda-ventas--oscura" aria-labelledby={idHoy}>
           <div className="inicio-celda-ventas__cabecera">
             <h2 id={idHoy} className="inicio-celda-ventas__titulo">
@@ -191,6 +193,7 @@ export function FranjaDeVentas({
             </>
           )}
         </section>
+        {extraCelda}
       </div>
       <p className="inicio-franja-ventas__nota">
         Ventas sin anuladas. Devoluciones aparte. Hoy sigue en curso; ayer y los días anteriores están completos.

@@ -2758,7 +2758,7 @@ dependencies = [
 
 [[package]]
 name = "punto-moto-desktop"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "rand",
  "reqwest 0.12.28",
