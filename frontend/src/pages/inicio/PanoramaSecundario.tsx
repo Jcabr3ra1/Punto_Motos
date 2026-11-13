@@ -200,7 +200,7 @@ export function NecesitaTuAtencion({
 }
 
 /** Estado del cajón en negro con importe esperado en lima; nunca inventa $ 0 ante error o sesión ausente. */
-export function ResumenDeCaja({ hoy, caja }: { hoy: string; caja: UseQueryResult<CurrentCash> }) {
+export function ResumenDeCaja({ hoy, caja, enFranja = false }: { hoy: string; caja: UseQueryResult<CurrentCash>; enFranja?: boolean }) {
   const idTitulo = useId()
   const sesion = caja.data?.session
   const abierta = Boolean(caja.data?.is_open && sesion && typeof sesion.expected_cash === 'number')
@@ -219,13 +219,18 @@ export function ResumenDeCaja({ hoy, caja }: { hoy: string; caja: UseQueryResult
   }
 
   return (
-    <section className="instrumento instrumento--oscuro inicio-caja-resumen" aria-labelledby={idTitulo}>
-      <div className="instrumento__cabecera">
-        <h2 id={idTitulo} className="inicio-caja-resumen__titulo">
+    <section
+      className={enFranja ? 'inicio-celda-ventas inicio-celda-ventas--oscura inicio-celda-caja' : 'instrumento instrumento--oscuro inicio-caja-resumen'}
+      aria-labelledby={idTitulo}
+    >
+      <div className={enFranja ? 'inicio-celda-ventas__cabecera' : 'instrumento__cabecera'}>
+        <h2 id={idTitulo} className={enFranja ? 'inicio-celda-ventas__titulo' : 'inicio-caja-resumen__titulo'}>
           Caja
         </h2>
         {caja.data && !caja.isError && (
-          <span className="instrumento__extra">{caja.data.is_open ? 'Abierta' : 'Cerrada'}</span>
+          <span className={enFranja ? 'inicio-celda-ventas__contexto' : 'instrumento__extra'}>
+            {enFranja && abierta && textoApertura ? `${caja.data.is_open ? 'Abierta' : 'Cerrada'} · ${textoApertura}` : caja.data.is_open ? 'Abierta' : 'Cerrada'}
+          </span>
         )}
       </div>
       {caja.isPending ? (
@@ -234,12 +239,12 @@ export function ResumenDeCaja({ hoy, caja }: { hoy: string; caja: UseQueryResult
         <BloqueDeError oscuro mensaje="No se pudo consultar la caja." alReintentar={() => void caja.refetch()} />
       ) : !caja.data.is_open ? (
         <>
-          <p className="instrumento__estado">La caja está cerrada</p>
+          <p className={enFranja ? 'inicio-celda-caja__estado' : 'instrumento__estado'}>La caja está cerrada</p>
           <p className="instrumento__detalle">Ábrela para poder vender y registrar movimientos de efectivo.</p>
           {caja.isRefetchError && (
             <PieDeDatoEnCache oscuro actualizadoEn={caja.dataUpdatedAt} alReintentar={() => void caja.refetch()} />
           )}
-          <div className="instrumento__pie">
+          <div className={enFranja ? 'inicio-celda-ventas__pie' : 'instrumento__pie'}>
             <Link to={DESTINOS.cajaActual.ruta} className="boton boton--auto">
               Abrir caja
             </Link>
@@ -253,25 +258,32 @@ export function ResumenDeCaja({ hoy, caja }: { hoy: string; caja: UseQueryResult
         />
       ) : (
         <>
-          <p className="instrumento__cifra instrumento__cifra--marca">{formatearPesos(sesion.expected_cash)}</p>
-          <p className="instrumento__detalle">Efectivo esperado en el cajón</p>
-          <dl className="inicio-caja-resumen__datos">
-            {textoApertura && (
+          <p className={enFranja ? 'inicio-celda-ventas__cifra' : 'instrumento__cifra instrumento__cifra--marca'}>{formatearPesos(sesion.expected_cash)}</p>
+          <div className={enFranja ? 'inicio-celda-ventas__referencia' : undefined}>
+            <span>
+              Efectivo esperado en el cajón · Base de apertura:{' '}
+              <strong className={enFranja ? 'inicio-celda-ventas__monto-ref' : undefined}>{formatearPesos(sesion.opening_cash)}</strong>
+            </span>
+          </div>
+          {!enFranja && (
+            <dl className="inicio-caja-resumen__datos">
+              {textoApertura && (
+                <div className="inicio-caja-resumen__fila">
+                  <dt>Apertura</dt>
+                  <dd>{textoApertura}</dd>
+                </div>
+              )}
               <div className="inicio-caja-resumen__fila">
-                <dt>Apertura</dt>
-                <dd>{textoApertura}</dd>
+                <dt>Base de apertura</dt>
+                <dd>{formatearPesos(sesion.opening_cash)}</dd>
               </div>
-            )}
-            <div className="inicio-caja-resumen__fila">
-              <dt>Base de apertura</dt>
-              <dd>{formatearPesos(sesion.opening_cash)}</dd>
-            </div>
-          </dl>
+            </dl>
+          )}
           <p className="instrumento__detalle inicio-caja-resumen__nota">Las transferencias van fuera del cajón.</p>
           {caja.isRefetchError && (
             <PieDeDatoEnCache oscuro actualizadoEn={caja.dataUpdatedAt} alReintentar={() => void caja.refetch()} />
           )}
-          <div className="instrumento__pie">
+          <div className={enFranja ? 'inicio-celda-ventas__pie' : 'instrumento__pie'}>
             <Link to={DESTINOS.cajaActual.ruta} className="instrumento__enlace">
               Ver caja
               <ArrowRight aria-hidden="true" size={14} />
@@ -324,7 +336,6 @@ export function ExistenciasPorReponer({ existencias }: { existencias: UseQueryRe
             />
           )}
           <div className="inicio-existencias__pie">
-            <span />
             <Link to={DESTINOS.productos.ruta} className="panel-inicio__enlace">
               Ver productos
               <ArrowRight aria-hidden="true" size={14} />
@@ -367,11 +378,11 @@ export function ExistenciasPorReponer({ existencias }: { existencias: UseQueryRe
             </div>
           )}
           <div className="por-reponer__pie">
-            <span>{restantes > 0 ? `y ${restantes} más` : ''}</span>
             <Link to={DESTINOS.productos.ruta} className="panel-inicio__enlace">
               Ver productos
               <ArrowRight aria-hidden="true" size={14} />
             </Link>
+            {restantes > 0 && <span>{`y ${restantes} más`}</span>}
           </div>
         </>
       )}

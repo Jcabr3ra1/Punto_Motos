@@ -520,6 +520,24 @@ describe('inicio del dueño', () => {
     expect(sigueDespues(existencias, devoluciones)).toBe(true)
     expect(sigueDespues(devoluciones, ultimas)).toBe(true)
   })
+
+  it('ordena el tablero en cuatro filas emparejadas en pantalla ancha', async () => {
+    abrir(dueno)
+
+    const vendidoHoy = await instrumento('Vendido hoy')
+    const panelCaja = await instrumento('Caja')
+    const tendencia = await instrumento('Cómo vienen las ventas')
+    const atencion = await instrumento('Necesita tu atención')
+    const cuentas = await instrumento('Cuentas del negocio')
+    const devoluciones = await instrumento('Devoluciones de hoy')
+    const ultimas = await screen.findByRole('table', { name: 'Últimas ventas de hoy' })
+    const existencias = await instrumento('Existencias por reponer')
+
+    expect(vendidoHoy.parentElement).toBe(panelCaja.parentElement)
+    expect(tendencia.parentElement).toBe(atencion.parentElement)
+    expect(cuentas.parentElement).toBe(devoluciones.parentElement)
+    expect(ultimas.closest('.inicio-panorama__fila')).toBe(existencias.closest('.inicio-panorama__fila'))
+  })
 })
 
 describe('existencias por reponer', () => {

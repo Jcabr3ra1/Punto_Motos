@@ -97,36 +97,46 @@ export function InicioDelDueno() {
       <div className="inicio-panorama__cuerpo">
         <div className="inicio-panorama__interior">
           <AvisoDeCajaAnterior hoy={hoy} caja={caja} />
-          <FranjaDeVentas
-            hoy={hoy}
-            actual={ventasActual}
-            mesAnterior={mesAnterior}
-            intervaloMesAnterior={intervaloMesAnterior}
-          />
           {angosta ? (
-            <div className="inicio-panorama__una-columna">
-              {bloqueAtencion}
-              {bloqueTendencia}
-              {bloqueCuentas}
-              {bloqueCaja}
-              {bloqueExistencias}
-              {bloqueDevoluciones}
-              {bloqueUltimasVentas}
-            </div>
-          ) : (
-            <div className="inicio-panorama__columnas">
-              <div className="inicio-panorama__principal">
+            <>
+              <FranjaDeVentas
+                hoy={hoy}
+                actual={ventasActual}
+                mesAnterior={mesAnterior}
+                intervaloMesAnterior={intervaloMesAnterior}
+              />
+              <div className="inicio-panorama__una-columna">
+                {bloqueAtencion}
                 {bloqueTendencia}
                 {bloqueCuentas}
-                {bloqueUltimasVentas}
-              </div>
-              <div className="inicio-panorama__secundaria">
-                {bloqueAtencion}
                 {bloqueCaja}
                 {bloqueExistencias}
                 {bloqueDevoluciones}
+                {bloqueUltimasVentas}
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              <FranjaDeVentas
+                hoy={hoy}
+                actual={ventasActual}
+                mesAnterior={mesAnterior}
+                intervaloMesAnterior={intervaloMesAnterior}
+                extraCelda={<ResumenDeCaja hoy={hoy} caja={caja} enFranja />}
+              />
+              <div className="inicio-panorama__fila">
+                {bloqueTendencia}
+                {bloqueAtencion}
+              </div>
+              <div className="inicio-panorama__fila inicio-panorama__fila--financiera">
+                {bloqueCuentas}
+                {bloqueDevoluciones}
+              </div>
+              <div className="inicio-panorama__fila">
+                {bloqueUltimasVentas}
+                {bloqueExistencias}
+              </div>
+            </>
           )}
         </div>
       </div>

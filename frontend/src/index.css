@@ -2518,11 +2518,13 @@ kbd {
 .inicio__vendedor {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  align-items: stretch;
   gap: var(--esp-3);
 }
 
 .panel-inicio {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
@@ -3062,6 +3064,10 @@ kbd {
   align-items: stretch;
 }
 
+.inicio-franja-ventas__celdas--tres {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .inicio-celda-ventas {
   display: flex;
   flex-direction: column;
@@ -3182,20 +3188,37 @@ kbd {
   border-top: 1px solid var(--color-borde);
 }
 
-.inicio-panorama__columnas {
+.inicio-panorama__fila {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  align-items: start;
+  grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr);
+  align-items: stretch;
   gap: var(--esp-3);
 }
 
-.inicio-panorama__principal,
-.inicio-panorama__secundaria,
+.inicio-panorama__fila--financiera {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
 .inicio-panorama__una-columna {
   display: flex;
   flex-direction: column;
   gap: var(--esp-3);
   min-width: 0;
+}
+
+.inicio-celda-caja__estado {
+  margin: var(--esp-2) 0 0;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 24px;
+  color: #ffffff;
+}
+
+.inicio-celda-caja .instrumento__detalle {
+  margin: var(--esp-1) 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--marco-texto-suave);
 }
 
 .inicio-svg--tendencia {
@@ -3204,7 +3227,7 @@ kbd {
 
 .inicio--panorama .panel-inicio__cabecera {
   height: auto;
-  min-height: 36px;
+  min-height: 40px;
   padding: var(--esp-2) var(--esp-4);
 }
 
@@ -3231,6 +3254,7 @@ kbd {
 
 .inicio-cuentas {
   display: grid;
+  flex: 1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -3272,6 +3296,7 @@ kbd {
 .inicio-cuentas__pie {
   display: flex;
   align-items: center;
+  min-height: 28px;
   margin-top: auto;
   padding-top: var(--esp-3);
 }
@@ -3463,9 +3488,10 @@ kbd {
 
 .inicio-existencias__producto {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--esp-2);
   min-width: 0;
 }
 
@@ -3490,8 +3516,10 @@ kbd {
 .inicio-existencias__pie {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: var(--esp-1);
+  justify-content: flex-start;
+  min-height: 28px;
+  margin-top: auto;
+  padding-top: var(--esp-3);
 }
 
 .inicio-existencias__cache {
@@ -3500,7 +3528,7 @@ kbd {
 
 .inicio-devoluciones__cifra {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 650;
   line-height: 28px;
   text-align: right;
@@ -3533,8 +3561,9 @@ kbd {
 .inicio-devoluciones__pie {
   display: flex;
   align-items: center;
+  min-height: 28px;
   margin-top: auto;
-  padding-top: var(--esp-1);
+  padding-top: var(--esp-3);
 }
 
 .inicio-error-bloque {
@@ -3606,7 +3635,9 @@ kbd {
 }
 
 @container area (max-width: 959px) {
-  .inicio-panorama__columnas {
+  .inicio-franja-ventas__celdas--tres,
+  .inicio-panorama__fila,
+  .inicio-panorama__fila--financiera {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -5830,10 +5861,12 @@ a.navbar__caja:hover .navbar__valor {
   align-items: center;
   justify-content: space-between;
   gap: var(--esp-2);
-  height: 36px;
-  padding: 0 var(--esp-4);
+  min-height: 44px;
+  margin-top: auto;
+  padding: var(--esp-2) var(--esp-4);
   font-size: 12px;
   color: var(--texto-secundario);
+  border-top: 1px solid var(--linea-suave);
 }
 
 /* Caja de hoy en Inicio: textos que no se parten por dentro. */

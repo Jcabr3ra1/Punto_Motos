@@ -32,7 +32,7 @@ export function TablaDeVentas({
     refetchInterval: CADA_MINUTO,
   })
   return (
-    <section className="panel-inicio">
+    <section className="panel-inicio panel-inicio--marca">
       <div className="panel-inicio__cabecera">
         <h2 id={idTitulo} className="panel-inicio__titulo">
           {titulo}
