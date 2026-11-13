@@ -5,11 +5,17 @@ import type { SaleSummary } from '../../api/types'
 import { dueno, simularApi, vendedor } from '../../test/apiSimulada'
 import { mostrarRutas } from '../../test/mostrar'
 import { exportarExcel } from '../../utilidades/excel'
+import { exportarRecuentoMensual } from '../../utilidades/excelMensual'
 import { hoyEnColombia, moverDia } from '../../utilidades/fechas'
 
 vi.mock('../../utilidades/excel', async (importActual) => {
   const real = await importActual<typeof import('../../utilidades/excel')>()
   return { ...real, exportarExcel: vi.fn().mockResolvedValue(undefined) }
+})
+
+vi.mock('../../utilidades/excelMensual', async (importActual) => {
+  const real = await importActual<typeof import('../../utilidades/excelMensual')>()
+  return { ...real, exportarRecuentoMensual: vi.fn().mockResolvedValue(undefined) }
 })
 
 afterEach(() => {
@@ -118,5 +124,70 @@ describe('resumen de ventas', () => {
         expect.objectContaining({ nombre: 'Por producto' }),
       ]),
     )
+  })
+
+  it('consulta el reporte mensual y genera el Excel diseñado al pulsar Descargar recuento (.xlsx)', async () => {
+    const reporteMensual = {
+      month: '2026-10',
+      date_from: '2026-10-01',
+      date_to: '2026-10-31',
+      business: { name: 'Punto Moto', tax_id: '900123456', address: 'Calle 1', phone: '3001234567' },
+      sales: {
+        count: 10,
+        voided_count: 1,
+        products_quantity: 12,
+        products_total: 660000,
+        services_count: 5,
+        services_total: 200000,
+        gross_total: 860000,
+        returns_count: 1,
+        returns_total: 40000,
+        net_total: 820000,
+        cash_total: 520000,
+        transfer_total: 300000,
+      },
+      cash: {
+        sessions_count: 20,
+        expenses_total: 50000,
+        owner_withdrawals_total: 100000,
+        incoming_total: 820000,
+        outgoing_total: 300000,
+      },
+      purchases: { received_count: 2, received_total: 350000, payments_total: 200000 },
+      workshop: {
+        settlements_count: 4,
+        labor_total: 200000,
+        mechanic_paid_total: 120000,
+        deductions_total: 0,
+        shop_share_total: 80000,
+      },
+      consignments: { deliveries_count: 1, reports_total: 90000, payments_total: 90000 },
+      categories: resumenEjemplo.categories,
+      services: resumenEjemplo.services,
+      products: resumenEjemplo.products.map(({ id, code, name, category_name, quantity, total }) => ({
+        id,
+        code,
+        name,
+        category_name,
+        quantity,
+        total,
+      })),
+      daily: [{ date: '2026-10-15', sales_count: 3, gross_total: 300000, returns_total: 0, net_total: 300000 }],
+      low_stock: [{ id: 9, code: 'ACE-MOT-001', name: 'Aceite 20W50', stock: 1, min_stock: 5 }],
+    }
+    const api = simularApi({
+      'GET /sales/summary*': () => ({ cuerpo: resumenEjemplo }),
+      'GET /reports/monthly*': () => ({ cuerpo: reporteMensual }),
+    })
+    mostrarRutas(dueno, '/venta/resumen')
+    const u = userEvent.setup()
+
+    const selectorMes = await screen.findByLabelText('Mes del recuento')
+    await u.clear(selectorMes)
+    await u.type(selectorMes, '2026-10')
+    await u.click(screen.getByRole('button', { name: 'Descargar recuento (.xlsx)' }))
+
+    await waitFor(() => expect(exportarRecuentoMensual).toHaveBeenCalledWith(reporteMensual))
+    expect(api.llamadas.some((l) => l.clave === 'GET /reports/monthly?month=2026-10')).toBe(true)
   })
 })

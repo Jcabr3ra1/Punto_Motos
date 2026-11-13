@@ -19,6 +19,7 @@ class BusinessSettings(models.Model):
     default_mechanic_percentage = models.PositiveSmallIntegerField(
         "porcentaje general de los mecánicos", default=60, validators=[MaxValueValidator(100)],
     )
+    last_backup_at = models.DateTimeField("último respaldo descargado", null=True, blank=True)
     updated_at = models.DateTimeField("actualizado", auto_now=True)
 
     class Meta:

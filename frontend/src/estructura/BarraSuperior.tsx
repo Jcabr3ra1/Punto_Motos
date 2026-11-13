@@ -7,6 +7,7 @@ import { useCajaActual } from '../hooks/useCajaActual'
 import { useNegocio } from '../hooks/useNegocio'
 import { ubicacionDe } from '../navegacion/ubicacion'
 import { formatearPesos } from '../utilidades/dinero'
+import { Notificaciones } from './Notificaciones'
 
 const formatoDeFecha = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
 const formatoDeHora = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' })
@@ -63,6 +64,7 @@ export function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
 
       {/* A la derecha, todo con la misma forma: rótulo pequeño arriba y valor abajo, separados por líneas finas. */}
       <div className="navbar__lado">
+        <Notificaciones />
         <button type="button" className="navbar__buscar" onClick={onBuscar} aria-label="Buscar pantalla" aria-keyshortcuts="Control+K">
           <Search aria-hidden="true" size={16} strokeWidth={1.75} />
           <span>Buscar</span>

@@ -11,6 +11,21 @@ Qué debe hacer el frontend: ... (o "Ninguna acción para el frontend")
 Cambio incompatible: solo si se renombra o quita algo que el frontend ya usa
 ```
 
+## 2026-11-13 · Copias de seguridad descargables y recuento mensual consolidado
+
+**Qué cambió**
+
+- **`BusinessSettings.last_backup_at`**: nuevo campo opcional de solo lectura en `GET/PUT/PATCH /settings/business` (migración `core.0003_businesssettings_last_backup_at`). Registra cuándo descargó el dueño su última copia externa.
+- **`GET /backups/download`** (solo el dueño): genera una copia SQLite consistente con `sqlite3.backup()`, comprueba `PRAGMA integrity_check`, actualiza `last_backup_at` y responde con `Content-Type: application/x-sqlite3`, `Content-Disposition` y `X-Backup-Sha256`.
+- **`GET /reports/monthly?month=AAAA-MM`** (solo el dueño): consolida ventas netas, caja, compras, liquidaciones de taller, consignaciones, desglose por día/tipo/servicio/producto y productos por reponer del mes pedido (`400 validation_error` con `fields.month` si el formato no es `AAAA-MM`).
+- **`GET /notifications`** (sesión): devuelve `low_stock_count`, hasta 5 productos urgentes en `low_stock` y, solo para el dueño, alertas operativas (`alerts`) sobre respaldo, caja de día anterior, liquidaciones pendientes y borradores de compra.
+- **CORS**: expone `Content-Disposition` y `X-Backup-Sha256` al frontend en respuestas no preflight.
+
+**Qué debe hacer el frontend**
+
+- Mostrar el estado de `last_backup_at`, ofrecer la descarga en **Configuración → Copias de seguridad** y avisar en notificaciones cuando falte o supere 7 días.
+- Consumir `GET /reports/monthly` en **Mostrador → Resumen** para generar el libro mensual `.xlsx`.
+
 ## 2026-11-13 · Eliminar mecánicos sin historial y detallar servicios en liquidación diaria
 
 **Qué cambió**

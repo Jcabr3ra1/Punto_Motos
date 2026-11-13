@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { api, configureApi, getSessionToken, isApiError, onSessionExpired, setSessionToken } from './client'
+import {
+  api,
+  configureApi,
+  downloadBlob,
+  getSessionToken,
+  isApiError,
+  onSessionExpired,
+  setSessionToken,
+} from './client'
 
 const BASE = 'http://127.0.0.1:8765/api/v1'
 
@@ -132,5 +140,33 @@ describe('api', () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
 
     await expect(api('/health')).rejects.toMatchObject({ code: 'network_error' })
+  })
+
+  it('downloadBlob extrae nombre del archivo y hash de Content-Disposition y X-Backup-Sha256', async () => {
+    setSessionToken('mi-sesion')
+    fetchMock.mockResolvedValue(
+      new Response('sqlite-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/x-sqlite3',
+          'Content-Disposition': 'attachment; filename="punto-moto-respaldo-2026-11-13.sqlite3"',
+          'X-Backup-Sha256': 'deadbeef1234',
+        },
+      }),
+    )
+
+    const res = await downloadBlob('/backups/download')
+
+    expect(res.filename).toBe('punto-moto-respaldo-2026-11-13.sqlite3')
+    expect(res.sha256).toBe('deadbeef1234')
+    expect(res.blob.size).toBe(12)
+  })
+
+  it('downloadBlob convierte errores HTTP como 403 en ApiError', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ code: 'permission_denied', message: 'Solo el dueño.', fields: {} }, 403),
+    )
+
+    await expect(downloadBlob('/backups/download')).rejects.toMatchObject({ code: 'permission_denied' })
   })
 })

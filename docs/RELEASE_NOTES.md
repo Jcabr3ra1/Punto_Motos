@@ -1,20 +1,23 @@
-# Punto Moto 0.6.2
+# Punto Moto 0.6.3
 
 ## Cambios de esta versión
 
-- **Alineación simétrica en Inicio:** el tablero del dueño ahora organiza sus tarjetas en cuatro filas emparejadas de igual altura (Vendido hoy, Vendido este mes y Caja en una sola franja superior; Cómo vienen las ventas con Necesita tu atención; Cuentas del negocio con Devoluciones de hoy en tres tercios iguales; Últimas ventas con Existencias por reponer abajo), con cabeceras, franjas superiores y pies uniformes.
-- **Vista del vendedor:** las tarjetas de Consulta de precios y Ventas de hoy comparten ahora altura y remate visual consistente.
+- **Trabajo sin internet sin bloqueos:** las consultas y formularios locales ya no se quedan en *Cargando…* ni *Guardando…* cuando el computador pierde la conexión a internet. Todos los movimientos se guardan al instante en el SQLite local de tu equipo.
+- **Copias de seguridad descargables:** nueva pantalla **Configuración → Copias de seguridad** para que el dueño descargue en cualquier momento una copia `.sqlite3` verificada (`PRAGMA integrity_check`) y la conserve fuera del equipo (USB, otro disco o nube), con registro de la última descarga (`last_backup_at`).
+- **Botón de notificaciones en la barra superior:** nueva campanita con contador que alerta al equipo sobre productos agotados o en stock mínimo y, al dueño, sobre copias de seguridad faltantes o vencidas (≥ 7 días), caja abierta de un día anterior, mecánicos por liquidar y compras en borrador.
+- **Recuento mensual diseñado en Excel (`.xlsx`):** nueva sección en **Mostrador → Resumen** que consulta `GET /api/v1/reports/monthly` y genera un libro `.xlsx` de 5 hojas con formato corporativo (*Resumen del mes*, *Por día*, *Tipos y servicios*, *Productos vendidos* y *Por reponer*).
 
-No cambian el contrato de la API ni el esquema de datos (`0.11.0`).
+Incluye migración del backend (`core.0003_businesssettings_last_backup_at`) con respaldo automático previo a la migración al iniciar el programa actualizado.
 
 ## Funciones disponibles
 
 Versión instalable para Windows de 64 bits.
 
-- Interfaz de escritorio integrada con Django (`0.11.0`) y SQLite local, sin instalar Python aparte.
+- Interfaz de escritorio integrada con Django (`0.11.0`) y SQLite local, sin instalar Python aparte ni depender de internet para operar.
 - Acceso por usuario y rol; catálogo, inventario, compras, ventas, devoluciones, caja, consignaciones y taller con liquidación diaria y descuentos.
-- Datos separados de la instalación e instancia única.
-- Búsqueda de actualizaciones desde Inicio para el dueño; descarga e instalación solo tras confirmar.
+- Notificaciones rápidas de inventario y avisos operativos desde la barra superior.
+- Copias de seguridad SQLite descargables para respaldo externo y recuento mensual consolidado en `.xlsx`.
+- Datos separados de la instalación, instancia única y búsqueda de actualizaciones desde Inicio para el dueño.
 - Verificación criptográfica de paquetes y respaldo local antes de migraciones pendientes.
 
-Aún están pendientes impresión ESC/POS, respaldos externos y cierres/reportes mensuales. El respaldo previo a migraciones no sustituye las copias externas del negocio.
+Aún están pendientes impresión ESC/POS y restaurar copias externas directamente desde la interfaz.
